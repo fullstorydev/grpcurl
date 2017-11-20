@@ -1,16 +1,16 @@
-# GRPCurl
-`grpcurl` is a command-line tool that lets you interact with GRPC servers. It's
-basically `curl` for GRPC servers.
+# gRPCurl
+`grpcurl` is a command-line tool that lets you interact with gRPC servers. It's
+basically `curl` for gRPC servers.
 
-The main purpose for this tool is to invoke RPC methods on a GRPC server from the
-command-line. GRPC servers use a binary encoding on the wire
+The main purpose for this tool is to invoke RPC methods on a gRPC server from the
+command-line. gRPC servers use a binary encoding on the wire
 ([protocol buffers](https://developers.google.com/protocol-buffers/), or "protobufs"
 for short). So they are basically impossible to interact with using regular `curl`
 (and older versions of `curl` that do not support HTTP/2 are of course non-starters).
 This program accepts messages using JSON encoding, which is much more friendly for both
 humans and scripts.
 
-With this tool you can also browse the schema for GRPC services, either by querying
+With this tool you can also browse the schema for gRPC services, either by querying
 a server that supports [service reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto)
 or by loading in "protoset" files (files that contain encoded file
 [descriptor protos](https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto)).
