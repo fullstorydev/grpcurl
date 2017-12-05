@@ -685,7 +685,7 @@ func fetchAllExtensions(source DescriptorSource, ext *dynamic.ExtensionRegistry,
 		fds, err := source.AllExtensionsForType(msgTypeName)
 		for _, fd := range fds {
 			if err = ext.AddExtension(fd); err != nil {
-				return fmt.Errorf("could not register extension %d of type %s: %v", fd.GetFullyQualifiedName(), msgTypeName, err)
+				return fmt.Errorf("could not register extension %s of type %s: %v", fd.GetFullyQualifiedName(), msgTypeName, err)
 			}
 		}
 	}
