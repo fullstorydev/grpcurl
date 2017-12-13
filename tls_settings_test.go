@@ -125,7 +125,9 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 	// various errors possible when server closes connection
 	if !strings.Contains(err.Error(), "transport is closing") &&
 		!strings.Contains(err.Error(), "connection is unavailable") &&
-		!strings.Contains(err.Error(), "use of closed network connection") {
+		!strings.Contains(err.Error(), "use of closed network connection") &&
+		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") &&
+		!strings.Contains(err.Error(), "deadline exceeded") {
 
 		t.Fatalf("expecting transport failure, got: %v", err)
 	}
@@ -297,13 +299,10 @@ func createTestServerAndClient(serverCreds, clientCreds credentials.TransportCre
 	port := l.Addr().(*net.TCPAddr).Port
 	go svr.Serve(l)
 
-	cliOpts := []grpc.DialOption{grpc.WithTimeout(2 * time.Second), grpc.WithBlock()}
-	if clientCreds != nil {
-		cliOpts = append(cliOpts, grpc.WithTransportCredentials(clientCreds))
-	} else {
-		cliOpts = append(cliOpts, grpc.WithInsecure())
-	}
-	cc, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", port), cliOpts...)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	cc, err := BlockingDial(ctx, fmt.Sprintf("127.0.0.1:%d", port), clientCreds)
 	if err != nil {
 		return e, err
 	}

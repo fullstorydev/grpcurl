@@ -57,8 +57,10 @@ func TestMain(m *testing.M) {
 	defer svrReflect.Stop()
 
 	// And a corresponding client
-	if ccReflect, err = grpc.Dial(fmt.Sprintf("127.0.0.1:%d", portReflect),
-		grpc.WithInsecure(), grpc.WithTimeout(10*time.Second), grpc.WithBlock()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if ccReflect, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portReflect),
+		grpc.WithInsecure(), grpc.WithBlock()); err != nil {
 		panic(err)
 	}
 	defer ccReflect.Close()
@@ -80,8 +82,10 @@ func TestMain(m *testing.M) {
 	defer svrProtoset.Stop()
 
 	// And a corresponding client
-	if ccProtoset, err = grpc.Dial(fmt.Sprintf("127.0.0.1:%d", portProtoset),
-		grpc.WithInsecure(), grpc.WithTimeout(10*time.Second), grpc.WithBlock()); err != nil {
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if ccProtoset, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portProtoset),
+		grpc.WithInsecure(), grpc.WithBlock()); err != nil {
 		panic(err)
 	}
 	defer ccProtoset.Close()

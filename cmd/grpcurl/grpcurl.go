@@ -17,6 +17,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
@@ -188,7 +189,9 @@ func main() {
 			}
 			dialTime = time.Duration(t * float64(time.Second))
 		}
-		opts := []grpc.DialOption{grpc.WithTimeout(dialTime), grpc.WithBlock()}
+		ctx, cancel := context.WithTimeout(ctx, dialTime)
+		defer cancel()
+		var opts []grpc.DialOption
 		if *keepaliveTime != "" {
 			t, err := strconv.ParseFloat(*keepaliveTime, 64)
 			if err != nil {
@@ -200,16 +203,15 @@ func main() {
 				Timeout: timeout,
 			}))
 		}
-		if *plaintext {
-			opts = append(opts, grpc.WithInsecure())
-		} else {
-			creds, err := grpcurl.ClientTransportCredentials(*insecure, *cacert, *cert, *key)
+		var creds credentials.TransportCredentials
+		if !*plaintext {
+			var err error
+			creds, err = grpcurl.ClientTransportCredentials(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to configure transport credentials")
 			}
-			opts = append(opts, grpc.WithTransportCredentials(creds))
 		}
-		cc, err := grpc.Dial(target, opts...)
+		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
