@@ -125,7 +125,8 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 	// various errors possible when server closes connection
 	if !strings.Contains(err.Error(), "transport is closing") &&
 		!strings.Contains(err.Error(), "connection is unavailable") &&
-		!strings.Contains(err.Error(), "use of closed network connection") {
+		!strings.Contains(err.Error(), "use of closed network connection") &&
+		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") {
 
 		t.Fatalf("expecting transport failure, got: %v", err)
 	}
@@ -141,6 +142,9 @@ func TestBrokenTLS_ServerPlainText(t *testing.T) {
 	if err == nil {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+	}
+	if !strings.Contains(err.Error(), "first record does not look like a TLS handshake") {
+		t.Fatalf("expecting TLS handshake failure, got: %v", err)
 	}
 }
 
@@ -159,6 +163,9 @@ func TestBrokenTLS_ServerUsesWrongCert(t *testing.T) {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
 	}
+	if !strings.Contains(err.Error(), "certificate is valid for") {
+		t.Fatalf("expecting TLS certificate error, got: %v", err)
+	}
 }
 
 func TestBrokenTLS_ClientHasExpiredCert(t *testing.T) {
@@ -175,6 +182,9 @@ func TestBrokenTLS_ClientHasExpiredCert(t *testing.T) {
 	if err == nil {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+	}
+	if !strings.Contains(err.Error(), "bad certificate") {
+		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
 
@@ -193,6 +203,9 @@ func TestBrokenTLS_ServerHasExpiredCert(t *testing.T) {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
 	}
+	if !strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
+		t.Fatalf("expecting TLS certificate expired, got: %v", err)
+	}
 }
 
 func TestBrokenTLS_ClientNotTrusted(t *testing.T) {
@@ -209,6 +222,9 @@ func TestBrokenTLS_ClientNotTrusted(t *testing.T) {
 	if err == nil {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+	}
+	if !strings.Contains(err.Error(), "bad certificate") {
+		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
 
@@ -227,6 +243,9 @@ func TestBrokenTLS_ServerNotTrusted(t *testing.T) {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
 	}
+	if !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+		t.Fatalf("expecting TLS certificate error, got: %v", err)
+	}
 }
 
 func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
@@ -243,6 +262,9 @@ func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
 	if err == nil {
 		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+	}
+	if !strings.Contains(err.Error(), "bad certificate") {
+		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
 
@@ -279,13 +301,7 @@ func createTestServerAndClient(serverCreds, clientCreds credentials.TransportCre
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	var tlsOpt grpc.DialOption
-	if clientCreds != nil {
-		tlsOpt = grpc.WithTransportCredentials(clientCreds)
-	} else {
-		tlsOpt = grpc.WithInsecure()
-	}
-	cc, err := grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", port), grpc.WithBlock(), tlsOpt)
+	cc, err := BlockingDial(ctx, fmt.Sprintf("127.0.0.1:%d", port), clientCreds)
 	if err != nil {
 		return e, err
 	}
