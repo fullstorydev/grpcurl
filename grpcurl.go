@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,6 +38,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ErrReflectionNotSupported is returned by DescriptorSource operations that
+// rely on interacting with the reflection service when the source does not
+// actually expose the reflection service. When this occurs, an alternate source
+// (like file descriptor sets) must be used.
 var ErrReflectionNotSupported = errors.New("server does not support the reflection API")
 
 // DescriptorSource is a source of protobuf descriptor information. It can be backed by a FileDescriptorSet
@@ -263,6 +268,9 @@ type InvocationEventHandler interface {
 	OnReceiveTrailers(*status.Status, metadata.MD)
 }
 
+// RequestMessageSupplier is a function that is called to retrieve request
+// messages for a GRPC operation. The message contents must be valid JSON. If
+// the supplier has no more messages, it should return nil, io.EOF.
 type RequestMessageSupplier func() (json.RawMessage, error)
 
 // InvokeRpc uses te given GRPC connection to invoke the given method. The given descriptor source
@@ -605,6 +613,12 @@ func invokeBidi(ctx context.Context, cancel context.CancelFunc, stub grpcdynamic
 	return nil
 }
 
+// MetadataFromHeaders converts a list of header strings (each string in
+// "Header-Name: Header-Value" form) into metadata. If a string has a header
+// name without a value (e.g. does not contain a colon), the value is assumed
+// to be blank. Binary headers (those whose names end in "-bin") should be
+// base64-encoded. But if they cannot be base64-decoded, they will be assumed to
+// be in raw form and used as is.
 func MetadataFromHeaders(headers []string) metadata.MD {
 	md := make(metadata.MD)
 	for _, part := range headers {
@@ -614,10 +628,36 @@ func MetadataFromHeaders(headers []string) metadata.MD {
 				pieces = append(pieces, "") // if no value was specified, just make it "" (maybe the header value doesn't matter)
 			}
 			headerName := strings.ToLower(strings.TrimSpace(pieces[0]))
-			md[headerName] = append(md[headerName], strings.TrimSpace(pieces[1]))
+			val := strings.TrimSpace(pieces[1])
+			if strings.HasSuffix(headerName, "-bin") {
+				if v, err := decode(val); err == nil {
+					val = v
+				}
+			}
+			md[headerName] = append(md[headerName], val)
 		}
 	}
 	return md
+}
+
+var base64Codecs = []*base64.Encoding{base64.StdEncoding, base64.URLEncoding, base64.RawStdEncoding, base64.RawURLEncoding}
+
+func decode(val string) (string, error) {
+	var firstErr error
+	var b []byte
+	// we are lenient and can accept any of the flavors of base64 encoding
+	for _, d := range base64Codecs {
+		var err error
+		b, err = d.DecodeString(val)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		return string(b), nil
+	}
+	return "", firstErr
 }
 
 func parseSymbol(svcAndMethod string) (string, string) {
@@ -631,6 +671,8 @@ func parseSymbol(svcAndMethod string) (string, string) {
 	return svcAndMethod[:pos], svcAndMethod[pos+1:]
 }
 
+// MetadataToString returns a string representation of the given metadata, for
+// displaying to users.
 func MetadataToString(md metadata.MD) string {
 	if len(md) == 0 {
 		return "(empty)"
@@ -640,6 +682,9 @@ func MetadataToString(md metadata.MD) string {
 		for _, v := range vs {
 			b.WriteString(k)
 			b.WriteString(": ")
+			if strings.HasSuffix(k, "-bin") {
+				v = base64.StdEncoding.EncodeToString([]byte(v))
+			}
 			b.WriteString(v)
 			b.WriteString("\n")
 		}
@@ -647,11 +692,15 @@ func MetadataToString(md metadata.MD) string {
 	return b.String()
 }
 
+// GetDescriptorText returns a string representation of the given descriptor.
 func GetDescriptorText(dsc desc.Descriptor, descSource DescriptorSource) (string, error) {
 	dscProto := EnsureExtensions(descSource, dsc.AsProto())
 	return (&jsonpb.Marshaler{Indent: "  "}).MarshalToString(dscProto)
 }
 
+// EnsureExtensions uses the given descriptor source to download extensions for
+// the given message. It returns a copy of the given message, but as a dynamic
+// message that knows about all extensions known to the given descriptor source.
 func EnsureExtensions(source DescriptorSource, msg proto.Message) proto.Message {
 	// load any server extensions so we can properly describe custom options
 	dsc, err := desc.LoadMessageDescriptorForMessage(msg)
