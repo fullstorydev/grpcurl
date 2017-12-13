@@ -871,7 +871,7 @@ func BlockingDial(ctx context.Context, address string, creds credentials.Transpo
 		once.Do(func() { wg.Done() })
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
+		conn, err := (&net.Dialer{Cancel: ctx.Done()}).Dial("tcp", address)
 		if err != nil {
 			writeResult(err)
 			return nil, err

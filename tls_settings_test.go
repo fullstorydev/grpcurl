@@ -126,7 +126,8 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 	if !strings.Contains(err.Error(), "transport is closing") &&
 		!strings.Contains(err.Error(), "connection is unavailable") &&
 		!strings.Contains(err.Error(), "use of closed network connection") &&
-		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") {
+		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") &&
+		!strings.Contains(err.Error(), "deadline exceeded") {
 
 		t.Fatalf("expecting transport failure, got: %v", err)
 	}
