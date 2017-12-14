@@ -108,9 +108,22 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 		t.Fatalf("failed to create server creds: %v", err)
 	}
 
-	// client connection succeeds since client is not waiting for TLS handshake
+	// client connection (usually) succeeds since client is not waiting for TLS handshake
 	e, err := createTestServerAndClient(serverCreds, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "deadline exceeded") {
+			// It is possible that connection never becomes healthy:
+			//   1) grpc connects successfully
+			//   2) grpc client tries to send HTTP/2 preface and settings frame
+			//   3) server, expecting handshake, closes the connection
+			//   4) in the client, the write fails, so the connection never
+			//      becomes ready
+			// More often than not, the connection becomes ready (presumably
+			// the write to the socket succeeds before the server closes the
+			// connection). But when it does not, it is possible to observe
+			// timeouts when setting up the connection.
+			return
+		}
 		t.Fatalf("failed to setup server and client: %v", err)
 	}
 	defer e.Close()
@@ -126,8 +139,7 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 	if !strings.Contains(err.Error(), "transport is closing") &&
 		!strings.Contains(err.Error(), "connection is unavailable") &&
 		!strings.Contains(err.Error(), "use of closed network connection") &&
-		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") &&
-		!strings.Contains(err.Error(), "deadline exceeded") {
+		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") {
 
 		t.Fatalf("expecting transport failure, got: %v", err)
 	}
