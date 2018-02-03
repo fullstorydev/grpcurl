@@ -386,7 +386,7 @@ func invokeUnary(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDesc
 
 	var respStr string
 	if stat.Code() == codes.OK {
-		jsm := jsonpb.Marshaler{Indent: "  "}
+		jsm := jsonpb.Marshaler{EmitDefaults: true, Indent: "  "}
 		respStr, err = jsm.MarshalToString(resp)
 		if err != nil {
 			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
@@ -449,7 +449,7 @@ func invokeClientStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 
 	var respStr string
 	if stat.Code() == codes.OK {
-		jsm := jsonpb.Marshaler{Indent: "  "}
+		jsm := jsonpb.Marshaler{EmitDefaults: true, Indent: "  "}
 		respStr, err = jsm.MarshalToString(resp)
 		if err != nil {
 			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
@@ -502,7 +502,7 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 			}
 			break
 		}
-		jsm := jsonpb.Marshaler{Indent: "  "}
+		jsm := jsonpb.Marshaler{EmitDefaults: true, Indent: "  "}
 		respStr, err := jsm.MarshalToString(resp)
 		if err != nil {
 			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
@@ -588,7 +588,7 @@ func invokeBidi(ctx context.Context, cancel context.CancelFunc, stub grpcdynamic
 			}
 			break
 		}
-		jsm := jsonpb.Marshaler{Indent: "  "}
+		jsm := jsonpb.Marshaler{EmitDefaults: true, Indent: "  "}
 		respStr, err := jsm.MarshalToString(resp)
 		if err != nil {
 			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
