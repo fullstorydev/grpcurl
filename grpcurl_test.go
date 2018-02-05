@@ -261,6 +261,20 @@ const (
     "body": "SXQncyBCdXNpbmVzcyBUaW1l"
   }
 }`
+	fullResponse1 = `{
+  "payload": {
+    "type": "COMPRESSABLE",
+    "body": "SXQncyBCdXNpbmVzcyBUaW1l"
+  },
+  "username": "",
+  "oauthScope": ""
+}`
+	response1 = `{
+  "payload": {
+    "type": "COMPRESSABLE",
+    "body": "SXQncyBCdXNpbmVzcyBUaW1l"
+  }
+}`
 	payload2 = `{
   "payload": {
     "type": "RANDOM",
@@ -292,7 +306,7 @@ func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	}
 
 	if h.check(t, "grpc.testing.TestService.UnaryCall", codes.OK, 1, 1) {
-		if h.respMessages[0] != payload1 {
+		if h.respMessages[0] != fullResponse1 {
 			t.Errorf("unexpected response from RPC: expecting %s; got %s", payload1, h.respMessages[0])
 		}
 	}
@@ -424,6 +438,7 @@ func TestHalfDuplexStreamReflect(t *testing.T) {
 
 func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	reqs := []string{payload1, payload2, payload3}
+	resps := []string{response1, payload2, payload3}
 
 	// Success
 	h := &handler{reqMessages: reqs}
@@ -434,8 +449,8 @@ func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	if h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.OK, 3, 3) {
 		for i, resp := range h.respMessages {
-			if resp != reqs[i] {
-				t.Errorf("unexpected response %d from RPC:\nexpecting %q\ngot %q", i, reqs[i], resp)
+			if resp != resps[i] {
+				t.Errorf("unexpected response %d from RPC:\nexpecting %q\ngot %q", i, resps[i], resp)
 			}
 		}
 	}
