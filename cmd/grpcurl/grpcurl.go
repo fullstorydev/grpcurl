@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"golang.org/x/net/context"
@@ -64,6 +66,8 @@ var (
 		`The maximum total time the operation can take. This is useful for
     	preventing batch jobs that use grpcurl from hanging due to slow or bad
     	network links or due to incorrect stream method usage.`)
+	emitDefaults = flag.Bool("emit-defaults", false,
+		`Emit default values from JSON-encoded responses.`)
 	verbose = flag.Bool("v", false,
 		`Enable verbose output.`)
 )
@@ -442,12 +446,17 @@ func (*handler) OnReceiveHeaders(md metadata.MD) {
 	}
 }
 
-func (h *handler) OnReceiveResponse(rsp json.RawMessage) {
+func (h *handler) OnReceiveResponse(resp proto.Message) {
 	h.respCount++
 	if *verbose {
 		fmt.Print("\nResponse contents:\n")
 	}
-	fmt.Println(string(rsp))
+	jsm := jsonpb.Marshaler{EmitDefaults: *emitDefaults, Indent: "  "}
+	respStr, err := jsm.MarshalToString(resp)
+	if err != nil {
+		fail(err, "failed to generate JSON form of response message")
+	}
+	fmt.Println(respStr)
 }
 
 func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {

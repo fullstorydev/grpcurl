@@ -261,20 +261,6 @@ const (
     "body": "SXQncyBCdXNpbmVzcyBUaW1l"
   }
 }`
-	fullResponse1 = `{
-  "payload": {
-    "type": "COMPRESSABLE",
-    "body": "SXQncyBCdXNpbmVzcyBUaW1l"
-  },
-  "username": "",
-  "oauthScope": ""
-}`
-	response1 = `{
-  "payload": {
-    "type": "COMPRESSABLE",
-    "body": "SXQncyBCdXNpbmVzcyBUaW1l"
-  }
-}`
 	payload2 = `{
   "payload": {
     "type": "RANDOM",
@@ -306,7 +292,7 @@ func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	}
 
 	if h.check(t, "grpc.testing.TestService.UnaryCall", codes.OK, 1, 1) {
-		if h.respMessages[0] != fullResponse1 {
+		if h.respMessages[0] != payload1 {
 			t.Errorf("unexpected response from RPC: expecting %s; got %s", payload1, h.respMessages[0])
 		}
 	}
@@ -438,7 +424,6 @@ func TestHalfDuplexStreamReflect(t *testing.T) {
 
 func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	reqs := []string{payload1, payload2, payload3}
-	resps := []string{response1, payload2, payload3}
 
 	// Success
 	h := &handler{reqMessages: reqs}
@@ -449,8 +434,8 @@ func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	if h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.OK, 3, 3) {
 		for i, resp := range h.respMessages {
-			if resp != resps[i] {
-				t.Errorf("unexpected response %d from RPC:\nexpecting %q\ngot %q", i, resps[i], resp)
+			if resp != reqs[i] {
+				t.Errorf("unexpected response %d from RPC:\nexpecting %q\ngot %q", i, reqs[i], resp)
 			}
 		}
 	}
@@ -591,8 +576,13 @@ func (h *handler) OnReceiveHeaders(md metadata.MD) {
 	h.respHeaders = md
 }
 
-func (h *handler) OnReceiveResponse(msg json.RawMessage) {
-	h.respMessages = append(h.respMessages, string(msg))
+func (h *handler) OnReceiveResponse(msg proto.Message) {
+	jsm := jsonpb.Marshaler{Indent: "  "}
+	respStr, err := jsm.MarshalToString(msg)
+	if err != nil {
+		panic(fmt.Errorf("failed to generate JSON form of response message: %v", err))
+	}
+	h.respMessages = append(h.respMessages, respStr)
 }
 
 func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
