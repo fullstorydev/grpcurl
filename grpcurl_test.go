@@ -576,8 +576,13 @@ func (h *handler) OnReceiveHeaders(md metadata.MD) {
 	h.respHeaders = md
 }
 
-func (h *handler) OnReceiveResponse(msg json.RawMessage) {
-	h.respMessages = append(h.respMessages, string(msg))
+func (h *handler) OnReceiveResponse(msg proto.Message) {
+	jsm := jsonpb.Marshaler{Indent: "  "}
+	respStr, err := jsm.MarshalToString(msg)
+	if err != nil {
+		panic(fmt.Errorf("failed to generate JSON form of response message: %v", err))
+	}
+	h.respMessages = append(h.respMessages, respStr)
 }
 
 func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {

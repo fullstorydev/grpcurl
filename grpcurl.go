@@ -263,7 +263,7 @@ type InvocationEventHandler interface {
 	// OnReceiveHeaders is called when response headers have been received.
 	OnReceiveHeaders(metadata.MD)
 	// OnReceiveResponse is called for each response message received.
-	OnReceiveResponse(json.RawMessage)
+	OnReceiveResponse(proto.Message)
 	// OnReceiveTrailers is called when response trailers and final RPC status have been received.
 	OnReceiveTrailers(*status.Status, metadata.MD)
 }
@@ -384,14 +384,8 @@ func invokeUnary(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDesc
 
 	handler.OnReceiveHeaders(respHeaders)
 
-	var respStr string
 	if stat.Code() == codes.OK {
-		jsm := jsonpb.Marshaler{Indent: "  "}
-		respStr, err = jsm.MarshalToString(resp)
-		if err != nil {
-			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
-		}
-		handler.OnReceiveResponse(json.RawMessage(respStr))
+		handler.OnReceiveResponse(resp)
 	}
 
 	handler.OnReceiveTrailers(stat, respTrailers)
@@ -447,14 +441,8 @@ func invokeClientStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 		handler.OnReceiveHeaders(respHeaders)
 	}
 
-	var respStr string
 	if stat.Code() == codes.OK {
-		jsm := jsonpb.Marshaler{Indent: "  "}
-		respStr, err = jsm.MarshalToString(resp)
-		if err != nil {
-			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
-		}
-		handler.OnReceiveResponse(json.RawMessage(respStr))
+		handler.OnReceiveResponse(resp)
 	}
 
 	handler.OnReceiveTrailers(stat, str.Trailer())
@@ -502,12 +490,7 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 			}
 			break
 		}
-		jsm := jsonpb.Marshaler{Indent: "  "}
-		respStr, err := jsm.MarshalToString(resp)
-		if err != nil {
-			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
-		}
-		handler.OnReceiveResponse(json.RawMessage(respStr))
+		handler.OnReceiveResponse(resp)
 	}
 
 	stat, ok := status.FromError(err)
@@ -588,13 +571,7 @@ func invokeBidi(ctx context.Context, cancel context.CancelFunc, stub grpcdynamic
 			}
 			break
 		}
-		jsm := jsonpb.Marshaler{Indent: "  "}
-		respStr, err := jsm.MarshalToString(resp)
-		if err != nil {
-			return fmt.Errorf("failed to generate JSON form of response message: %v", err)
-		}
-
-		handler.OnReceiveResponse(json.RawMessage(respStr))
+		handler.OnReceiveResponse(resp)
 	}
 
 	if se, ok := sendErr.Load().(error); ok && se != io.EOF {
