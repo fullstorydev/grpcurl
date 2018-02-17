@@ -72,7 +72,11 @@ func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error
 		}
 		files.File = append(files.File, fs.File...)
 	}
+	return DescriptorSourceFromFileDescriptorSet(files)
+}
 
+// DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the FileDescriptorSet.
+func DescriptorSourceFromFileDescriptorSet(files *descriptor.FileDescriptorSet) (DescriptorSource, error) {
 	unresolved := map[string]*descriptor.FileDescriptorProto{}
 	for _, fd := range files.File {
 		unresolved[fd.GetName()] = fd
