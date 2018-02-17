@@ -11,4 +11,4 @@ matrix:
 
 script:
   # TODO: change to "make" when golint, errcheck, staticcheck pass
-  - make checkgofmt vet unused test
+  - make deps checkgofmt vet unused test

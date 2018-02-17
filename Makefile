@@ -2,7 +2,15 @@ SRCS := $(shell find . -name '*.go')
 PKGS := $(shell go list ./...)
 
 .PHONY: all
-all: lint test
+all: deps lint test
+
+.PHONY: deps
+deps:
+	go get -d -v -t $(PKGS)
+
+.PHONY: updatedeps
+updatedeps:
+	go get -d -v -t -u -f $(PKGS)
 
 .PHONY: install
 install:
