@@ -18,7 +18,7 @@ install:
 
 .PHONY: golint
 golint:
-	go get github.com/golang/lint/golint
+	@go get github.com/golang/lint/golint
 	for file in $(SRCS); do \
 		golint $${file}; \
 		if [ -n "$$(golint $${file})" ]; then \
@@ -39,7 +39,7 @@ vet:
 
 .PHONY:
 errcheck:
-	go get github.com/kisielk/errcheck
+	@go get github.com/kisielk/errcheck
 	errcheck $(PKGS)
 
 .PHONY: staticcheck
