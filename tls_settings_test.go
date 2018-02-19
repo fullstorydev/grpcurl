@@ -283,7 +283,9 @@ func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
 
 func simpleTest(t *testing.T, cc *grpc.ClientConn) {
 	cl := grpc_testing.NewTestServiceClient(cc)
-	_, err := cl.UnaryCall(context.Background(), &grpc_testing.SimpleRequest{})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := cl.UnaryCall(ctx, &grpc_testing.SimpleRequest{}, grpc.FailFast(false))
 	if err != nil {
 		t.Errorf("simple RPC failed: %v", err)
 	}
@@ -311,7 +313,7 @@ func createTestServerAndClient(serverCreds, clientCreds credentials.TransportCre
 	port := l.Addr().(*net.TCPAddr).Port
 	go svr.Serve(l)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	cc, err := BlockingDial(ctx, fmt.Sprintf("127.0.0.1:%d", port), clientCreds)
