@@ -46,21 +46,21 @@ grpcurl grpc.server.com:443 my.custom.server.Service/Method
 To list all services exposed by a server, use the "list" verb. When using protoset files
 instead of server reflection, this lists all services defined in the protoset files.
 ```
-grpcurl localhost:80808 list
+grpcurl localhost:8787 list
 
 grpcurl -protoset my-protos.bin list
 ```
 
 The "list" verb also lets you see all methods in a particular service:
 ```
-grpcurl localhost:80808 list my.custom.server.Service
+grpcurl localhost:8787 list my.custom.server.Service
 ```
 
 The "describe" verb will print the type of any symbol that the server knows about
 or that is found in a given protoset file and also print the full descriptor for the
 symbol, in JSON.
 ```
-grpcurl localhost:80808 describe my.custom.server.Service.MethodOne
+grpcurl localhost:8787 describe my.custom.server.Service.MethodOne
 
 grpcurl -protoset my-protos.bin describe my.custom.server.Service.MethodOne
 ```
