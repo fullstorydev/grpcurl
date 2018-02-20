@@ -1,7 +1,6 @@
 package grpcurl_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -568,7 +567,7 @@ type handler struct {
 	respTrailersCount int
 }
 
-func (h *handler) getRequestData() (json.RawMessage, error) {
+func (h *handler) getRequestData() ([]byte, error) {
 	// we don't use a mutex, though this method will be called from different goroutine
 	// than other methods for bidi calls, because this method does not share any state
 	// with the other methods.
@@ -580,7 +579,7 @@ func (h *handler) getRequestData() (json.RawMessage, error) {
 		// insert delay between messages in request stream
 		time.Sleep(time.Millisecond * 50)
 	}
-	return json.RawMessage(h.reqMessages[h.reqMessagesCount-1]), nil
+	return []byte(h.reqMessages[h.reqMessagesCount-1]), nil
 }
 
 func (h *handler) OnResolveMethod(md *desc.MethodDescriptor) {

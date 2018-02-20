@@ -427,7 +427,7 @@ func (*handler) OnSendHeaders(md metadata.MD) {
 	}
 }
 
-func (h *handler) getRequestData() (json.RawMessage, error) {
+func (h *handler) getRequestData() ([]byte, error) {
 	// we don't use a mutex, though this methods will be called from different goroutine
 	// than other methods for bidi calls, because this method does not share any state
 	// with the other methods.
