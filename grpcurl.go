@@ -99,7 +99,7 @@ func resolveFileDescriptor(unresolved map[string]*descriptor.FileDescriptorProto
 	if !ok {
 		return nil, fmt.Errorf("no descriptor found for %q", filename)
 	}
-	deps := make([]*desc.FileDescriptor, len(fd.GetDependency()))
+	deps := make([]*desc.FileDescriptor, 0, len(fd.GetDependency()))
 	for _, dep := range fd.GetDependency() {
 		depFd, err := resolveFileDescriptor(unresolved, resolved, dep)
 		if err != nil {
