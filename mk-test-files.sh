@@ -6,11 +6,14 @@ cd "$(dirname $0)"
 
 # Run this script to generate files used by tests.
 
-echo "Creating protoset..."
+echo "Creating protosets..."
 protoc ../../../google.golang.org/grpc/interop/grpc_testing/test.proto \
 	-I../../../ --include_imports \
 	--descriptor_set_out=testing/test.protoset
 
+protoc testing/example.proto \
+	--include_imports \
+	--descriptor_set_out=testing/example.protoset
 
 echo "Creating certs for TLS testing..."
 if ! hash certstrap 2>/dev/null; then
