@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -275,7 +274,7 @@ type InvocationEventHandler interface {
 // RequestMessageSupplier is a function that is called to retrieve request
 // messages for a GRPC operation. The message contents must be valid JSON. If
 // the supplier has no more messages, it should return nil, io.EOF.
-type RequestMessageSupplier func() (json.RawMessage, error)
+type RequestMessageSupplier func() ([]byte, error)
 
 // InvokeRpc uses te given GRPC connection to invoke the given method. The given descriptor source
 // is used to determine the type of method and the type of request and response message. The given
@@ -406,7 +405,7 @@ func invokeClientStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 	// Upload each request message in the stream
 	var resp proto.Message
 	for err == nil {
-		var data json.RawMessage
+		var data []byte
 		data, err = requestData()
 		if err == io.EOF {
 			resp, err = str.CloseAndReceive()
@@ -528,7 +527,7 @@ func invokeBidi(ctx context.Context, cancel context.CancelFunc, stub grpcdynamic
 
 			// Concurrently upload each request message in the stream
 			var err error
-			var data json.RawMessage
+			var data []byte
 			for err == nil {
 				data, err = requestData()
 
