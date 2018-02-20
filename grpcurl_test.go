@@ -116,6 +116,28 @@ func TestServerDoesNotSupportReflection(t *testing.T) {
 	}
 }
 
+func TestProtosetWithImports(t *testing.T) {
+	sourceProtoset, err := DescriptorSourceFromProtoSets("testing/example.protoset")
+	if err != nil {
+		t.Fatalf("failed to load protoset: %v", err)
+	}
+	// really shallow check of the loaded descriptors
+	if sd, err := sourceProtoset.FindSymbol("TestService"); err != nil {
+		t.Errorf("failed to find TestService in protoset: %v", err)
+	} else if sd == nil {
+		t.Errorf("FindSymbol returned nil for TestService")
+	} else if _, ok := sd.(*desc.ServiceDescriptor); !ok {
+		t.Errorf("FindSymbol returned wrong kind of descriptor for TestService: %T", sd)
+	}
+	if md, err := sourceProtoset.FindSymbol("TestRequest"); err != nil {
+		t.Errorf("failed to find TestRequest in protoset: %v", err)
+	} else if md == nil {
+		t.Errorf("FindSymbol returned nil for TestRequest")
+	} else if _, ok := md.(*desc.MessageDescriptor); !ok {
+		t.Errorf("FindSymbol returned wrong kind of descriptor for TestRequest: %T", md)
+	}
+}
+
 func TestListServicesProtoset(t *testing.T) {
 	doTestListServices(t, sourceProtoset, false)
 }
