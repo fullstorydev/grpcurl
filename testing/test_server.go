@@ -103,12 +103,10 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 			return str.Context().Err()
 		}
 		if req, err := str.Recv(); err != nil {
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return err
+			if err == io.EOF {
+				break
 			}
+			return err
 		} else {
 			sz += len(req.Payload.Body)
 		}
