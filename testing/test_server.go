@@ -102,14 +102,16 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 		if str.Context().Err() != nil {
 			return str.Context().Err()
 		}
-		req, err := str.Recv()
-		if err != nil {
-			if err == io.EOF {
-				break
+		if req, err := str.Recv(); err != nil {
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
 			}
-			return err
+		} else {
+			sz += len(req.Payload.Body)
 		}
-		sz += len(req.Payload.Body)
 	}
 	if err := str.SendAndClose(&grpc_testing.StreamingInputCallResponse{AggregatedPayloadSize: int32(sz)}); err != nil {
 		return err
@@ -180,14 +182,14 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 		if str.Context().Err() != nil {
 			return str.Context().Err()
 		}
-		req, err := str.Recv()
-		if err != nil {
+		if req, err := str.Recv(); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return err
+		} else {
+			reqs = append(reqs, req)
 		}
-		reqs = append(reqs, req)
 	}
 	rsp := &grpc_testing.StreamingOutputCallResponse{}
 	for _, req := range reqs {
