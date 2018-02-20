@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message TestRequest {
+	repeated string file_names = 1;
+}
+
+message TestResponse {
+	map<string, google.protobuf.FileDescriptorProto> file_protos = 1;
+	google.protobuf.Timestamp last_update_date = 2;
+}
+
+service TestService {
+	rpc GetFiles (TestRequest) returns (TestResponse);
+	rpc Ping (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
