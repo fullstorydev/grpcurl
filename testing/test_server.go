@@ -32,7 +32,7 @@ func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc
 	return req, nil
 }
 
-// UnaryCall One request followed by one response.
+// UnaryCall is One request followed by one response.
 // The server returns the client payload as-is.
 func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest) (*grpc_testing.SimpleResponse, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
