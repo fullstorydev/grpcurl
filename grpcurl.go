@@ -225,16 +225,16 @@ func ListMethods(source DescriptorSource, serviceName string) ([]string, error) 
 	if err != nil {
 		return nil, err
 	}
-	if sd, ok := dsc.(*desc.ServiceDescriptor); !ok {
+	sd, ok := dsc.(*desc.ServiceDescriptor)
+	if !ok {
 		return nil, notFound("Service", serviceName)
-	} else {
-		methods := make([]string, 0, len(sd.GetMethods()))
-		for _, method := range sd.GetMethods() {
-			methods = append(methods, method.GetName())
-		}
-		sort.Strings(methods)
-		return methods, nil
 	}
+	methods := make([]string, 0, len(sd.GetMethods()))
+	for _, method := range sd.GetMethods() {
+		methods = append(methods, method.GetName())
+	}
+	sort.Strings(methods)
+	return methods, nil
 }
 
 type notFoundError string
@@ -304,9 +304,8 @@ func InvokeRpc(ctx context.Context, source DescriptorSource, cc *grpc.ClientConn
 	if err != nil {
 		if isNotFoundError(err) {
 			return fmt.Errorf("target server does not expose service %q", svc)
-		} else {
-			return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 		}
+		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 	}
 	sd, ok := dsc.(*desc.ServiceDescriptor)
 	if !ok {
@@ -345,9 +344,8 @@ func InvokeRpc(ctx context.Context, source DescriptorSource, cc *grpc.ClientConn
 		return invokeClientStream(ctx, stub, mtd, handler, requestData, req)
 	} else if mtd.IsServerStreaming() {
 		return invokeServerStream(ctx, stub, mtd, handler, requestData, req)
-	} else {
-		return invokeUnary(ctx, stub, mtd, handler, requestData, req)
 	}
+	return invokeUnary(ctx, stub, mtd, handler, requestData, req)
 }
 
 func invokeUnary(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescriptor, handler InvocationEventHandler,
@@ -765,9 +763,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 					newVal, err := fullyConvertToDynamic(msgFact, v.(proto.Message))
 					if err != nil {
 						return nil, err
-					} else {
-						dm.PutMapField(fd, k, newVal)
 					}
+					dm.PutMapField(fd, k, newVal)
 				}
 			}
 		} else if fd.IsRepeated() {
@@ -777,9 +774,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 					newVal, err := fullyConvertToDynamic(msgFact, e.(proto.Message))
 					if err != nil {
 						return nil, err
-					} else {
-						dm.SetRepeatedField(fd, i, newVal)
 					}
+					dm.SetRepeatedField(fd, i, newVal)
 				}
 			}
 		} else {
@@ -788,9 +784,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 				newVal, err := fullyConvertToDynamic(msgFact, v.(proto.Message))
 				if err != nil {
 					return nil, err
-				} else {
-					dm.SetField(fd, newVal)
 				}
+				dm.SetField(fd, newVal)
 			}
 		}
 	}
@@ -936,9 +931,8 @@ func BlockingDial(ctx context.Context, address string, creds credentials.Transpo
 	case res := <-result:
 		if conn, ok := res.(*grpc.ClientConn); ok {
 			return conn, nil
-		} else {
-			return nil, res.(error)
 		}
+		return nil, res.(error)
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

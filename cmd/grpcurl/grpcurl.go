@@ -434,10 +434,9 @@ func (h *handler) getRequestData() ([]byte, error) {
 	var msg json.RawMessage
 	if err := h.dec.Decode(&msg); err != nil {
 		return nil, err
-	} else {
-		h.reqCount++
-		return msg, nil
 	}
+	h.reqCount++
+	return msg, nil
 }
 
 func (*handler) OnReceiveHeaders(md metadata.MD) {
