@@ -276,7 +276,7 @@ type InvocationEventHandler interface {
 // the supplier has no more messages, it should return nil, io.EOF.
 type RequestMessageSupplier func() ([]byte, error)
 
-// InvokeRpc uses te given GRPC connection to invoke the given method. The given descriptor source
+// InvokeRPC uses te given GRPC connection to invoke the given method. The given descriptor source
 // is used to determine the type of method and the type of request and response message. The given
 // headers are sent as request metadata. Methods on the given event handler are called as the
 // invocation proceeds.
@@ -291,7 +291,7 @@ type RequestMessageSupplier func() ([]byte, error)
 // be thread-safe. This is because the requestData function may be called from a different goroutine
 // than the one invoking event callbacks. (This only happens for bi-directional streaming RPCs, where
 // one goroutine sends request messages and another consumes the response messages).
-func InvokeRpc(ctx context.Context, source DescriptorSource, cc *grpc.ClientConn, methodName string,
+func InvokeRPC(ctx context.Context, source DescriptorSource, cc *grpc.ClientConn, methodName string,
 	headers []string, handler InvocationEventHandler, requestData RequestMessageSupplier) error {
 
 	md := MetadataFromHeaders(headers)

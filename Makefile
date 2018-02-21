@@ -40,7 +40,7 @@ vet:
 .PHONY:
 errcheck:
 	@go get github.com/kisielk/errcheck
-	errcheck $(PKGS)
+	errcheck -verbose $(PKGS)
 
 .PHONY: staticcheck
 staticcheck:
