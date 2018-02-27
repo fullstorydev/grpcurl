@@ -54,6 +54,9 @@ var (
     	read from stdin. For calls that accept a stream of requests, the
     	contents should include all such request messages concatenated together
     	(optionally separated by whitespace).`)
+	reflectWithHeaders = flag.Bool("reflect-with-headers", false,
+		`Include headers provided with -H when performing reflection calls
+		against a remote server.`)
 	connectTimeout = flag.String("connect-timeout", "",
 		`The maximum time, in seconds, to wait for connection to be established.
     	Defaults to 10 seconds.`)
@@ -155,9 +158,6 @@ func main() {
 		if *data != "" {
 			fail(nil, "The -d argument is not used with 'list' or 'describe' verb.")
 		}
-		if len(addlHeaders) > 0 {
-			fail(nil, "The -H argument is not used with 'list' or 'describe' verb.")
-		}
 		if len(args) > 0 {
 			symbol = args[0]
 			args = args[1:]
@@ -232,8 +232,13 @@ func main() {
 			fail(err, "Failed to process proto descriptor sets")
 		}
 	} else {
+		refCtx := ctx
+		if *reflectWithHeaders {
+			md := grpcurl.MetadataFromHeaders(addlHeaders)
+			refCtx = metadata.NewOutgoingContext(ctx, md)
+		}
 		cc = dial()
-		refClient = grpcreflect.NewClient(ctx, reflectpb.NewServerReflectionClient(cc))
+		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
 		descSource = grpcurl.DescriptorSourceFromServer(ctx, refClient)
 	}
 
