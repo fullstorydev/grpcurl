@@ -73,9 +73,11 @@ var (
 )
 
 func init() {
+	// TODO: Allow separate headers for relflection/invocation
 	flag.Var(&addlHeaders, "H",
 		`Additional request headers in 'name: value' format. May specify more
-    	than one via multiple -H flags.`)
+    	than one via multiple -H flags. These headers will also be included in
+    	reflection requests to a server.`)
 	flag.Var(&protoset, "protoset",
 		`The name of a file containing an encoded FileDescriptorSet. This file's
     	contents will be used to determine the RPC schema instead of querying
@@ -155,9 +157,6 @@ func main() {
 		if *data != "" {
 			fail(nil, "The -d argument is not used with 'list' or 'describe' verb.")
 		}
-		if len(addlHeaders) > 0 {
-			fail(nil, "The -H argument is not used with 'list' or 'describe' verb.")
-		}
 		if len(args) > 0 {
 			symbol = args[0]
 			args = args[1:]
@@ -232,8 +231,10 @@ func main() {
 			fail(err, "Failed to process proto descriptor sets")
 		}
 	} else {
+		md := grpcurl.MetadataFromHeaders(addlHeaders)
+		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
-		refClient = grpcreflect.NewClient(ctx, reflectpb.NewServerReflectionClient(cc))
+		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
 		descSource = grpcurl.DescriptorSourceFromServer(ctx, refClient)
 	}
 
