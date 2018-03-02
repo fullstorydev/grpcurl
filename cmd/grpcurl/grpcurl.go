@@ -54,9 +54,6 @@ var (
     	read from stdin. For calls that accept a stream of requests, the
     	contents should include all such request messages concatenated together
     	(optionally separated by whitespace).`)
-	reflectWithHeaders = flag.Bool("reflect-with-headers", false,
-		`Include headers provided with -H when performing reflection calls
-		against a remote server.`)
 	connectTimeout = flag.String("connect-timeout", "",
 		`The maximum time, in seconds, to wait for connection to be established.
     	Defaults to 10 seconds.`)
@@ -76,9 +73,11 @@ var (
 )
 
 func init() {
+	// TODO: Allow separate headers for relflection/invocation
 	flag.Var(&addlHeaders, "H",
 		`Additional request headers in 'name: value' format. May specify more
-    	than one via multiple -H flags.`)
+    	than one via multiple -H flags. These headers will also be included in
+    	reflection requests to a server.`)
 	flag.Var(&protoset, "protoset",
 		`The name of a file containing an encoded FileDescriptorSet. This file's
     	contents will be used to determine the RPC schema instead of querying
@@ -232,11 +231,8 @@ func main() {
 			fail(err, "Failed to process proto descriptor sets")
 		}
 	} else {
-		refCtx := ctx
-		if *reflectWithHeaders {
-			md := grpcurl.MetadataFromHeaders(addlHeaders)
-			refCtx = metadata.NewOutgoingContext(ctx, md)
-		}
+		md := grpcurl.MetadataFromHeaders(addlHeaders)
+		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
 		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
 		descSource = grpcurl.DescriptorSourceFromServer(ctx, refClient)
