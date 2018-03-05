@@ -245,7 +245,9 @@ func main() {
 			refClient = nil
 		}
 		if cc != nil {
-			cc.Close()
+			if err := cc.Close(); err != nil {
+				fail(err, "Failed to close grpc Client")
+			}
 			cc = nil
 		}
 	}
@@ -344,7 +346,7 @@ func main() {
 		}
 
 		h := &handler{dec: dec, descSource: descSource}
-		err := grpcurl.InvokeRpc(ctx, descSource, cc, symbol, addlHeaders, h, h.getRequestData)
+		err := grpcurl.InvokeRPC(ctx, descSource, cc, symbol, addlHeaders, h, h.getRequestData)
 		if err != nil {
 			fail(err, "Error invoking method %q", symbol)
 		}
@@ -435,10 +437,9 @@ func (h *handler) getRequestData() ([]byte, error) {
 	var msg json.RawMessage
 	if err := h.dec.Decode(&msg); err != nil {
 		return nil, err
-	} else {
-		h.reqCount++
-		return msg, nil
 	}
+	h.reqCount++
+	return msg, nil
 }
 
 func (*handler) OnReceiveHeaders(md metadata.MD) {

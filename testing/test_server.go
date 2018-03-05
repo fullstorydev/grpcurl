@@ -15,9 +15,10 @@ import (
 	"github.com/fullstorydev/grpcurl"
 )
 
+// TestServer is the testserver instance
 type TestServer struct{}
 
-// One empty request followed by one empty response.
+// EmptyCall is One empty request followed by one empty response.
 func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc_testing.Empty, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
 	grpc.SetHeader(ctx, headers)
@@ -32,7 +33,7 @@ func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc
 	return req, nil
 }
 
-// One request followed by one response.
+// UnaryCall is One request followed by one response.
 // The server returns the client payload as-is.
 func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest) (*grpc_testing.SimpleResponse, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
@@ -50,7 +51,7 @@ func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest
 	}, nil
 }
 
-// One request followed by a sequence of responses (streamed download).
+// StreamingOutputCall is One request followed by a sequence of responses (streamed download).
 // The server returns the payload with client desired type and sizes.
 func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallRequest, str grpc_testing.TestService_StreamingOutputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
@@ -87,7 +88,7 @@ func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallReque
 	return nil
 }
 
-// A sequence of requests followed by one response (streamed upload).
+// StreamingInputCall is A sequence of requests followed by one response (streamed upload).
 // The server returns the aggregated size of client payload as the result.
 func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
@@ -103,10 +104,10 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 			return str.Context().Err()
 		}
 		if req, err := str.Recv(); err != nil {
-			if err == io.EOF {
-				break
+			if err != io.EOF {
+				return err
 			}
-			return err
+			break
 		} else {
 			sz += len(req.Payload.Body)
 		}
@@ -121,7 +122,7 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 	return nil
 }
 
-// A sequence of requests with each request served by the server immediately.
+// FullDuplexCall is A sequence of requests with each request served by the server immediately.
 // As one request could lead to multiple responses, this interface
 // demonstrates the idea of full duplexing.
 func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServer) error {
@@ -163,7 +164,7 @@ func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServ
 	return nil
 }
 
-// A sequence of requests followed by a sequence of responses.
+// HalfDuplexCall is A sequence of requests followed by a sequence of responses.
 // The server buffers all the client requests and then serves them in order. A
 // stream of responses are returned to the client when the server starts with
 // first request.
@@ -181,10 +182,10 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 			return str.Context().Err()
 		}
 		if req, err := str.Recv(); err != nil {
-			if err == io.EOF {
-				break
+			if err != io.EOF {
+				return err
 			}
-			return err
+			break
 		} else {
 			reqs = append(reqs, req)
 		}
@@ -203,6 +204,7 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 	return nil
 }
 
+// Metadata const
 const (
 	MetadataReplyHeaders  = "reply-with-headers"
 	MetadataReplyTrailers = "reply-with-trailers"
