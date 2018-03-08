@@ -169,10 +169,10 @@ func main() {
 		args = args[1:]
 	} else {
 		if *data != "" {
-			fail(nil, "The -d argument is not used with 'list' or 'describe' verb.")
+			warn("The -d argument is not used with 'list' or 'describe' verb.")
 		}
 		if len(rpcHeaders) > 0 {
-			fail(nil, "The -rpc-header argument is not used with 'list' or 'describe' verb.")
+			warn("The -rpc-header argument is not used with 'list' or 'describe' verb.")
 		}
 		if len(args) > 0 {
 			symbol = args[0]
@@ -190,7 +190,7 @@ func main() {
 		fail(nil, "No host:port specified and no protoset specified.")
 	}
 	if len(protoset) > 0 && len(reflHeaders) > 0 {
-		fail(nil, "The -reflect-header argument is not used when -protoset files are used ")
+		warn("The -reflect-header argument is not used when -protoset files are used ")
 	}
 
 	ctx := context.Background()
@@ -417,6 +417,11 @@ the method's request type will be sent.
 `, os.Args[0])
 	flag.PrintDefaults()
 
+}
+
+func warn(msg string, args ...interface{}) {
+	msg = fmt.Sprintf("Warning: %s\n", msg)
+	fmt.Fprintf(os.Stderr, msg, args...)
 }
 
 func fail(err error, msg string, args ...interface{}) {
