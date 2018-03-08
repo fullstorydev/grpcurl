@@ -14,7 +14,9 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -49,6 +51,8 @@ var (
     	with -plaintext option. Must also provide -cert option.`)
 	protoset    multiString
 	addlHeaders multiString
+	rpcHeaders  multiString
+	reflHeaders multiString
 	data        = flag.String("d", "",
 		`JSON request contents. If the value is '@' then the request contents are
     	read from stdin. For calls that accept a stream of requests, the
@@ -68,16 +72,26 @@ var (
     	network links or due to incorrect stream method usage.`)
 	emitDefaults = flag.Bool("emit-defaults", false,
 		`Emit default values from JSON-encoded responses.`)
+	msgTemplate = flag.Bool("msg-template", false,
+		`When describing messages, show a JSON template for the message type.`)
 	verbose = flag.Bool("v", false,
 		`Enable verbose output.`)
 )
 
 func init() {
-	// TODO: Allow separate headers for relflection/invocation
 	flag.Var(&addlHeaders, "H",
-		`Additional request headers in 'name: value' format. May specify more
-    	than one via multiple -H flags. These headers will also be included in
-    	reflection requests to a server.`)
+		`Additional headers in 'name: value' format. May specify more than one
+    	via multiple flags. These headers will also be included in reflection
+    	requests requests to a server.`)
+	flag.Var(&rpcHeaders, "rpc-header",
+		`Additional RPC headers in 'name: value' format. May specify more than
+    	one via multiple flags. These headers will *only* be used when invoking
+    	the requested RPC method. They are excluded from reflection requests.`)
+	flag.Var(&reflHeaders, "reflect-header",
+		`Additional reflection headers in 'name: value' format. May specify more
+    	than one via multiple flags. These headers will only be used during
+    	reflection requests and will be excluded when invoking the requested RPC
+    	method.`)
 	flag.Var(&protoset, "protoset",
 		`The name of a file containing an encoded FileDescriptorSet. This file's
     	contents will be used to determine the RPC schema instead of querying
@@ -157,6 +171,9 @@ func main() {
 		if *data != "" {
 			fail(nil, "The -d argument is not used with 'list' or 'describe' verb.")
 		}
+		if len(rpcHeaders) > 0 {
+			fail(nil, "The -rpc-header argument is not used with 'list' or 'describe' verb.")
+		}
 		if len(args) > 0 {
 			symbol = args[0]
 			args = args[1:]
@@ -171,6 +188,9 @@ func main() {
 	}
 	if len(protoset) == 0 && target == "" {
 		fail(nil, "No host:port specified and no protoset specified.")
+	}
+	if len(protoset) > 0 && len(reflHeaders) > 0 {
+		fail(nil, "The -reflect-header argument is not used when -protoset files are used ")
 	}
 
 	ctx := context.Background()
@@ -231,7 +251,7 @@ func main() {
 			fail(err, "Failed to process proto descriptor sets")
 		}
 	} else {
-		md := grpcurl.MetadataFromHeaders(addlHeaders)
+		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
 		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
 		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
@@ -329,6 +349,16 @@ func main() {
 				fail(err, "Failed to describe symbol %q", s)
 			}
 			fmt.Println(txt)
+
+			if dsc, ok := dsc.(*desc.MessageDescriptor); ok && *msgTemplate {
+				// for messages, also show a template in JSON, to make it easier to
+				// create a request to invoke an RPC
+				tmpl := makeTemplate(dynamic.NewMessage(dsc))
+				fmt.Println("\nMessage template:")
+				jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
+				jsm.Marshal(os.Stdout, tmpl)
+				fmt.Println()
+			}
 		}
 
 	} else {
@@ -344,7 +374,7 @@ func main() {
 		}
 
 		h := &handler{dec: dec, descSource: descSource}
-		err := grpcurl.InvokeRpc(ctx, descSource, cc, symbol, addlHeaders, h, h.getRequestData)
+		err := grpcurl.InvokeRpc(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, h.getRequestData)
 		if err != nil {
 			fail(err, "Error invoking method %q", symbol)
 		}
@@ -465,4 +495,65 @@ func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	if *verbose {
 		fmt.Printf("\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
 	}
+}
+
+// makeTemplate fleshes out the given message so that it is a suitable template for creating
+// an instance of that message in JSON. In particular, it ensures that any repeated fields
+// (which include map fields) are not empty, so they will render with a single element (to
+// show the types and optionally nested fields). It also ensures that nested messages are
+// not nil by setting them to a message that is also fleshed out as a template message.
+func makeTemplate(msg proto.Message) proto.Message {
+	dm, ok := msg.(*dynamic.Message)
+	if !ok {
+		return msg
+	}
+	// for repeated fields, add a single element with default value
+	// and for message fields, add a message with all default fields
+	// that also has non-nil message and non-empty repeated fields
+	for _, fd := range dm.GetMessageDescriptor().GetFields() {
+		if fd.IsRepeated() {
+			switch fd.GetType() {
+			case descpb.FieldDescriptorProto_TYPE_FIXED32,
+				descpb.FieldDescriptorProto_TYPE_UINT32:
+				dm.AddRepeatedField(fd, uint32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_SFIXED32,
+				descpb.FieldDescriptorProto_TYPE_SINT32,
+				descpb.FieldDescriptorProto_TYPE_INT32,
+				descpb.FieldDescriptorProto_TYPE_ENUM:
+				dm.AddRepeatedField(fd, int32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_FIXED64,
+				descpb.FieldDescriptorProto_TYPE_UINT64:
+				dm.AddRepeatedField(fd, uint64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_SFIXED64,
+				descpb.FieldDescriptorProto_TYPE_SINT64,
+				descpb.FieldDescriptorProto_TYPE_INT64:
+				dm.AddRepeatedField(fd, int64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_STRING:
+				dm.AddRepeatedField(fd, "")
+
+			case descpb.FieldDescriptorProto_TYPE_BYTES:
+				dm.AddRepeatedField(fd, []byte{})
+
+			case descpb.FieldDescriptorProto_TYPE_BOOL:
+				dm.AddRepeatedField(fd, false)
+
+			case descpb.FieldDescriptorProto_TYPE_FLOAT:
+				dm.AddRepeatedField(fd, float32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_DOUBLE:
+				dm.AddRepeatedField(fd, float64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_MESSAGE,
+				descpb.FieldDescriptorProto_TYPE_GROUP:
+				dm.AddRepeatedField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType())))
+			}
+		} else if fd.GetMessageType() != nil {
+			dm.SetField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType())))
+		}
+	}
+	return dm
 }
