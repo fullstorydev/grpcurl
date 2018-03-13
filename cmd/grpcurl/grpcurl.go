@@ -386,7 +386,9 @@ func main() {
 		if h.respCount != 1 {
 			respSuffix = "s"
 		}
-		fmt.Printf("Sent %d request%s and received %d response%s\n", h.reqCount, reqSuffix, h.respCount, respSuffix)
+		if *verbose {
+			fmt.Printf("Sent %d request%s and received %d response%s\n", h.reqCount, reqSuffix, h.respCount, respSuffix)
+		}
 		if h.stat.Code() != codes.OK {
 			fmt.Fprintf(os.Stderr, "ERROR:\n  Code: %s\n  Message: %s\n", h.stat.Code().String(), h.stat.Message())
 			exit(1)
