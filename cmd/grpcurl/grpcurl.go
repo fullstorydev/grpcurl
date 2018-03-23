@@ -76,6 +76,7 @@ var (
 		`When describing messages, show a JSON template for the message type.`)
 	verbose = flag.Bool("v", false,
 		`Enable verbose output.`)
+	serverName = flag.String("servername", "", "Override servername when validating TLS certificate.")
 )
 
 func init() {
@@ -232,6 +233,9 @@ func main() {
 			creds, err = grpcurl.ClientTransportCredentials(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to configure transport credentials")
+			}
+			if *serverName != "" {
+				creds.OverrideServerName(*serverName)
 			}
 		}
 		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
