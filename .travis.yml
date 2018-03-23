@@ -9,5 +9,4 @@ matrix:
     - go: tip
 
 script:
-  # TODO: change to "make" when golint, errcheck, staticcheck pass
-  - make deps checkgofmt vet unused test
+  - make
