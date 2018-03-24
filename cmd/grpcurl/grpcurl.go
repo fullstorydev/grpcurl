@@ -235,7 +235,9 @@ func main() {
 				fail(err, "Failed to configure transport credentials")
 			}
 			if *serverName != "" {
-				creds.OverrideServerName(*serverName)
+				if err := creds.OverrideServerName(*serverName); err != nil {
+					fail(err, "Failed to override server name as %q", *serverName)
+				}
 			}
 		}
 		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
@@ -360,7 +362,10 @@ func main() {
 				tmpl := makeTemplate(dynamic.NewMessage(dsc))
 				fmt.Println("\nMessage template:")
 				jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
-				jsm.Marshal(os.Stdout, tmpl)
+				err := jsm.Marshal(os.Stdout, tmpl)
+				if err != nil {
+					fail(err, "Failed to print template for message %s", s)
+				}
 				fmt.Println()
 			}
 		}
@@ -476,10 +481,9 @@ func (h *handler) getRequestData() ([]byte, error) {
 	var msg json.RawMessage
 	if err := h.dec.Decode(&msg); err != nil {
 		return nil, err
-	} else {
-		h.reqCount++
-		return msg, nil
 	}
+	h.reqCount++
+	return msg, nil
 }
 
 func (*handler) OnReceiveHeaders(md metadata.MD) {

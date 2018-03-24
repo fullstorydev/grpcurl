@@ -304,9 +304,8 @@ func InvokeRpc(ctx context.Context, source DescriptorSource, cc *grpc.ClientConn
 	if err != nil {
 		if isNotFoundError(err) {
 			return fmt.Errorf("target server does not expose service %q", svc)
-		} else {
-			return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 		}
+		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 	}
 	sd, ok := dsc.(*desc.ServiceDescriptor)
 	if !ok {
@@ -714,8 +713,11 @@ func fetchAllExtensions(source DescriptorSource, ext *dynamic.ExtensionRegistry,
 	alreadyFetched[msgTypeName] = true
 	if len(md.GetExtensionRanges()) > 0 {
 		fds, err := source.AllExtensionsForType(msgTypeName)
+		if err != nil {
+			return fmt.Errorf("failed to query for extensions of type %s: %v", msgTypeName, err)
+		}
 		for _, fd := range fds {
-			if err = ext.AddExtension(fd); err != nil {
+			if err := ext.AddExtension(fd); err != nil {
 				return fmt.Errorf("could not register extension %s of type %s: %v", fd.GetFullyQualifiedName(), msgTypeName, err)
 			}
 		}
@@ -765,9 +767,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 					newVal, err := fullyConvertToDynamic(msgFact, v.(proto.Message))
 					if err != nil {
 						return nil, err
-					} else {
-						dm.PutMapField(fd, k, newVal)
 					}
+					dm.PutMapField(fd, k, newVal)
 				}
 			}
 		} else if fd.IsRepeated() {
@@ -777,9 +778,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 					newVal, err := fullyConvertToDynamic(msgFact, e.(proto.Message))
 					if err != nil {
 						return nil, err
-					} else {
-						dm.SetRepeatedField(fd, i, newVal)
 					}
+					dm.SetRepeatedField(fd, i, newVal)
 				}
 			}
 		} else {
@@ -788,9 +788,8 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 				newVal, err := fullyConvertToDynamic(msgFact, v.(proto.Message))
 				if err != nil {
 					return nil, err
-				} else {
-					dm.SetField(fd, newVal)
 				}
+				dm.SetField(fd, newVal)
 			}
 		}
 	}
@@ -936,9 +935,8 @@ func BlockingDial(ctx context.Context, address string, creds credentials.Transpo
 	case res := <-result:
 		if conn, ok := res.(*grpc.ClientConn); ok {
 			return conn, nil
-		} else {
-			return nil, res.(error)
 		}
+		return nil, res.(error)
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

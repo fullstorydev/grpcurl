@@ -15,9 +15,10 @@ import (
 	"github.com/fullstorydev/grpcurl"
 )
 
+// TestServer implements the TestService interface defined in example.proto.
 type TestServer struct{}
 
-// One empty request followed by one empty response.
+// EmptyCall accepts one empty request and issues one empty response.
 func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc_testing.Empty, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
 	grpc.SetHeader(ctx, headers)
@@ -32,8 +33,8 @@ func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc
 	return req, nil
 }
 
-// One request followed by one response.
-// The server returns the client payload as-is.
+// UnaryCall accepts one request and issues one response. The response includes
+// the client's payload as-is.
 func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest) (*grpc_testing.SimpleResponse, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
 	grpc.SetHeader(ctx, headers)
@@ -50,8 +51,9 @@ func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest
 	}, nil
 }
 
-// One request followed by a sequence of responses (streamed download).
-// The server returns the payload with client desired type and sizes.
+// StreamingOutputCall accepts one request and issues a sequence of responses
+// (streamed download). The server returns the payload with client desired type
+// and sizes as specified in the request's ResponseParameters.
 func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallRequest, str grpc_testing.TestService_StreamingOutputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
@@ -87,8 +89,9 @@ func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallReque
 	return nil
 }
 
-// A sequence of requests followed by one response (streamed upload).
-// The server returns the aggregated size of client payload as the result.
+// StreamingInputCall accepts a sequence of requests and issues one response
+// (streamed upload). The server returns the aggregated size of client payloads
+// as the result.
 func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
@@ -121,9 +124,9 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 	return nil
 }
 
-// A sequence of requests with each request served by the server immediately.
-// As one request could lead to multiple responses, this interface
-// demonstrates the idea of full duplexing.
+// FullDuplexCall accepts a sequence of requests with each request served by the
+// server immediately. As one request could lead to multiple responses, this
+// interface demonstrates the idea of full duplexing.
 func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
@@ -163,10 +166,10 @@ func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServ
 	return nil
 }
 
-// A sequence of requests followed by a sequence of responses.
-// The server buffers all the client requests and then serves them in order. A
-// stream of responses are returned to the client when the server starts with
-// first request.
+// HalfDuplexCall accepts a sequence of requests and issues a sequence of
+// responses. The server buffers all the client requests and then serves them
+// in order. A stream of responses is returned to the client once the client
+// half-closes the stream.
 func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
@@ -204,10 +207,26 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 }
 
 const (
-	MetadataReplyHeaders  = "reply-with-headers"
+	// MetadataReplyHeaders is a request header that contains values that will
+	// be echoed back to the client as response headers. The format of the value
+	// is "key: val". To have the server reply with more than one response
+	// header, supply multiple values in request metadata.
+	MetadataReplyHeaders = "reply-with-headers"
+	// MetadataReplyTrailers is a request header that contains values that will
+	// be echoed back to the client as response trailers. Its format its the
+	// same as MetadataReplyHeaders.
 	MetadataReplyTrailers = "reply-with-trailers"
-	MetadataFailEarly     = "fail-early"
-	MetadataFailLate      = "fail-late"
+	// MetadataFailEarly is a request header that, if present and not zero,
+	// indicates that the RPC should fail immediately with that code.
+	MetadataFailEarly = "fail-early"
+	// MetadataFailLate is a request header that, if present and not zero,
+	// indicates that the RPC should fail at the end with that code. This is
+	// different from MetadataFailEarly only for streaming calls. An early
+	// failure means the call to fail before any request stream is read or any
+	// response stream is generated. A late failure means the entire request and
+	// response streams will be consumed/processed and only then will the error
+	// code be sent.
+	MetadataFailLate = "fail-late"
 )
 
 func processMetadata(ctx context.Context) (metadata.MD, metadata.MD, codes.Code, codes.Code) {

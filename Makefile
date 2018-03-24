@@ -1,64 +1,65 @@
-SRCS := $(shell find . -name '*.go')
-PKGS := $(shell go list ./...)
-
-.PHONY: all
-all: deps lint test
+# TODO: run golint and errcheck, but only to catch *new* violations and
+# decide whether to change code or not (e.g. we need to be able to whitelist
+# violations already in the code). They can be useful to catch errors, but
+# they are just too noisy to be a requirement for a CI -- we don't even *want*
+# to fix some of the things they consider to be violations.
+.PHONY: ci
+ci: deps checkgofmt vet staticcheck unused ineffassign predeclared test
 
 .PHONY: deps
 deps:
-	go get -d -v -t $(PKGS)
+	go get -d -v -t ./...
 
 .PHONY: updatedeps
 updatedeps:
-	go get -d -v -t -u -f $(PKGS)
+	go get -d -v -t -u -f ./...
 
 .PHONY: install
 install:
-	go install $(PKGS)
-
-.PHONY: golint
-golint:
-	@go get github.com/golang/lint/golint
-	for file in $(SRCS); do \
-		golint $${file}; \
-		if [ -n "$$(golint $${file})" ]; then \
-			exit 1; \
-		fi; \
-	done
+	go install ./...
 
 .PHONY: checkgofmt
 checkgofmt:
-	gofmt -s -l $(SRCS)
-	if [ -n "$$(gofmt -s -l $(SRCS))" ]; then \
+	gofmt -s -l .
+	@if [ -n "$$(gofmt -s -l .)" ]; then \
 		exit 1; \
 	fi
 
 .PHONY: vet
 vet:
-	go vet $(PKGS)
-
-.PHONY:
-errcheck:
-	@go get github.com/kisielk/errcheck
-	errcheck $(PKGS)
+	go vet ./...
 
 .PHONY: staticcheck
 staticcheck:
 	@go get honnef.co/go/tools/cmd/staticcheck
-	staticcheck $(PKGS)
+	staticcheck ./...
 
 .PHONY: unused
 unused:
 	@go get honnef.co/go/tools/cmd/unused
-	unused $(PKGS)
+	unused ./...
 
-.PHONY: lint
-lint: golint checkgofmt vet errcheck staticcheck unused
+.PHONY: ineffassign
+ineffassign:
+	@go get github.com/gordonklaus/ineffassign
+	ineffassign .
+
+.PHONY: predeclared
+	@go get github.com/nishanths/predeclared
+	predeclared .
+
+# Intentionally omitted from CI, but target here for ad-hoc reports.
+.PHONY: golint
+golint:
+	@go get github.com/golang/lint/golint
+	golint -min_confidence 0.9 -set_exit_status ./...
+
+# Intentionally omitted from CI, but target here for ad-hoc reports.
+.PHONY:
+errcheck:
+	@go get github.com/kisielk/errcheck
+	errcheck ./...
 
 .PHONY: test
 test:
-	go test -race $(PKGS)
-
-.PHONY: clean
-clean:
-	go clean -i $(PKGS)
+	go test -race ./...
