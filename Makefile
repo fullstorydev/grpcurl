@@ -45,6 +45,7 @@ ineffassign:
 	ineffassign .
 
 .PHONY: predeclared
+predeclared:
 	@go get github.com/nishanths/predeclared
 	predeclared .
 
@@ -55,7 +56,7 @@ golint:
 	golint -min_confidence 0.9 -set_exit_status ./...
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
-.PHONY:
+.PHONY: errchack
 errcheck:
 	@go get github.com/kisielk/errcheck
 	errcheck ./...
