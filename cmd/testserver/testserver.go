@@ -23,19 +23,21 @@ import (
 )
 
 var (
+	getUnixSocket func() string // nil when run on non-unix platforms
+
 	help   = flag.Bool("help", false, "Print usage instructions and exit.")
 	cacert = flag.String("cacert", "",
-		"File containing trusted root certificates for verifying  client certs. Ignored if\n"+
-			"    	TLS is not in use (e.g. no -cert or -key specified).")
+		`File containing trusted root certificates for verifying  client certs. Ignored
+    	if TLS is not in use (e.g. no -cert or -key specified).`)
 	cert = flag.String("cert", "",
-		"File containing server certificate (public key). Must also provide -key option.\n"+
-			"    	Server uses plain-text if no -cert and -key options are given.")
+		`File containing server certificate (public key). Must also provide -key option.
+    	Server uses plain-text if no -cert and -key options are given.`)
 	key = flag.String("key", "",
-		"File containing server private key. Must also provide -cert option. Server uses\n"+
-			"    	plain-text if no -cert and -key options are given.")
+		`File containing server private key. Must also provide -cert option. Server uses
+    	plain-text if no -cert and -key options are given.`)
 	requirecert = flag.Bool("requirecert", false,
-		"Require clients to authenticate via client certs. Must be using TLS (e.g. must also\n"+
-			"    	provide -cert and -key options).")
+		`Require clients to authenticate via client certs. Must be using TLS (e.g. must
+    	also provide -cert and -key options).`)
 	port      = flag.Int("p", 0, "Port on which to listen. Ephemeral port used if not specified.")
 	noreflect = flag.Bool("noreflect", false, "Indicates that server should not support server reflection.")
 	quiet     = flag.Bool("q", false, "Suppresses server request and stream logging.")
@@ -77,13 +79,20 @@ func main() {
 		opts = append(opts, grpc.UnaryInterceptor(unaryLogger), grpc.StreamInterceptor(streamLogger))
 	}
 
-	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
+	var network, addr string
+	if getUnixSocket != nil && getUnixSocket() != "" {
+		network = "unix"
+		addr = getUnixSocket()
+	} else {
+		network = "tcp"
+		addr = fmt.Sprintf("127.0.0.1:%d", *port)
+	}
+	l, err := net.Listen(network, addr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to listen on socket: %v\n", err)
 		os.Exit(1)
 	}
-	p := l.Addr().(*net.TCPAddr).Port
-	fmt.Printf("Listening on 127.0.0.1:%d\n", p)
+	fmt.Printf("Listening on %v\n", l.Addr())
 
 	svr := grpc.NewServer(opts...)
 

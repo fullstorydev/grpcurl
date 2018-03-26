@@ -33,6 +33,8 @@ import (
 var (
 	exit = os.Exit
 
+	isUnixSocket func() bool // nil when run on non-unix platform
+
 	help = flag.Bool("help", false,
 		`Print usage instructions and exit.`)
 	plaintext = flag.Bool("plaintext", false,
@@ -240,7 +242,11 @@ func main() {
 				}
 			}
 		}
-		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
+		network := "tcp"
+		if isUnixSocket != nil && isUnixSocket() {
+			network = "unix"
+		}
+		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
@@ -407,7 +413,7 @@ func main() {
 
 func usage() {
 	fmt.Fprintf(os.Stderr, `Usage:
-	%s [flags] [host:port] [list|describe] [symbol]
+	%s [flags] [address] [list|describe] [symbol]
 
 The 'host:port' is only optional when used with 'list' or 'describe' and a
 protoset flag is provided.
@@ -425,6 +431,11 @@ If neither verb is present, the symbol must be a fully-qualified method name in
 be used to invoke the named method. If no body is given, an empty instance of
 the method's request type will be sent.
 
+The address will typically be in the form "host:port" where host can be an IP
+address or a hostname and port is a numeric port or service name. If an IPv6
+address is given, it must be surrounded by brackets, like "[2001:db8::1]". For
+Unix variants, if a -unix=true flag is present, then the address must be the
+path to the domain socket.
 `, os.Args[0])
 	flag.PrintDefaults()
 
