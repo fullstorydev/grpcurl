@@ -111,7 +111,7 @@ var id int32
 
 func unaryLogger(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	i := atomic.AddInt32(&id, 1) - 1
-	grpclog.Printf("start <%d>: %s\n", i, info.FullMethod)
+	grpclog.Infof("start <%d>: %s\n", i, info.FullMethod)
 	start := time.Now()
 	rsp, err := handler(ctx, req)
 	var code codes.Code
@@ -120,14 +120,14 @@ func unaryLogger(ctx context.Context, req interface{}, info *grpc.UnaryServerInf
 	} else {
 		code = codes.Unknown
 	}
-	grpclog.Printf("completed <%d>: %v (%d) %v\n", i, code, code, time.Now().Sub(start))
+	grpclog.Infof("completed <%d>: %v (%d) %v\n", i, code, code, time.Now().Sub(start))
 	return rsp, err
 }
 
 func streamLogger(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	i := atomic.AddInt32(&id, 1) - 1
 	start := time.Now()
-	grpclog.Printf("start <%d>: %s\n", i, info.FullMethod)
+	grpclog.Infof("start <%d>: %s\n", i, info.FullMethod)
 	err := handler(srv, loggingStream{ss: ss, id: i})
 	var code codes.Code
 	if stat, ok := status.FromError(err); ok {
@@ -135,7 +135,7 @@ func streamLogger(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServer
 	} else {
 		code = codes.Unknown
 	}
-	grpclog.Printf("completed <%d>: %v(%d) %v\n", i, code, code, time.Now().Sub(start))
+	grpclog.Infof("completed <%d>: %v(%d) %v\n", i, code, code, time.Now().Sub(start))
 	return err
 }
 
@@ -163,7 +163,7 @@ func (l loggingStream) Context() context.Context {
 func (l loggingStream) SendMsg(m interface{}) error {
 	err := l.ss.SendMsg(m)
 	if err == nil {
-		grpclog.Printf("stream <%d>: sent message\n", l.id)
+		grpclog.Infof("stream <%d>: sent message\n", l.id)
 	}
 	return err
 }
@@ -171,7 +171,7 @@ func (l loggingStream) SendMsg(m interface{}) error {
 func (l loggingStream) RecvMsg(m interface{}) error {
 	err := l.ss.RecvMsg(m)
 	if err == nil {
-		grpclog.Printf("stream <%d>: received message\n", l.id)
+		grpclog.Infof("stream <%d>: received message\n", l.id)
 	}
 	return err
 }
