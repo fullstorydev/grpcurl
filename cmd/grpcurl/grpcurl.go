@@ -52,6 +52,8 @@ var (
 		`File containing client private key, to present to the server. Not valid
     	with -plaintext option. Must also provide -cert option.`)
 	protoset    multiString
+	protoFiles  multiString
+	importPaths multiString
 	addlHeaders multiString
 	rpcHeaders  multiString
 	reflHeaders multiString
@@ -102,7 +104,26 @@ func init() {
     	'list' action lists the services found in the given descriptors (vs.
     	those exposed by the remote server), and the 'describe' action describes
     	symbols found in the given descriptors. May specify more than one via
-    	multiple -protoset flags.`)
+    	multiple -protoset flags. It is an error to use both -protoset and
+    	-proto flags.`)
+	flag.Var(&protoFiles, "proto",
+		`The name of a proto source file. Source files given will be used to
+    	determine the RPC schema instead of querying for it from the remote
+    	server via the GRPC reflection API. When set: the 'list' action lists
+    	the services found in the given files and their imports (vs. those
+    	exposed by the remote server), and the 'describe' action describes
+    	symbols found in the given files. May specify more than one via
+    	multiple -proto flags. Imports will be resolved using the given
+    	-import-path flags. Multiple proto files can be specified by specifying
+    	multiple -proto flags. It is an error to use both -protoset and -proto
+    	flags.`)
+	flag.Var(&importPaths, "import-path",
+		`The path to a directory from which proto sources can be imported,
+    	for use with -proto flags. Multiple import paths can be configured by
+    	specifying multiple -import-path flags. Paths will be searched in the
+    	order given. If no import paths are given, all files (including all
+    	imports) must be provided as -proto flags, and grpcurl will attempt to
+    	resolve all import statements from the set of file names given.`)
 }
 
 type multiString []string
@@ -189,11 +210,17 @@ func main() {
 	if invoke && target == "" {
 		fail(nil, "No host:port specified.")
 	}
-	if len(protoset) == 0 && target == "" {
-		fail(nil, "No host:port specified and no protoset specified.")
+	if len(protoset) == 0 && len(protoFiles) == 0 && target == "" {
+		fail(nil, "No host:port specified, no protoset specified, and no proto sources specified.")
 	}
 	if len(protoset) > 0 && len(reflHeaders) > 0 {
-		warn("The -reflect-header argument is not used when -protoset files are used ")
+		warn("The -reflect-header argument is not used when -protoset files are used.")
+	}
+	if len(protoset) > 0 && len(protoFiles) > 0 {
+		fail(nil, "Use either -protoset files or -proto files, but not both.")
+	}
+	if len(importPaths) > 0 && len(protoFiles) == 0 {
+		warn("The -import-path argument is not used unless -proto files are used.")
 	}
 
 	ctx := context.Background()
@@ -260,7 +287,13 @@ func main() {
 		var err error
 		descSource, err = grpcurl.DescriptorSourceFromProtoSets(protoset...)
 		if err != nil {
-			fail(err, "Failed to process proto descriptor sets")
+			fail(err, "Failed to process proto descriptor sets.")
+		}
+	} else if len(protoFiles) > 0 {
+		var err error
+		descSource, err = grpcurl.DescriptorSourceFromProtoFiles(importPaths, protoFiles...)
+		if err != nil {
+			fail(err, "Failed to process proto source files.")
 		}
 	} else {
 		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))

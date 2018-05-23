@@ -28,16 +28,29 @@ import (
 )
 
 var (
-	sourceProtoset DescriptorSource
-	ccProtoset     *grpc.ClientConn
+	sourceProtoset   DescriptorSource
+	sourceProtoFiles DescriptorSource
+	ccNoReflect      *grpc.ClientConn
 
 	sourceReflect DescriptorSource
 	ccReflect     *grpc.ClientConn
+
+	descSources []descSourceCase
 )
+
+type descSourceCase struct {
+	name        string
+	source      DescriptorSource
+	includeRefl bool
+}
 
 func TestMain(m *testing.M) {
 	var err error
 	sourceProtoset, err = DescriptorSourceFromProtoSets("testing/test.protoset")
+	if err != nil {
+		panic(err)
+	}
+	sourceProtoFiles, err = DescriptorSourceFromProtoFiles(nil, "../../../google.golang.org/grpc/interop/grpc_testing/test.proto")
 	if err != nil {
 		panic(err)
 	}
@@ -83,17 +96,23 @@ func TestMain(m *testing.M) {
 	// And a corresponding client
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if ccProtoset, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portProtoset),
+	if ccNoReflect, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portProtoset),
 		grpc.WithInsecure(), grpc.WithBlock()); err != nil {
 		panic(err)
 	}
-	defer ccProtoset.Close()
+	defer ccNoReflect.Close()
+
+	descSources = []descSourceCase{
+		{"protoset", sourceProtoset, false},
+		{"proto", sourceProtoFiles, false},
+		{"reflect", sourceReflect, true},
+	}
 
 	os.Exit(m.Run())
 }
 
 func TestServerDoesNotSupportReflection(t *testing.T) {
-	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccProtoset))
+	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccNoReflect))
 	defer refClient.Reset()
 
 	refSource := DescriptorSourceFromServer(context.Background(), refClient)
@@ -108,7 +127,7 @@ func TestServerDoesNotSupportReflection(t *testing.T) {
 		t.Errorf("ListMethods should have returned ErrReflectionNotSupported; instead got %v", err)
 	}
 
-	err = InvokeRpc(context.Background(), refSource, ccProtoset, "FooService/Method", nil, nil, nil)
+	err = InvokeRpc(context.Background(), refSource, ccNoReflect, "FooService/Method", nil, nil, nil)
 	// InvokeRpc wraps the error, so we just verify the returned error includes the right message
 	if err == nil || !strings.Contains(err.Error(), ErrReflectionNotSupported.Error()) {
 		t.Errorf("InvokeRpc should have returned ErrReflectionNotSupported; instead got %v", err)
@@ -137,12 +156,12 @@ func TestProtosetWithImports(t *testing.T) {
 	}
 }
 
-func TestListServicesProtoset(t *testing.T) {
-	doTestListServices(t, sourceProtoset, false)
-}
-
-func TestListServicesReflect(t *testing.T) {
-	doTestListServices(t, sourceReflect, true)
+func TestListServices(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestListServices(t, ds.source, ds.includeRefl)
+		})
+	}
 }
 
 func doTestListServices(t *testing.T, source DescriptorSource, includeReflection bool) {
@@ -164,12 +183,12 @@ func doTestListServices(t *testing.T, source DescriptorSource, includeReflection
 	}
 }
 
-func TestListMethodsProtoset(t *testing.T) {
-	doTestListMethods(t, sourceProtoset, false)
-}
-
-func TestListMethodsReflect(t *testing.T) {
-	doTestListMethods(t, sourceReflect, true)
+func TestListMethods(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestListMethods(t, ds.source, ds.includeRefl)
+		})
+	}
 }
 
 func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection bool) {
@@ -216,12 +235,12 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 	}
 }
 
-func TestDescribeProtoset(t *testing.T) {
-	doTestDescribe(t, sourceProtoset)
-}
-
-func TestDescribeReflect(t *testing.T) {
-	doTestDescribe(t, sourceReflect)
+func TestDescribe(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestDescribe(t, ds.source)
+		})
+	}
 }
 
 func doTestDescribe(t *testing.T, source DescriptorSource) {
@@ -296,12 +315,20 @@ const (
 }`
 )
 
-func TestUnaryProtoset(t *testing.T) {
-	doTestUnary(t, ccProtoset, sourceProtoset)
+func getCC(includeRefl bool) *grpc.ClientConn {
+	if includeRefl {
+		return ccReflect
+	} else {
+		return ccNoReflect
+	}
 }
 
-func TestUnaryReflect(t *testing.T) {
-	doTestUnary(t, ccReflect, sourceReflect)
+func TestUnary(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestUnary(t, getCC(ds.includeRefl), ds.source)
+		})
+	}
 }
 
 func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
@@ -328,12 +355,12 @@ func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	h.check(t, "grpc.testing.TestService.UnaryCall", codes.NotFound, 1, 0)
 }
 
-func TestClientStreamProtoset(t *testing.T) {
-	doTestClientStream(t, ccProtoset, sourceProtoset)
-}
-
-func TestClientStreamReflect(t *testing.T) {
-	doTestClientStream(t, ccReflect, sourceReflect)
+func TestClientStream(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestClientStream(t, getCC(ds.includeRefl), ds.source)
+		})
+	}
 }
 
 func doTestClientStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
@@ -373,12 +400,12 @@ func doTestClientStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSour
 	h.check(t, "grpc.testing.TestService.StreamingInputCall", codes.Internal, 3, 0)
 }
 
-func TestServerStreamProtoset(t *testing.T) {
-	doTestServerStream(t, ccProtoset, sourceProtoset)
-}
-
-func TestServerStreamReflect(t *testing.T) {
-	doTestServerStream(t, ccReflect, sourceReflect)
+func TestServerStream(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestServerStream(t, getCC(ds.includeRefl), ds.source)
+		})
+	}
 }
 
 func doTestServerStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
@@ -435,12 +462,12 @@ func doTestServerStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSour
 	h.check(t, "grpc.testing.TestService.StreamingOutputCall", codes.AlreadyExists, 1, 5)
 }
 
-func TestHalfDuplexStreamProtoset(t *testing.T) {
-	doTestHalfDuplexStream(t, ccProtoset, sourceProtoset)
-}
-
-func TestHalfDuplexStreamReflect(t *testing.T) {
-	doTestHalfDuplexStream(t, ccReflect, sourceReflect)
+func TestHalfDuplexStream(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestHalfDuplexStream(t, getCC(ds.includeRefl), ds.source)
+		})
+	}
 }
 
 func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
@@ -480,12 +507,12 @@ func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 	h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.DataLoss, 3, 3)
 }
 
-func TestFullDuplexStreamProtoset(t *testing.T) {
-	doTestFullDuplexStream(t, ccProtoset, sourceProtoset)
-}
-
-func TestFullDuplexStreamReflect(t *testing.T) {
-	doTestFullDuplexStream(t, ccReflect, sourceReflect)
+func TestFullDuplexStream(t *testing.T) {
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			doTestFullDuplexStream(t, getCC(ds.includeRefl), ds.source)
+		})
+	}
 }
 
 func doTestFullDuplexStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {

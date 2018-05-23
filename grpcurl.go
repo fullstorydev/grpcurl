@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -74,6 +75,21 @@ func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error
 	return DescriptorSourceFromFileDescriptorSet(files)
 }
 
+// DescriptorSourceFromProtoFiles creates a DescriptorSource that is backed by the named files,
+// whose contents are Protocol Buffer source files. The given importPaths are used to locate
+// any imported files.
+func DescriptorSourceFromProtoFiles(importPaths []string, fileNames ...string) (DescriptorSource, error) {
+	p := protoparse.Parser{
+		ImportPaths:      importPaths,
+		InferImportPaths: len(importPaths) == 0,
+	}
+	fds, err := p.ParseFiles(fileNames...)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse given files: %v", err)
+	}
+	return DescriptorSourceFromFileDescriptors(fds...)
+}
+
 // DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the FileDescriptorSet.
 func DescriptorSourceFromFileDescriptorSet(files *descriptor.FileDescriptorSet) (DescriptorSource, error) {
 	unresolved := map[string]*descriptor.FileDescriptorProto{}
@@ -112,6 +128,37 @@ func resolveFileDescriptor(unresolved map[string]*descriptor.FileDescriptorProto
 	}
 	resolved[filename] = result
 	return result, nil
+}
+
+// DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the given
+// file descriptors
+func DescriptorSourceFromFileDescriptors(files ...*desc.FileDescriptor) (DescriptorSource, error) {
+	fds := map[string]*desc.FileDescriptor{}
+	for _, fd := range files {
+		if err := addFile(fd, fds); err != nil {
+			return nil, err
+		}
+	}
+	return &fileSource{files: fds}, nil
+}
+
+func addFile(fd *desc.FileDescriptor, fds map[string]*desc.FileDescriptor) error {
+	name := fd.GetName()
+	if existing, ok := fds[name]; ok {
+		// already added this file
+		if existing != fd {
+			// doh! duplicate files provided
+			return fmt.Errorf("given files include multiple copies of %q", name)
+		}
+		return nil
+	}
+	fds[name] = fd
+	for _, dep := range fd.GetDependencies() {
+		if err := addFile(dep, fds); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type fileSource struct {
