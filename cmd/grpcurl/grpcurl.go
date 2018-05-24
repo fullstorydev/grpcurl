@@ -57,7 +57,9 @@ var (
 	addlHeaders multiString
 	rpcHeaders  multiString
 	reflHeaders multiString
-	data        = flag.String("d", "",
+	authority   = flag.String("authority", "",
+		":authority pseudo header value to be passed along with underlying HTTP/2 requests. It defaults to `host [ \":\" port ]` part of the target url.")
+	data = flag.String("d", "",
 		`JSON request contents. If the value is '@' then the request contents are
     	read from stdin. For calls that accept a stream of requests, the
     	contents should include all such request messages concatenated together
@@ -255,6 +257,9 @@ func main() {
 				Time:    timeout,
 				Timeout: timeout,
 			}))
+		}
+		if *authority != "" {
+			opts = append(opts, grpc.WithAuthority(*authority))
 		}
 		var creds credentials.TransportCredentials
 		if !*plaintext {
