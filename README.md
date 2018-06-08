@@ -1,5 +1,6 @@
 # gRPCurl
 [![Build Status](https://travis-ci.org/fullstorydev/grpcurl.svg?branch=master)](https://travis-ci.org/fullstorydev/grpcurl/branches)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fullstorydev/grpcurl)](https://goreportcard.com/report/github.com/fullstorydev/grpcurl)
 
 `grpcurl` is a command-line tool that lets you interact with gRPC servers. It's
 basically `curl` for gRPC servers.
