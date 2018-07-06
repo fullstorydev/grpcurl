@@ -58,7 +58,16 @@ run `make install`.
 If you encounter compile errors, you could have out-dated versions of `grpcurl`'s
 dependencies. You can update the dependencies by running `make updatedeps`.
 
-## Example Usage
+## Usage
+The usage doc for the tool explains the numerous options:
+```shell
+grpcurl -help
+```
+
+In the sections below, you will find numerous examples demonstrating how to use
+`grpcurl`.
+
+### Invoking RPCs
 Invoking an RPC on a trusted server (e.g. TLS without self-signed key or custom CA)
 that requires no client certs and supports service reflection is the simplest thing to
 do with `grpcurl`. This minimal invocation sends an empty request body:
@@ -66,6 +75,32 @@ do with `grpcurl`. This minimal invocation sends an empty request body:
 grpcurl grpc.server.com:443 my.custom.server.Service/Method
 ```
 
+To send a non-empty request, use the `-d` argument. Note that all arguments must come
+*before* the server address and method name:
+```shell
+grpcurl -d '{"id": 1234, "tags": ["foo","bar"]}' \
+    grpc.server.com:443 my.custom.server.Service/Method
+```
+
+As can be seen in the example, the supplied body must be in JSON format. The body will
+be parsed and then transmitted to the server in the protobuf binary format.
+
+If you want to include `grpcurl` in a command pipeline, such as when using `jq` to
+create a request body, you can use `-d @`, which tells `grpcurl` to read the actual
+request body from stdin:
+```shell
+grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<<EOM
+{
+  "id": 1234,
+  "tags": [
+    "foor",
+    "bar"
+  ]
+}
+EOM
+```
+
+### Listing Services
 To list all services exposed by a server, use the "list" verb. When using `.proto` source
 or protoset files instead of server reflection, this lists all services defined in the
 source or protoset files.
@@ -85,6 +120,7 @@ The "list" verb also lets you see all methods in a particular service:
 grpcurl localhost:8787 list my.custom.server.Service
 ```
 
+### Describing Elements
 The "describe" verb will print the type of any symbol that the server knows about
 or that is found in a given protoset file and also print the full descriptor for the
 symbol, in JSON.
@@ -97,11 +133,6 @@ grpcurl -protoset my-protos.bin describe my.custom.server.Service.MethodOne
 
 # Using proto sources
 grpcurl -import-path ../protos -proto my-stuff.proto describe my.custom.server.Service.MethodOne
-```
-
-The usage doc for the tool explains the numerous options:
-```shell
-grpcurl -help
 ```
 
 ## Proto Source Files
