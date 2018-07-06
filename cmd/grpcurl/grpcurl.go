@@ -369,6 +369,10 @@ func main() {
 			symbols = svcs
 		}
 		for _, s := range symbols {
+			if s[0] == '.' {
+				s = s[1:]
+			}
+
 			dsc, err := descSource.FindSymbol(s)
 			if err != nil {
 				fail(err, "Failed to resolve symbol %q", s)
