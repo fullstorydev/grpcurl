@@ -3,10 +3,12 @@ sudo: false
 
 matrix:
   include:
-    - go: 1.7
-    - go: 1.8
-    - go: 1.9
+    - go: "1.7"
+    - go: "1.8"
+    - go: "1.9"
+    - go: "1.10"
+      env: VET=1
     - go: tip
 
 script:
-  - make
+  - if [[ "$VET" = 1 ]]; then make; else make deps test; fi
