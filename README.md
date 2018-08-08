@@ -21,7 +21,7 @@ In fact, the way the tool transforms JSON request data into a binary encoded pro
 is using that very same schema. So, if the server you interact with does not support
 reflection, you will need to build "protoset" files that `grpcurl` can use.
 
-[Examples for how to set up server reflection can be found here.](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations.)
+[Examples for how to set up server reflection can be found here.](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations)
 
 This repo also provides a library package, `github.com/fullstorydev/grpcurl`, that has
 functions for simplifying the construction of other command-line tools that dynamically
