@@ -22,6 +22,8 @@ is using that very same schema. So, if the server you interact with does not sup
 reflection, you will either need the proto source files that define the service or need
 protoset files that `grpcurl` can use.
 
+[Examples for how to set up server reflection can be found here.](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations)
+
 This repo also provides a library package, `github.com/fullstorydev/grpcurl`, that has
 functions for simplifying the construction of other command-line tools that dynamically
 invoke gRPC endpoints. This code is a great example of how to use the various packages of
