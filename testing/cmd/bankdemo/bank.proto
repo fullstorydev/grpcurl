@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+option go_package = "main";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// Bank provides operations for interacting with bank accounts. All
+// operations operate for the authenticated user (identified via an
+// "authorization" request header, where the type is "token" and the
+// credential is the customer's ID).
+service Bank {
+    // OpenAccount creates an account with the type and given initial deposit
+    // as its balance.
+    rpc OpenAccount(OpenAccountRequest) returns (Account);
+    // CloseAccount closes the indicated account. An account can only be
+    // closed if its balance is zero.
+    rpc CloseAccount(CloseAccountRequest) returns (google.protobuf.Empty);
+    // GetAccounts lists all accounts for the current customer.
+    rpc GetAccounts(google.protobuf.Empty) returns (GetAccountsResponse);
+    // GetTransactions streams all transactions that match the given criteria.
+    // If the given start date is not specified, transactions since beginning
+    // of time are included. Similarly, if the given end date is not specified,
+    // transactions all the way to the presnet are included.
+    rpc GetTransactions(GetTransactionsRequest) returns (stream Transaction);
+    // Deposit increases the balance of an account by depositing funds into it.
+    rpc Deposit(DepositRequest) returns (BalanceResponse);
+    // Withdraw decreases the balance of an account by withdrawing funds from it.
+    rpc Withdraw(WithdrawRequest) returns (BalanceResponse);
+    // Transfer moves money from one account to another. The source and destination
+    // accounts can be with this bank (e.g. "local" account numbers) or can be
+    // external accounts, identified by their ACH routing and account numbers.
+    rpc Transfer(TransferRequest) returns (TransferResponse);
+}
+
+// Support provides an interactive chat service, for customers to interact with
+// the bank's support agents. A single stream, for either of the two methods, is
+// a stateful connection to a single "chat session". Streams are initially disconnected
+// (not part of any session). A stream must be disconnected from a session (via customer
+// hang up or via agent leaving a session) before it can be connected to a new one.
+service Support {
+    // ChatCustomer is used by a customer-facing app to send the customer's messages
+    // to a chat session. The customer is how initiates and terminates (via "hangup")
+    // a chat session. Only customers may invoke this method (e.g. requests must
+    // include customer auth credentials).
+    rpc ChatCustomer(stream ChatCustomerRequest) returns (stream ChatCustomerResponse);
+    // ChatAgent is used by an agent-facing app to allow an agent to reply to a
+    // customer's messages in a chat session. The agent may accept a chat session,
+    // which defaults to the session awaiting an agent for the longest period of time
+    // (FIFO queue).
+    rpc ChatAgent(stream ChatAgentRequest) returns (stream ChatAgentResponse);
+}
+
+message OpenAccountRequest {
+    int32 initial_deposit_cents = 1;
+    Account.Type type = 2;
+}
+
+message CloseAccountRequest {
+    uint64 account_number = 1;
+}
+
+message GetAccountsResponse {
+    repeated Account accounts = 1;
+}
+
+message Account {
+    uint64 account_number = 1;
+    enum Type {
+        UNKNOWN = 0;
+        CHECKING = 1;
+        SAVING = 2;
+        MONEY_MARKET = 3;
+        LINE_OF_CREDIT = 4;
+        LOAN = 5;
+        EQUITIES = 6;
+    }
+    Type type = 2;
+    int32 balance_cents = 3;
+}
+
+message GetTransactionsRequest {
+    uint64 account_number = 1;
+    google.protobuf.Timestamp start = 2;
+    google.protobuf.Timestamp end = 3;
+}
+
+message Transaction {
+    uint64 account_number = 1;
+    uint64 seq_number = 2;
+    google.protobuf.Timestamp date = 3;
+    int32 amount_cents = 4;
+    string desc = 5;
+}
+
+message DepositRequest {
+    uint64 account_number = 1;
+    int32 amount_cents = 2;
+    enum Source {
+        UNKNOWN = 0;
+        CASH = 1;
+        CHECK = 2;
+        ACH = 3;
+        WIRE = 4;
+    }
+    Source source = 3;
+    string desc = 4;
+}
+
+message BalanceResponse {
+    uint64 account_number = 1;
+    int32 balance_cents = 2;
+}
+
+message WithdrawRequest {
+    uint64 account_number = 1;
+    int32 amount_cents = 2;
+    string desc = 3;
+}
+
+message TransferRequest {
+    message ExternalAccount {
+        uint64 ach_routing_number = 1;
+        uint64 ach_account_number = 2;
+    }
+    oneof source {
+        uint64 source_account_number = 1;
+        ExternalAccount external_source = 2;
+    }
+    oneof dest {
+        uint64 dest_account_number = 3;
+        ExternalAccount external_dest = 4;
+    }
+    int32 amount_cents = 5;
+    string desc = 6;
+}
+
+message TransferResponse {
+    uint64 src_account_number = 1;
+    int32 src_balance_cents = 2;
+    uint64 dest_account_number = 3;
+    int32 dest_balance_cents = 4;
+}
+
+enum Void {
+    VOID = 0;
+}
+
+message ChatCustomerRequest {
+    oneof req {
+        // init is used when a chat stream is not part of a
+        // chat session. This is a stream's initial state, as well as
+        // the state after a "hang_up" request is sent. This creates
+        // a new state session or resumes an existing one.
+        InitiateChat init = 1;
+        // msg is used to send the customer's messages to support
+        // agents.
+        string msg = 2;
+        // hang_up is used to terminate a chat session. If a stream
+        // is broken, but the session was not terminated, the client
+        // may initiate a new stream and use init to resume that
+        // session. Sessions are not terminated unless done so
+        // explicitly via sending this kind of request on the stream.
+        Void hang_up = 3;
+    }
+}
+
+message InitiateChat {
+    string resume_session_id = 1;
+}
+
+message AgentMessage {
+    string agent_name = 1;
+    string msg = 2;
+}
+
+message ChatCustomerResponse {
+    oneof resp {
+        // session is sent from the server when the stream is connected
+        // to a chat session. This happens after an init request is sent
+        // and the stream is connected to either a new or resumed session.
+        Session session = 1;
+        // msg is sent from the server to convey agents' messages to the
+        // customer.
+        AgentMessage msg = 2;
+    }
+}
+
+message ChatAgentRequest {
+    oneof req {
+        // accept is used when an agent wants to join a customer chat
+        // session. It can be used to connect to a specific session (by
+        // ID), or to just accept the session for which the customer has
+        // been waiting the longest (e.g. poll a FIFO queue of sessions
+        // awaiting a support agent). It is possible for multiple agents
+        // to be connected to the same chat session.
+        AcceptChat accept = 1;
+        // msg is used to send a message to the customer. It will also be
+        // delivered to any other connected support agents.
+        string msg = 2;
+        // leave_session allows an agent to exit a chat session. They can
+        // always re-enter later by sending an accept message for that
+        // session ID.
+        Void leave_session = 3;
+    }
+}
+
+message AcceptChat {
+    string session_id = 1;
+}
+
+message ChatEntry {
+    google.protobuf.Timestamp date = 1;
+    oneof entry {
+        string customer_msg = 2;
+        AgentMessage agent_msg = 3;
+    }
+}
+
+message ChatAgentResponse {
+    oneof resp {
+        // accepted_session provides the detail of a chat session. The server
+        // sends this message after the agent has accepted a chat session.
+        Session accepted_session = 1;
+        // msg is sent by the server when the customer, or another support
+        // agent, sends a message in stream's current session.
+        ChatEntry msg = 2;
+        // session_ended notifies the support agent that their currently
+        // connected chat session has been terminated by the customer.
+        Void session_ended = 3;
+    }
+}
+
+message Session {
+    string session_id = 1;
+    string customer_name = 2;
+    repeated ChatEntry history = 3;
+}
