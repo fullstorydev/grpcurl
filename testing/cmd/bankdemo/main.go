@@ -1,6 +1,6 @@
 package main
 
-//go:generate protoc --go_out=plugins=grpc:./ bank.proto
+//go:generate protoc --go_out=plugins=grpc:./ bank.proto support.proto
 
 import (
 	"encoding/json"
@@ -9,8 +9,9 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"sync"
+	"os/signal"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"golang.org/x/net/context"
@@ -67,6 +68,16 @@ func main() {
 		s.flush()
 	}()
 
+	// trap SIGINT / SIGTERM to exit cleanly
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT)
+	signal.Notify(c, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Shutting down...")
+		grpcSvr.GracefulStop()
+	}()
+
 	grpclog.Infof("server starting, listening on %v", l.Addr())
 	if err := grpcSvr.Serve(l); err != nil {
 		panic(err)
@@ -112,11 +123,9 @@ func gRPCServer() *grpc.Server {
 }
 
 type svr struct {
-	datafile string
-	ctx      context.Context
-	cancel   context.CancelFunc
-
-	mu          sync.Mutex
+	datafile    string
+	ctx         context.Context
+	cancel      context.CancelFunc
 	allAccounts accounts
 }
 
@@ -149,10 +158,9 @@ func (s *svr) bgSaver() {
 }
 
 func (s *svr) flush() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	accounts := s.allAccounts.clone()
 
-	if b, err := json.Marshal(&s.allAccounts); err != nil {
+	if b, err := json.Marshal(accounts); err != nil {
 		grpclog.Errorf("failed to save data to %q", s.datafile)
 	} else if err := ioutil.WriteFile(s.datafile, b, 0666); err != nil {
 		grpclog.Errorf("failed to save data to %q", s.datafile)

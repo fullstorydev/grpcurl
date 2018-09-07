@@ -34,30 +34,7 @@ func (s *bankServer) OpenAccount(ctx context.Context, req *OpenAccountRequest) (
 		return nil, status.Errorf(codes.InvalidArgument, "invalid account type: %v", req.Type)
 	}
 
-	s.allAccounts.mu.Lock()
-	defer s.allAccounts.mu.Unlock()
-	accountNums, ok := s.allAccounts.AccountNumbersByCustomer[cust]
-	if !ok {
-		// no accounts for this customer? it's a new customer
-		s.allAccounts.Customers = append(s.allAccounts.Customers, cust)
-	}
-	num := s.allAccounts.LastAccountNum + 1
-	s.allAccounts.LastAccountNum = num
-	s.allAccounts.AccountNumbers = append(s.allAccounts.AccountNumbers, num)
-	accountNums = append(accountNums, num)
-	s.allAccounts.AccountNumbersByCustomer[cust] = accountNums
-	var acct account
-	acct.AccountNumber = num
-	acct.BalanceCents = req.InitialDepositCents
-	acct.Transactions = append(acct.Transactions, &Transaction{
-		AccountNumber: num,
-		SeqNumber:     1,
-		Date:          ptypes.TimestampNow(),
-		AmountCents:   req.InitialDepositCents,
-		Desc:          "initial deposit",
-	})
-	s.allAccounts.AccountsByNumber[num] = &acct
-	return &acct.Account, nil
+	return s.allAccounts.openAccount(cust, req.Type, req.InitialDepositCents), nil
 }
 
 func (s *bankServer) CloseAccount(ctx context.Context, req *CloseAccountRequest) (*empty.Empty, error) {
@@ -66,33 +43,9 @@ func (s *bankServer) CloseAccount(ctx context.Context, req *CloseAccountRequest)
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
-	s.allAccounts.mu.Lock()
-	defer s.allAccounts.mu.Unlock()
-	acctNums := s.allAccounts.AccountNumbersByCustomer[cust]
-	found := -1
-	for i, num := range acctNums {
-		if num == req.AccountNumber {
-			found = i
-			break
-		}
+	if err := s.allAccounts.closeAccount(cust, req.AccountNumber); err != nil {
+		return nil, err
 	}
-	if found == -1 {
-		return nil, status.Errorf(codes.NotFound, "you have no account numbered %d", req.AccountNumber)
-	}
-
-	for i, num := range s.allAccounts.AccountNumbers {
-		if num == req.AccountNumber {
-			s.allAccounts.AccountNumbers = append(s.allAccounts.AccountNumbers[:i], s.allAccounts.AccountNumbers[i+1:]...)
-			break
-		}
-	}
-
-	acct := s.allAccounts.AccountsByNumber[req.AccountNumber]
-	if acct.BalanceCents != 0 {
-		return nil, status.Errorf(codes.FailedPrecondition, "account %d cannot be closed because it has a non-zero balance: %s", req.AccountNumber, dollars(acct.BalanceCents))
-	}
-	s.allAccounts.AccountNumbersByCustomer[cust] = append(acctNums[:found], acctNums[found+1:]...)
-	delete(s.allAccounts.AccountsByNumber, req.AccountNumber)
 	return &empty.Empty{}, nil
 }
 
@@ -102,13 +55,7 @@ func (s *bankServer) GetAccounts(ctx context.Context, _ *empty.Empty) (*GetAccou
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
-	s.allAccounts.mu.RLock()
-	defer s.allAccounts.mu.RUnlock()
-	accountNums := s.allAccounts.AccountNumbersByCustomer[cust]
-	var accounts []*Account
-	for _, num := range accountNums {
-		accounts = append(accounts, &s.allAccounts.AccountsByNumber[num].Account)
-	}
+	accounts := s.allAccounts.getAllAccounts(cust)
 	return &GetAccountsResponse{Accounts: accounts}, nil
 }
 
@@ -118,17 +65,7 @@ func (s *bankServer) GetTransactions(req *GetTransactionsRequest, stream Bank_Ge
 		return status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
-	acct, err := func() (*account, error) {
-		s.allAccounts.mu.Lock()
-		defer s.allAccounts.mu.Unlock()
-		acctNums := s.allAccounts.AccountNumbersByCustomer[cust]
-		for _, num := range acctNums {
-			if num == req.AccountNumber {
-				return s.allAccounts.AccountsByNumber[num], nil
-			}
-		}
-		return nil, status.Errorf(codes.NotFound, "you have no account numbered %d", req.AccountNumber)
-	}()
+	acct, err := s.allAccounts.getAccount(cust, req.AccountNumber)
 	if err != nil {
 		return err
 	}
@@ -149,10 +86,7 @@ func (s *bankServer) GetTransactions(req *GetTransactionsRequest, stream Bank_Ge
 		end = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.Local)
 	}
 
-	acct.mu.RLock()
-	txns := acct.Transactions
-	acct.mu.RUnlock()
-
+	txns := acct.getTransactions()
 	for _, txn := range txns {
 		t, err := ptypes.Timestamp(txn.Date)
 		if err != nil {
@@ -190,7 +124,11 @@ func (s *bankServer) Deposit(ctx context.Context, req *DepositRequest) (*Balance
 	if req.Desc != "" {
 		desc = fmt.Sprintf("%s: %s", desc, req.Desc)
 	}
-	newBalance, err := s.newTransaction(cust, req.AccountNumber, req.AmountCents, desc)
+	acct, err := s.allAccounts.getAccount(cust, req.AccountNumber)
+	if err != nil {
+		return nil, err
+	}
+	newBalance, err := acct.newTransaction(req.AmountCents, desc)
 	if err != nil {
 		return nil, err
 	}
@@ -198,26 +136,6 @@ func (s *bankServer) Deposit(ctx context.Context, req *DepositRequest) (*Balance
 		AccountNumber: req.AccountNumber,
 		BalanceCents:  newBalance,
 	}, nil
-}
-
-func (s *bankServer) getAccount(cust string, acctNumber uint64) (*account, error) {
-	s.allAccounts.mu.Lock()
-	defer s.allAccounts.mu.Unlock()
-	acctNums := s.allAccounts.AccountNumbersByCustomer[cust]
-	for _, num := range acctNums {
-		if num == acctNumber {
-			return s.allAccounts.AccountsByNumber[num], nil
-		}
-	}
-	return nil, status.Errorf(codes.NotFound, "you have no account numbered %d", acctNumber)
-}
-
-func (s *bankServer) newTransaction(cust string, acctNumber uint64, amountCents int32, desc string) (int32, error) {
-	acct, err := s.getAccount(cust, acctNumber)
-	if err != nil {
-		return 0, err
-	}
-	return acct.newTransaction(amountCents, desc)
 }
 
 func (s *bankServer) Withdraw(ctx context.Context, req *WithdrawRequest) (*BalanceResponse, error) {
@@ -230,7 +148,11 @@ func (s *bankServer) Withdraw(ctx context.Context, req *WithdrawRequest) (*Balan
 		return nil, status.Errorf(codes.InvalidArgument, "withdrawal amount cannot be non-negative: %s", dollars(req.AmountCents))
 	}
 
-	newBalance, err := s.newTransaction(cust, req.AccountNumber, req.AmountCents, req.Desc)
+	acct, err := s.allAccounts.getAccount(cust, req.AccountNumber)
+	if err != nil {
+		return nil, err
+	}
+	newBalance, err := acct.newTransaction(req.AmountCents, req.Desc)
 	if err != nil {
 		return nil, err
 	}
@@ -238,10 +160,6 @@ func (s *bankServer) Withdraw(ctx context.Context, req *WithdrawRequest) (*Balan
 		AccountNumber: req.AccountNumber,
 		BalanceCents:  newBalance,
 	}, nil
-}
-
-func dollars(amountCents int32) string {
-	return fmt.Sprintf("$%02f", float64(amountCents)/100)
 }
 
 func (s *bankServer) Transfer(ctx context.Context, req *TransferRequest) (*TransferResponse, error) {
@@ -265,7 +183,7 @@ func (s *bankServer) Transfer(ctx context.Context, req *TransferRequest) (*Trans
 	case *TransferRequest_SourceAccountNumber:
 		srcDesc = fmt.Sprintf("account %06d", src.SourceAccountNumber)
 		var err error
-		if srcAcct, err = s.getAccount(cust, src.SourceAccountNumber); err != nil {
+		if srcAcct, err = s.allAccounts.getAccount(cust, src.SourceAccountNumber); err != nil {
 			return nil, err
 		}
 	}
@@ -281,7 +199,7 @@ func (s *bankServer) Transfer(ctx context.Context, req *TransferRequest) (*Trans
 	case *TransferRequest_DestAccountNumber:
 		destDesc = fmt.Sprintf("account %06d", dest.DestAccountNumber)
 		var err error
-		if destAcct, err = s.getAccount(cust, dest.DestAccountNumber); err != nil {
+		if destAcct, err = s.allAccounts.getAccount(cust, dest.DestAccountNumber); err != nil {
 			return nil, err
 		}
 	}

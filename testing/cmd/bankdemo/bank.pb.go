@@ -25,26 +25,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type Void int32
-
-const (
-	Void_VOID Void = 0
-)
-
-var Void_name = map[int32]string{
-	0: "VOID",
-}
-var Void_value = map[string]int32{
-	"VOID": 0,
-}
-
-func (x Void) String() string {
-	return proto.EnumName(Void_name, int32(x))
-}
-func (Void) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{0}
-}
-
 type Account_Type int32
 
 const (
@@ -80,7 +60,7 @@ func (x Account_Type) String() string {
 	return proto.EnumName(Account_Type_name, int32(x))
 }
 func (Account_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{3, 0}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{3, 0}
 }
 
 type DepositRequest_Source int32
@@ -112,7 +92,7 @@ func (x DepositRequest_Source) String() string {
 	return proto.EnumName(DepositRequest_Source_name, int32(x))
 }
 func (DepositRequest_Source) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{6, 0}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{6, 0}
 }
 
 type OpenAccountRequest struct {
@@ -127,7 +107,7 @@ func (m *OpenAccountRequest) Reset()         { *m = OpenAccountRequest{} }
 func (m *OpenAccountRequest) String() string { return proto.CompactTextString(m) }
 func (*OpenAccountRequest) ProtoMessage()    {}
 func (*OpenAccountRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{0}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{0}
 }
 func (m *OpenAccountRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_OpenAccountRequest.Unmarshal(m, b)
@@ -172,7 +152,7 @@ func (m *CloseAccountRequest) Reset()         { *m = CloseAccountRequest{} }
 func (m *CloseAccountRequest) String() string { return proto.CompactTextString(m) }
 func (*CloseAccountRequest) ProtoMessage()    {}
 func (*CloseAccountRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{1}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{1}
 }
 func (m *CloseAccountRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CloseAccountRequest.Unmarshal(m, b)
@@ -210,7 +190,7 @@ func (m *GetAccountsResponse) Reset()         { *m = GetAccountsResponse{} }
 func (m *GetAccountsResponse) String() string { return proto.CompactTextString(m) }
 func (*GetAccountsResponse) ProtoMessage()    {}
 func (*GetAccountsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{2}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{2}
 }
 func (m *GetAccountsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetAccountsResponse.Unmarshal(m, b)
@@ -250,7 +230,7 @@ func (m *Account) Reset()         { *m = Account{} }
 func (m *Account) String() string { return proto.CompactTextString(m) }
 func (*Account) ProtoMessage()    {}
 func (*Account) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{3}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{3}
 }
 func (m *Account) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Account.Unmarshal(m, b)
@@ -304,7 +284,7 @@ func (m *GetTransactionsRequest) Reset()         { *m = GetTransactionsRequest{}
 func (m *GetTransactionsRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTransactionsRequest) ProtoMessage()    {}
 func (*GetTransactionsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{4}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{4}
 }
 func (m *GetTransactionsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTransactionsRequest.Unmarshal(m, b)
@@ -360,7 +340,7 @@ func (m *Transaction) Reset()         { *m = Transaction{} }
 func (m *Transaction) String() string { return proto.CompactTextString(m) }
 func (*Transaction) ProtoMessage()    {}
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{5}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{5}
 }
 func (m *Transaction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Transaction.Unmarshal(m, b)
@@ -429,7 +409,7 @@ func (m *DepositRequest) Reset()         { *m = DepositRequest{} }
 func (m *DepositRequest) String() string { return proto.CompactTextString(m) }
 func (*DepositRequest) ProtoMessage()    {}
 func (*DepositRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{6}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{6}
 }
 func (m *DepositRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DepositRequest.Unmarshal(m, b)
@@ -489,7 +469,7 @@ func (m *BalanceResponse) Reset()         { *m = BalanceResponse{} }
 func (m *BalanceResponse) String() string { return proto.CompactTextString(m) }
 func (*BalanceResponse) ProtoMessage()    {}
 func (*BalanceResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{7}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{7}
 }
 func (m *BalanceResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BalanceResponse.Unmarshal(m, b)
@@ -536,7 +516,7 @@ func (m *WithdrawRequest) Reset()         { *m = WithdrawRequest{} }
 func (m *WithdrawRequest) String() string { return proto.CompactTextString(m) }
 func (*WithdrawRequest) ProtoMessage()    {}
 func (*WithdrawRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{8}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{8}
 }
 func (m *WithdrawRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WithdrawRequest.Unmarshal(m, b)
@@ -597,7 +577,7 @@ func (m *TransferRequest) Reset()         { *m = TransferRequest{} }
 func (m *TransferRequest) String() string { return proto.CompactTextString(m) }
 func (*TransferRequest) ProtoMessage()    {}
 func (*TransferRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{9}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{9}
 }
 func (m *TransferRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferRequest.Unmarshal(m, b)
@@ -823,7 +803,7 @@ func (m *TransferRequest_ExternalAccount) Reset()         { *m = TransferRequest
 func (m *TransferRequest_ExternalAccount) String() string { return proto.CompactTextString(m) }
 func (*TransferRequest_ExternalAccount) ProtoMessage()    {}
 func (*TransferRequest_ExternalAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{9, 0}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{9, 0}
 }
 func (m *TransferRequest_ExternalAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferRequest_ExternalAccount.Unmarshal(m, b)
@@ -871,7 +851,7 @@ func (m *TransferResponse) Reset()         { *m = TransferResponse{} }
 func (m *TransferResponse) String() string { return proto.CompactTextString(m) }
 func (*TransferResponse) ProtoMessage()    {}
 func (*TransferResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{10}
+	return fileDescriptor_bank_485eb966c3eae5d1, []int{10}
 }
 func (m *TransferResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransferResponse.Unmarshal(m, b)
@@ -919,971 +899,6 @@ func (m *TransferResponse) GetDestBalanceCents() int32 {
 	return 0
 }
 
-type ChatCustomerRequest struct {
-	// Types that are valid to be assigned to Req:
-	//	*ChatCustomerRequest_Init
-	//	*ChatCustomerRequest_Msg
-	//	*ChatCustomerRequest_HangUp
-	Req                  isChatCustomerRequest_Req `protobuf_oneof:"req"`
-	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
-	XXX_unrecognized     []byte                    `json:"-"`
-	XXX_sizecache        int32                     `json:"-"`
-}
-
-func (m *ChatCustomerRequest) Reset()         { *m = ChatCustomerRequest{} }
-func (m *ChatCustomerRequest) String() string { return proto.CompactTextString(m) }
-func (*ChatCustomerRequest) ProtoMessage()    {}
-func (*ChatCustomerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{11}
-}
-func (m *ChatCustomerRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChatCustomerRequest.Unmarshal(m, b)
-}
-func (m *ChatCustomerRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChatCustomerRequest.Marshal(b, m, deterministic)
-}
-func (dst *ChatCustomerRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChatCustomerRequest.Merge(dst, src)
-}
-func (m *ChatCustomerRequest) XXX_Size() int {
-	return xxx_messageInfo_ChatCustomerRequest.Size(m)
-}
-func (m *ChatCustomerRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChatCustomerRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ChatCustomerRequest proto.InternalMessageInfo
-
-type isChatCustomerRequest_Req interface {
-	isChatCustomerRequest_Req()
-}
-
-type ChatCustomerRequest_Init struct {
-	Init *InitiateChat `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
-}
-type ChatCustomerRequest_Msg struct {
-	Msg string `protobuf:"bytes,2,opt,name=msg,proto3,oneof"`
-}
-type ChatCustomerRequest_HangUp struct {
-	HangUp Void `protobuf:"varint,3,opt,name=hang_up,json=hangUp,proto3,enum=Void,oneof"`
-}
-
-func (*ChatCustomerRequest_Init) isChatCustomerRequest_Req()   {}
-func (*ChatCustomerRequest_Msg) isChatCustomerRequest_Req()    {}
-func (*ChatCustomerRequest_HangUp) isChatCustomerRequest_Req() {}
-
-func (m *ChatCustomerRequest) GetReq() isChatCustomerRequest_Req {
-	if m != nil {
-		return m.Req
-	}
-	return nil
-}
-
-func (m *ChatCustomerRequest) GetInit() *InitiateChat {
-	if x, ok := m.GetReq().(*ChatCustomerRequest_Init); ok {
-		return x.Init
-	}
-	return nil
-}
-
-func (m *ChatCustomerRequest) GetMsg() string {
-	if x, ok := m.GetReq().(*ChatCustomerRequest_Msg); ok {
-		return x.Msg
-	}
-	return ""
-}
-
-func (m *ChatCustomerRequest) GetHangUp() Void {
-	if x, ok := m.GetReq().(*ChatCustomerRequest_HangUp); ok {
-		return x.HangUp
-	}
-	return Void_VOID
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ChatCustomerRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ChatCustomerRequest_OneofMarshaler, _ChatCustomerRequest_OneofUnmarshaler, _ChatCustomerRequest_OneofSizer, []interface{}{
-		(*ChatCustomerRequest_Init)(nil),
-		(*ChatCustomerRequest_Msg)(nil),
-		(*ChatCustomerRequest_HangUp)(nil),
-	}
-}
-
-func _ChatCustomerRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ChatCustomerRequest)
-	// req
-	switch x := m.Req.(type) {
-	case *ChatCustomerRequest_Init:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Init); err != nil {
-			return err
-		}
-	case *ChatCustomerRequest_Msg:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Msg)
-	case *ChatCustomerRequest_HangUp:
-		b.EncodeVarint(3<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.HangUp))
-	case nil:
-	default:
-		return fmt.Errorf("ChatCustomerRequest.Req has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ChatCustomerRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ChatCustomerRequest)
-	switch tag {
-	case 1: // req.init
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(InitiateChat)
-		err := b.DecodeMessage(msg)
-		m.Req = &ChatCustomerRequest_Init{msg}
-		return true, err
-	case 2: // req.msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Req = &ChatCustomerRequest_Msg{x}
-		return true, err
-	case 3: // req.hang_up
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Req = &ChatCustomerRequest_HangUp{Void(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ChatCustomerRequest_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ChatCustomerRequest)
-	// req
-	switch x := m.Req.(type) {
-	case *ChatCustomerRequest_Init:
-		s := proto.Size(x.Init)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ChatCustomerRequest_Msg:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Msg)))
-		n += len(x.Msg)
-	case *ChatCustomerRequest_HangUp:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.HangUp))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
-type InitiateChat struct {
-	ResumeSessionId      string   `protobuf:"bytes,1,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *InitiateChat) Reset()         { *m = InitiateChat{} }
-func (m *InitiateChat) String() string { return proto.CompactTextString(m) }
-func (*InitiateChat) ProtoMessage()    {}
-func (*InitiateChat) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{12}
-}
-func (m *InitiateChat) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InitiateChat.Unmarshal(m, b)
-}
-func (m *InitiateChat) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InitiateChat.Marshal(b, m, deterministic)
-}
-func (dst *InitiateChat) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InitiateChat.Merge(dst, src)
-}
-func (m *InitiateChat) XXX_Size() int {
-	return xxx_messageInfo_InitiateChat.Size(m)
-}
-func (m *InitiateChat) XXX_DiscardUnknown() {
-	xxx_messageInfo_InitiateChat.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_InitiateChat proto.InternalMessageInfo
-
-func (m *InitiateChat) GetResumeSessionId() string {
-	if m != nil {
-		return m.ResumeSessionId
-	}
-	return ""
-}
-
-type AgentMessage struct {
-	AgentName            string   `protobuf:"bytes,1,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
-	Msg                  string   `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *AgentMessage) Reset()         { *m = AgentMessage{} }
-func (m *AgentMessage) String() string { return proto.CompactTextString(m) }
-func (*AgentMessage) ProtoMessage()    {}
-func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{13}
-}
-func (m *AgentMessage) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_AgentMessage.Unmarshal(m, b)
-}
-func (m *AgentMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_AgentMessage.Marshal(b, m, deterministic)
-}
-func (dst *AgentMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AgentMessage.Merge(dst, src)
-}
-func (m *AgentMessage) XXX_Size() int {
-	return xxx_messageInfo_AgentMessage.Size(m)
-}
-func (m *AgentMessage) XXX_DiscardUnknown() {
-	xxx_messageInfo_AgentMessage.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AgentMessage proto.InternalMessageInfo
-
-func (m *AgentMessage) GetAgentName() string {
-	if m != nil {
-		return m.AgentName
-	}
-	return ""
-}
-
-func (m *AgentMessage) GetMsg() string {
-	if m != nil {
-		return m.Msg
-	}
-	return ""
-}
-
-type ChatCustomerResponse struct {
-	// Types that are valid to be assigned to Resp:
-	//	*ChatCustomerResponse_Session
-	//	*ChatCustomerResponse_Msg
-	Resp                 isChatCustomerResponse_Resp `protobuf_oneof:"resp"`
-	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
-	XXX_unrecognized     []byte                      `json:"-"`
-	XXX_sizecache        int32                       `json:"-"`
-}
-
-func (m *ChatCustomerResponse) Reset()         { *m = ChatCustomerResponse{} }
-func (m *ChatCustomerResponse) String() string { return proto.CompactTextString(m) }
-func (*ChatCustomerResponse) ProtoMessage()    {}
-func (*ChatCustomerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{14}
-}
-func (m *ChatCustomerResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChatCustomerResponse.Unmarshal(m, b)
-}
-func (m *ChatCustomerResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChatCustomerResponse.Marshal(b, m, deterministic)
-}
-func (dst *ChatCustomerResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChatCustomerResponse.Merge(dst, src)
-}
-func (m *ChatCustomerResponse) XXX_Size() int {
-	return xxx_messageInfo_ChatCustomerResponse.Size(m)
-}
-func (m *ChatCustomerResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChatCustomerResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ChatCustomerResponse proto.InternalMessageInfo
-
-type isChatCustomerResponse_Resp interface {
-	isChatCustomerResponse_Resp()
-}
-
-type ChatCustomerResponse_Session struct {
-	Session *Session `protobuf:"bytes,1,opt,name=session,proto3,oneof"`
-}
-type ChatCustomerResponse_Msg struct {
-	Msg *AgentMessage `protobuf:"bytes,2,opt,name=msg,proto3,oneof"`
-}
-
-func (*ChatCustomerResponse_Session) isChatCustomerResponse_Resp() {}
-func (*ChatCustomerResponse_Msg) isChatCustomerResponse_Resp()     {}
-
-func (m *ChatCustomerResponse) GetResp() isChatCustomerResponse_Resp {
-	if m != nil {
-		return m.Resp
-	}
-	return nil
-}
-
-func (m *ChatCustomerResponse) GetSession() *Session {
-	if x, ok := m.GetResp().(*ChatCustomerResponse_Session); ok {
-		return x.Session
-	}
-	return nil
-}
-
-func (m *ChatCustomerResponse) GetMsg() *AgentMessage {
-	if x, ok := m.GetResp().(*ChatCustomerResponse_Msg); ok {
-		return x.Msg
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ChatCustomerResponse) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ChatCustomerResponse_OneofMarshaler, _ChatCustomerResponse_OneofUnmarshaler, _ChatCustomerResponse_OneofSizer, []interface{}{
-		(*ChatCustomerResponse_Session)(nil),
-		(*ChatCustomerResponse_Msg)(nil),
-	}
-}
-
-func _ChatCustomerResponse_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ChatCustomerResponse)
-	// resp
-	switch x := m.Resp.(type) {
-	case *ChatCustomerResponse_Session:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Session); err != nil {
-			return err
-		}
-	case *ChatCustomerResponse_Msg:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Msg); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("ChatCustomerResponse.Resp has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ChatCustomerResponse_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ChatCustomerResponse)
-	switch tag {
-	case 1: // resp.session
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Session)
-		err := b.DecodeMessage(msg)
-		m.Resp = &ChatCustomerResponse_Session{msg}
-		return true, err
-	case 2: // resp.msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(AgentMessage)
-		err := b.DecodeMessage(msg)
-		m.Resp = &ChatCustomerResponse_Msg{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ChatCustomerResponse_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ChatCustomerResponse)
-	// resp
-	switch x := m.Resp.(type) {
-	case *ChatCustomerResponse_Session:
-		s := proto.Size(x.Session)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ChatCustomerResponse_Msg:
-		s := proto.Size(x.Msg)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
-type ChatAgentRequest struct {
-	// Types that are valid to be assigned to Req:
-	//	*ChatAgentRequest_Accept
-	//	*ChatAgentRequest_Msg
-	//	*ChatAgentRequest_LeaveSession
-	Req                  isChatAgentRequest_Req `protobuf_oneof:"req"`
-	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
-	XXX_unrecognized     []byte                 `json:"-"`
-	XXX_sizecache        int32                  `json:"-"`
-}
-
-func (m *ChatAgentRequest) Reset()         { *m = ChatAgentRequest{} }
-func (m *ChatAgentRequest) String() string { return proto.CompactTextString(m) }
-func (*ChatAgentRequest) ProtoMessage()    {}
-func (*ChatAgentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{15}
-}
-func (m *ChatAgentRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChatAgentRequest.Unmarshal(m, b)
-}
-func (m *ChatAgentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChatAgentRequest.Marshal(b, m, deterministic)
-}
-func (dst *ChatAgentRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChatAgentRequest.Merge(dst, src)
-}
-func (m *ChatAgentRequest) XXX_Size() int {
-	return xxx_messageInfo_ChatAgentRequest.Size(m)
-}
-func (m *ChatAgentRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChatAgentRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ChatAgentRequest proto.InternalMessageInfo
-
-type isChatAgentRequest_Req interface {
-	isChatAgentRequest_Req()
-}
-
-type ChatAgentRequest_Accept struct {
-	Accept *AcceptChat `protobuf:"bytes,1,opt,name=accept,proto3,oneof"`
-}
-type ChatAgentRequest_Msg struct {
-	Msg string `protobuf:"bytes,2,opt,name=msg,proto3,oneof"`
-}
-type ChatAgentRequest_LeaveSession struct {
-	LeaveSession Void `protobuf:"varint,3,opt,name=leave_session,json=leaveSession,proto3,enum=Void,oneof"`
-}
-
-func (*ChatAgentRequest_Accept) isChatAgentRequest_Req()       {}
-func (*ChatAgentRequest_Msg) isChatAgentRequest_Req()          {}
-func (*ChatAgentRequest_LeaveSession) isChatAgentRequest_Req() {}
-
-func (m *ChatAgentRequest) GetReq() isChatAgentRequest_Req {
-	if m != nil {
-		return m.Req
-	}
-	return nil
-}
-
-func (m *ChatAgentRequest) GetAccept() *AcceptChat {
-	if x, ok := m.GetReq().(*ChatAgentRequest_Accept); ok {
-		return x.Accept
-	}
-	return nil
-}
-
-func (m *ChatAgentRequest) GetMsg() string {
-	if x, ok := m.GetReq().(*ChatAgentRequest_Msg); ok {
-		return x.Msg
-	}
-	return ""
-}
-
-func (m *ChatAgentRequest) GetLeaveSession() Void {
-	if x, ok := m.GetReq().(*ChatAgentRequest_LeaveSession); ok {
-		return x.LeaveSession
-	}
-	return Void_VOID
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ChatAgentRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ChatAgentRequest_OneofMarshaler, _ChatAgentRequest_OneofUnmarshaler, _ChatAgentRequest_OneofSizer, []interface{}{
-		(*ChatAgentRequest_Accept)(nil),
-		(*ChatAgentRequest_Msg)(nil),
-		(*ChatAgentRequest_LeaveSession)(nil),
-	}
-}
-
-func _ChatAgentRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ChatAgentRequest)
-	// req
-	switch x := m.Req.(type) {
-	case *ChatAgentRequest_Accept:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Accept); err != nil {
-			return err
-		}
-	case *ChatAgentRequest_Msg:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Msg)
-	case *ChatAgentRequest_LeaveSession:
-		b.EncodeVarint(3<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.LeaveSession))
-	case nil:
-	default:
-		return fmt.Errorf("ChatAgentRequest.Req has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ChatAgentRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ChatAgentRequest)
-	switch tag {
-	case 1: // req.accept
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(AcceptChat)
-		err := b.DecodeMessage(msg)
-		m.Req = &ChatAgentRequest_Accept{msg}
-		return true, err
-	case 2: // req.msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Req = &ChatAgentRequest_Msg{x}
-		return true, err
-	case 3: // req.leave_session
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Req = &ChatAgentRequest_LeaveSession{Void(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ChatAgentRequest_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ChatAgentRequest)
-	// req
-	switch x := m.Req.(type) {
-	case *ChatAgentRequest_Accept:
-		s := proto.Size(x.Accept)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ChatAgentRequest_Msg:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Msg)))
-		n += len(x.Msg)
-	case *ChatAgentRequest_LeaveSession:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.LeaveSession))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
-type AcceptChat struct {
-	SessionId            string   `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *AcceptChat) Reset()         { *m = AcceptChat{} }
-func (m *AcceptChat) String() string { return proto.CompactTextString(m) }
-func (*AcceptChat) ProtoMessage()    {}
-func (*AcceptChat) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{16}
-}
-func (m *AcceptChat) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_AcceptChat.Unmarshal(m, b)
-}
-func (m *AcceptChat) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_AcceptChat.Marshal(b, m, deterministic)
-}
-func (dst *AcceptChat) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AcceptChat.Merge(dst, src)
-}
-func (m *AcceptChat) XXX_Size() int {
-	return xxx_messageInfo_AcceptChat.Size(m)
-}
-func (m *AcceptChat) XXX_DiscardUnknown() {
-	xxx_messageInfo_AcceptChat.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AcceptChat proto.InternalMessageInfo
-
-func (m *AcceptChat) GetSessionId() string {
-	if m != nil {
-		return m.SessionId
-	}
-	return ""
-}
-
-type ChatEntry struct {
-	Date *timestamp.Timestamp `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	// Types that are valid to be assigned to Entry:
-	//	*ChatEntry_CustomerMsg
-	//	*ChatEntry_AgentMsg
-	Entry                isChatEntry_Entry `protobuf_oneof:"entry"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
-}
-
-func (m *ChatEntry) Reset()         { *m = ChatEntry{} }
-func (m *ChatEntry) String() string { return proto.CompactTextString(m) }
-func (*ChatEntry) ProtoMessage()    {}
-func (*ChatEntry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{17}
-}
-func (m *ChatEntry) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChatEntry.Unmarshal(m, b)
-}
-func (m *ChatEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChatEntry.Marshal(b, m, deterministic)
-}
-func (dst *ChatEntry) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChatEntry.Merge(dst, src)
-}
-func (m *ChatEntry) XXX_Size() int {
-	return xxx_messageInfo_ChatEntry.Size(m)
-}
-func (m *ChatEntry) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChatEntry.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ChatEntry proto.InternalMessageInfo
-
-type isChatEntry_Entry interface {
-	isChatEntry_Entry()
-}
-
-type ChatEntry_CustomerMsg struct {
-	CustomerMsg string `protobuf:"bytes,2,opt,name=customer_msg,json=customerMsg,proto3,oneof"`
-}
-type ChatEntry_AgentMsg struct {
-	AgentMsg *AgentMessage `protobuf:"bytes,3,opt,name=agent_msg,json=agentMsg,proto3,oneof"`
-}
-
-func (*ChatEntry_CustomerMsg) isChatEntry_Entry() {}
-func (*ChatEntry_AgentMsg) isChatEntry_Entry()    {}
-
-func (m *ChatEntry) GetEntry() isChatEntry_Entry {
-	if m != nil {
-		return m.Entry
-	}
-	return nil
-}
-
-func (m *ChatEntry) GetDate() *timestamp.Timestamp {
-	if m != nil {
-		return m.Date
-	}
-	return nil
-}
-
-func (m *ChatEntry) GetCustomerMsg() string {
-	if x, ok := m.GetEntry().(*ChatEntry_CustomerMsg); ok {
-		return x.CustomerMsg
-	}
-	return ""
-}
-
-func (m *ChatEntry) GetAgentMsg() *AgentMessage {
-	if x, ok := m.GetEntry().(*ChatEntry_AgentMsg); ok {
-		return x.AgentMsg
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ChatEntry) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ChatEntry_OneofMarshaler, _ChatEntry_OneofUnmarshaler, _ChatEntry_OneofSizer, []interface{}{
-		(*ChatEntry_CustomerMsg)(nil),
-		(*ChatEntry_AgentMsg)(nil),
-	}
-}
-
-func _ChatEntry_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ChatEntry)
-	// entry
-	switch x := m.Entry.(type) {
-	case *ChatEntry_CustomerMsg:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.CustomerMsg)
-	case *ChatEntry_AgentMsg:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.AgentMsg); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("ChatEntry.Entry has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ChatEntry_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ChatEntry)
-	switch tag {
-	case 2: // entry.customer_msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Entry = &ChatEntry_CustomerMsg{x}
-		return true, err
-	case 3: // entry.agent_msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(AgentMessage)
-		err := b.DecodeMessage(msg)
-		m.Entry = &ChatEntry_AgentMsg{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ChatEntry_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ChatEntry)
-	// entry
-	switch x := m.Entry.(type) {
-	case *ChatEntry_CustomerMsg:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.CustomerMsg)))
-		n += len(x.CustomerMsg)
-	case *ChatEntry_AgentMsg:
-		s := proto.Size(x.AgentMsg)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
-type ChatAgentResponse struct {
-	// Types that are valid to be assigned to Resp:
-	//	*ChatAgentResponse_AcceptedSession
-	//	*ChatAgentResponse_Msg
-	//	*ChatAgentResponse_SessionEnded
-	Resp                 isChatAgentResponse_Resp `protobuf_oneof:"resp"`
-	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
-	XXX_unrecognized     []byte                   `json:"-"`
-	XXX_sizecache        int32                    `json:"-"`
-}
-
-func (m *ChatAgentResponse) Reset()         { *m = ChatAgentResponse{} }
-func (m *ChatAgentResponse) String() string { return proto.CompactTextString(m) }
-func (*ChatAgentResponse) ProtoMessage()    {}
-func (*ChatAgentResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{18}
-}
-func (m *ChatAgentResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChatAgentResponse.Unmarshal(m, b)
-}
-func (m *ChatAgentResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChatAgentResponse.Marshal(b, m, deterministic)
-}
-func (dst *ChatAgentResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChatAgentResponse.Merge(dst, src)
-}
-func (m *ChatAgentResponse) XXX_Size() int {
-	return xxx_messageInfo_ChatAgentResponse.Size(m)
-}
-func (m *ChatAgentResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChatAgentResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ChatAgentResponse proto.InternalMessageInfo
-
-type isChatAgentResponse_Resp interface {
-	isChatAgentResponse_Resp()
-}
-
-type ChatAgentResponse_AcceptedSession struct {
-	AcceptedSession *Session `protobuf:"bytes,1,opt,name=accepted_session,json=acceptedSession,proto3,oneof"`
-}
-type ChatAgentResponse_Msg struct {
-	Msg *ChatEntry `protobuf:"bytes,2,opt,name=msg,proto3,oneof"`
-}
-type ChatAgentResponse_SessionEnded struct {
-	SessionEnded Void `protobuf:"varint,3,opt,name=session_ended,json=sessionEnded,proto3,enum=Void,oneof"`
-}
-
-func (*ChatAgentResponse_AcceptedSession) isChatAgentResponse_Resp() {}
-func (*ChatAgentResponse_Msg) isChatAgentResponse_Resp()             {}
-func (*ChatAgentResponse_SessionEnded) isChatAgentResponse_Resp()    {}
-
-func (m *ChatAgentResponse) GetResp() isChatAgentResponse_Resp {
-	if m != nil {
-		return m.Resp
-	}
-	return nil
-}
-
-func (m *ChatAgentResponse) GetAcceptedSession() *Session {
-	if x, ok := m.GetResp().(*ChatAgentResponse_AcceptedSession); ok {
-		return x.AcceptedSession
-	}
-	return nil
-}
-
-func (m *ChatAgentResponse) GetMsg() *ChatEntry {
-	if x, ok := m.GetResp().(*ChatAgentResponse_Msg); ok {
-		return x.Msg
-	}
-	return nil
-}
-
-func (m *ChatAgentResponse) GetSessionEnded() Void {
-	if x, ok := m.GetResp().(*ChatAgentResponse_SessionEnded); ok {
-		return x.SessionEnded
-	}
-	return Void_VOID
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ChatAgentResponse) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ChatAgentResponse_OneofMarshaler, _ChatAgentResponse_OneofUnmarshaler, _ChatAgentResponse_OneofSizer, []interface{}{
-		(*ChatAgentResponse_AcceptedSession)(nil),
-		(*ChatAgentResponse_Msg)(nil),
-		(*ChatAgentResponse_SessionEnded)(nil),
-	}
-}
-
-func _ChatAgentResponse_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ChatAgentResponse)
-	// resp
-	switch x := m.Resp.(type) {
-	case *ChatAgentResponse_AcceptedSession:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.AcceptedSession); err != nil {
-			return err
-		}
-	case *ChatAgentResponse_Msg:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Msg); err != nil {
-			return err
-		}
-	case *ChatAgentResponse_SessionEnded:
-		b.EncodeVarint(3<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.SessionEnded))
-	case nil:
-	default:
-		return fmt.Errorf("ChatAgentResponse.Resp has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ChatAgentResponse_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ChatAgentResponse)
-	switch tag {
-	case 1: // resp.accepted_session
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Session)
-		err := b.DecodeMessage(msg)
-		m.Resp = &ChatAgentResponse_AcceptedSession{msg}
-		return true, err
-	case 2: // resp.msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(ChatEntry)
-		err := b.DecodeMessage(msg)
-		m.Resp = &ChatAgentResponse_Msg{msg}
-		return true, err
-	case 3: // resp.session_ended
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Resp = &ChatAgentResponse_SessionEnded{Void(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ChatAgentResponse_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ChatAgentResponse)
-	// resp
-	switch x := m.Resp.(type) {
-	case *ChatAgentResponse_AcceptedSession:
-		s := proto.Size(x.AcceptedSession)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ChatAgentResponse_Msg:
-		s := proto.Size(x.Msg)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ChatAgentResponse_SessionEnded:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.SessionEnded))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
-type Session struct {
-	SessionId            string       `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	CustomerName         string       `protobuf:"bytes,2,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"`
-	History              []*ChatEntry `protobuf:"bytes,3,rep,name=history,proto3" json:"history,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
-}
-
-func (m *Session) Reset()         { *m = Session{} }
-func (m *Session) String() string { return proto.CompactTextString(m) }
-func (*Session) ProtoMessage()    {}
-func (*Session) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bank_a8a0edd183099ef5, []int{19}
-}
-func (m *Session) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Session.Unmarshal(m, b)
-}
-func (m *Session) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Session.Marshal(b, m, deterministic)
-}
-func (dst *Session) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Session.Merge(dst, src)
-}
-func (m *Session) XXX_Size() int {
-	return xxx_messageInfo_Session.Size(m)
-}
-func (m *Session) XXX_DiscardUnknown() {
-	xxx_messageInfo_Session.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Session proto.InternalMessageInfo
-
-func (m *Session) GetSessionId() string {
-	if m != nil {
-		return m.SessionId
-	}
-	return ""
-}
-
-func (m *Session) GetCustomerName() string {
-	if m != nil {
-		return m.CustomerName
-	}
-	return ""
-}
-
-func (m *Session) GetHistory() []*ChatEntry {
-	if m != nil {
-		return m.History
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*OpenAccountRequest)(nil), "OpenAccountRequest")
 	proto.RegisterType((*CloseAccountRequest)(nil), "CloseAccountRequest")
@@ -1897,16 +912,6 @@ func init() {
 	proto.RegisterType((*TransferRequest)(nil), "TransferRequest")
 	proto.RegisterType((*TransferRequest_ExternalAccount)(nil), "TransferRequest.ExternalAccount")
 	proto.RegisterType((*TransferResponse)(nil), "TransferResponse")
-	proto.RegisterType((*ChatCustomerRequest)(nil), "ChatCustomerRequest")
-	proto.RegisterType((*InitiateChat)(nil), "InitiateChat")
-	proto.RegisterType((*AgentMessage)(nil), "AgentMessage")
-	proto.RegisterType((*ChatCustomerResponse)(nil), "ChatCustomerResponse")
-	proto.RegisterType((*ChatAgentRequest)(nil), "ChatAgentRequest")
-	proto.RegisterType((*AcceptChat)(nil), "AcceptChat")
-	proto.RegisterType((*ChatEntry)(nil), "ChatEntry")
-	proto.RegisterType((*ChatAgentResponse)(nil), "ChatAgentResponse")
-	proto.RegisterType((*Session)(nil), "Session")
-	proto.RegisterEnum("Void", Void_name, Void_value)
 	proto.RegisterEnum("Account_Type", Account_Type_name, Account_Type_value)
 	proto.RegisterEnum("DepositRequest_Source", DepositRequest_Source_name, DepositRequest_Source_value)
 }
@@ -2237,269 +1242,66 @@ var _Bank_serviceDesc = grpc.ServiceDesc{
 	Metadata: "bank.proto",
 }
 
-// SupportClient is the client API for Support service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type SupportClient interface {
-	// ChatCustomer is used by a customer-facing app to send the customer's messages
-	// to a chat session. The customer is how initiates and terminates (via "hangup")
-	// a chat session. Only customers may invoke this method (e.g. requests must
-	// include customer auth credentials).
-	ChatCustomer(ctx context.Context, opts ...grpc.CallOption) (Support_ChatCustomerClient, error)
-	// ChatAgent is used by an agent-facing app to allow an agent to reply to a
-	// customer's messages in a chat session. The agent may accept a chat session,
-	// which defaults to the session awaiting an agent for the longest period of time
-	// (FIFO queue).
-	ChatAgent(ctx context.Context, opts ...grpc.CallOption) (Support_ChatAgentClient, error)
-}
+func init() { proto.RegisterFile("bank.proto", fileDescriptor_bank_485eb966c3eae5d1) }
 
-type supportClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewSupportClient(cc *grpc.ClientConn) SupportClient {
-	return &supportClient{cc}
-}
-
-func (c *supportClient) ChatCustomer(ctx context.Context, opts ...grpc.CallOption) (Support_ChatCustomerClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Support_serviceDesc.Streams[0], "/Support/ChatCustomer", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &supportChatCustomerClient{stream}
-	return x, nil
-}
-
-type Support_ChatCustomerClient interface {
-	Send(*ChatCustomerRequest) error
-	Recv() (*ChatCustomerResponse, error)
-	grpc.ClientStream
-}
-
-type supportChatCustomerClient struct {
-	grpc.ClientStream
-}
-
-func (x *supportChatCustomerClient) Send(m *ChatCustomerRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *supportChatCustomerClient) Recv() (*ChatCustomerResponse, error) {
-	m := new(ChatCustomerResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *supportClient) ChatAgent(ctx context.Context, opts ...grpc.CallOption) (Support_ChatAgentClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Support_serviceDesc.Streams[1], "/Support/ChatAgent", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &supportChatAgentClient{stream}
-	return x, nil
-}
-
-type Support_ChatAgentClient interface {
-	Send(*ChatAgentRequest) error
-	Recv() (*ChatAgentResponse, error)
-	grpc.ClientStream
-}
-
-type supportChatAgentClient struct {
-	grpc.ClientStream
-}
-
-func (x *supportChatAgentClient) Send(m *ChatAgentRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *supportChatAgentClient) Recv() (*ChatAgentResponse, error) {
-	m := new(ChatAgentResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// SupportServer is the server API for Support service.
-type SupportServer interface {
-	// ChatCustomer is used by a customer-facing app to send the customer's messages
-	// to a chat session. The customer is how initiates and terminates (via "hangup")
-	// a chat session. Only customers may invoke this method (e.g. requests must
-	// include customer auth credentials).
-	ChatCustomer(Support_ChatCustomerServer) error
-	// ChatAgent is used by an agent-facing app to allow an agent to reply to a
-	// customer's messages in a chat session. The agent may accept a chat session,
-	// which defaults to the session awaiting an agent for the longest period of time
-	// (FIFO queue).
-	ChatAgent(Support_ChatAgentServer) error
-}
-
-func RegisterSupportServer(s *grpc.Server, srv SupportServer) {
-	s.RegisterService(&_Support_serviceDesc, srv)
-}
-
-func _Support_ChatCustomer_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(SupportServer).ChatCustomer(&supportChatCustomerServer{stream})
-}
-
-type Support_ChatCustomerServer interface {
-	Send(*ChatCustomerResponse) error
-	Recv() (*ChatCustomerRequest, error)
-	grpc.ServerStream
-}
-
-type supportChatCustomerServer struct {
-	grpc.ServerStream
-}
-
-func (x *supportChatCustomerServer) Send(m *ChatCustomerResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *supportChatCustomerServer) Recv() (*ChatCustomerRequest, error) {
-	m := new(ChatCustomerRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Support_ChatAgent_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(SupportServer).ChatAgent(&supportChatAgentServer{stream})
-}
-
-type Support_ChatAgentServer interface {
-	Send(*ChatAgentResponse) error
-	Recv() (*ChatAgentRequest, error)
-	grpc.ServerStream
-}
-
-type supportChatAgentServer struct {
-	grpc.ServerStream
-}
-
-func (x *supportChatAgentServer) Send(m *ChatAgentResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *supportChatAgentServer) Recv() (*ChatAgentRequest, error) {
-	m := new(ChatAgentRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-var _Support_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "Support",
-	HandlerType: (*SupportServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "ChatCustomer",
-			Handler:       _Support_ChatCustomer_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "ChatAgent",
-			Handler:       _Support_ChatAgent_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "bank.proto",
-}
-
-func init() { proto.RegisterFile("bank.proto", fileDescriptor_bank_a8a0edd183099ef5) }
-
-var fileDescriptor_bank_a8a0edd183099ef5 = []byte{
-	// 1336 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0xcd, 0x6e, 0xdb, 0x46,
-	0x10, 0x16, 0x25, 0xea, 0x6f, 0x24, 0x5b, 0xf4, 0x2a, 0x49, 0x0d, 0x15, 0x6d, 0x1d, 0x26, 0x05,
-	0x8c, 0x54, 0xd8, 0x18, 0xea, 0xcf, 0x21, 0x49, 0x11, 0x48, 0xb2, 0x6a, 0x09, 0x8e, 0x65, 0x94,
-	0x76, 0x12, 0xb4, 0x40, 0x41, 0xac, 0xa9, 0x8d, 0x4c, 0xd8, 0x22, 0x69, 0xee, 0xaa, 0xa9, 0xaf,
-	0x79, 0x89, 0x1e, 0xdb, 0xe7, 0xe8, 0x0b, 0x14, 0xe8, 0x3b, 0xf4, 0xd8, 0x97, 0xe8, 0xa9, 0xd8,
-	0xe5, 0x92, 0xa6, 0x28, 0xc5, 0x50, 0x80, 0xde, 0xa4, 0xf9, 0x3e, 0xee, 0xcc, 0x7c, 0x33, 0xbb,
-	0x33, 0x00, 0x67, 0xc4, 0xbb, 0xc0, 0x41, 0xe8, 0x73, 0xbf, 0xf5, 0xf1, 0xd4, 0xf7, 0xa7, 0x97,
-	0xf4, 0xb1, 0xfc, 0x77, 0x36, 0x7f, 0xf3, 0x98, 0xce, 0x02, 0x7e, 0xad, 0xc0, 0xcf, 0xb2, 0x20,
-	0x77, 0x67, 0x94, 0x71, 0x32, 0x0b, 0x22, 0x82, 0x79, 0x01, 0xe8, 0x38, 0xa0, 0x5e, 0xd7, 0x71,
-	0xfc, 0xb9, 0xc7, 0x2d, 0x7a, 0x35, 0xa7, 0x8c, 0xa3, 0x0e, 0xdc, 0x75, 0x3d, 0x97, 0xbb, 0xe4,
-	0xd2, 0x9e, 0xd0, 0xc0, 0x67, 0x2e, 0xb7, 0x1d, 0xea, 0x71, 0xb6, 0xad, 0xed, 0x68, 0xbb, 0x45,
-	0xab, 0xa9, 0xc0, 0xfd, 0x08, 0xeb, 0x0b, 0x08, 0xdd, 0x07, 0x9d, 0x5f, 0x07, 0x74, 0x3b, 0xbf,
-	0xa3, 0xed, 0x6e, 0x76, 0x36, 0xb0, 0x3a, 0x12, 0x9f, 0x5e, 0x07, 0xd4, 0x92, 0x90, 0xf9, 0x0c,
-	0x9a, 0xfd, 0x4b, 0x9f, 0xd1, 0x8c, 0xb7, 0xcf, 0x61, 0x93, 0x44, 0x16, 0xdb, 0x9b, 0xcf, 0xce,
-	0x68, 0x28, 0xdd, 0xe8, 0xd6, 0x86, 0xb2, 0x8e, 0xa5, 0xd1, 0x7c, 0x0a, 0xcd, 0x03, 0xca, 0xd5,
-	0xb7, 0xcc, 0xa2, 0x2c, 0xf0, 0x3d, 0x46, 0xd1, 0x43, 0xa8, 0x28, 0x9e, 0x08, 0xaf, 0xb0, 0x5b,
-	0xeb, 0x54, 0x62, 0xdf, 0x56, 0x82, 0x98, 0xff, 0x68, 0x50, 0x56, 0xd6, 0x35, 0xfd, 0xad, 0x91,
-	0x10, 0x7a, 0x00, 0x1b, 0x67, 0xe4, 0x92, 0x78, 0x0e, 0x55, 0xfa, 0x14, 0xa4, 0x3e, 0x75, 0x65,
-	0x94, 0xc2, 0x98, 0x17, 0xa0, 0x8b, 0x4f, 0x50, 0x0d, 0xca, 0x2f, 0xc7, 0x87, 0xe3, 0xe3, 0xd7,
-	0x63, 0x23, 0x87, 0xea, 0x50, 0xe9, 0x0f, 0x07, 0xfd, 0xc3, 0xd1, 0xf8, 0xc0, 0xd0, 0x10, 0x40,
-	0xe9, 0xa4, 0xfb, 0x4a, 0xfc, 0xce, 0x23, 0x03, 0xea, 0x47, 0xc7, 0xe3, 0xc1, 0x0f, 0xf6, 0x51,
-	0xd7, 0x3a, 0x1c, 0x9c, 0x1a, 0x05, 0x84, 0x60, 0xf3, 0xc5, 0x68, 0x3c, 0xb0, 0x8f, 0xbf, 0xb3,
-	0xfb, 0xd6, 0x60, 0x7f, 0x74, 0x6a, 0xe8, 0xa8, 0x02, 0xfa, 0x8b, 0xe3, 0xee, 0xd8, 0x28, 0x8a,
-	0x93, 0x06, 0xdf, 0xbf, 0x1c, 0x9d, 0x8e, 0x06, 0x27, 0x46, 0xc9, 0xfc, 0x4d, 0x83, 0x7b, 0x07,
-	0x94, 0x9f, 0x86, 0xc4, 0x63, 0xc4, 0xe1, 0xae, 0xef, 0xb1, 0x0f, 0x93, 0x19, 0xed, 0x41, 0x91,
-	0x71, 0x12, 0x72, 0x99, 0x77, 0xad, 0xd3, 0xc2, 0x51, 0x0b, 0xe1, 0xb8, 0x85, 0xf0, 0x69, 0xdc,
-	0x42, 0x56, 0x44, 0x44, 0x6d, 0x28, 0x50, 0x6f, 0x22, 0x73, 0xbf, 0x9d, 0x2f, 0x68, 0xe6, 0x1f,
-	0x1a, 0xd4, 0x52, 0xe1, 0xad, 0x1b, 0xd6, 0x27, 0x00, 0x8c, 0x5e, 0xc5, 0x94, 0xbc, 0xa4, 0x54,
-	0x19, 0xbd, 0x52, 0x30, 0x06, 0x7d, 0x42, 0x38, 0x5d, 0x23, 0x08, 0xc9, 0x43, 0xf7, 0xa1, 0x4e,
-	0x66, 0xd2, 0x69, 0x54, 0x38, 0x5d, 0x16, 0xae, 0x16, 0xd9, 0xa2, 0x86, 0x46, 0xa0, 0x4f, 0x28,
-	0x73, 0xb6, 0x8b, 0x3b, 0xda, 0x6e, 0xd5, 0x92, 0xbf, 0xcd, 0xbf, 0x35, 0xd8, 0x54, 0x5d, 0xff,
-	0x81, 0xb2, 0x66, 0x1d, 0xe6, 0x97, 0x1d, 0x62, 0x28, 0x31, 0x7f, 0x1e, 0x3a, 0x51, 0x16, 0x9b,
-	0x9d, 0x7b, 0x78, 0xd1, 0x15, 0x3e, 0x91, 0xa8, 0xa5, 0x58, 0x49, 0x80, 0x7a, 0x2a, 0xc0, 0x6f,
-	0xa1, 0x14, 0xb1, 0x16, 0xdb, 0xad, 0x02, 0x7a, 0xbf, 0x7b, 0x32, 0x34, 0x34, 0x54, 0x85, 0xa2,
-	0x6c, 0x3c, 0x23, 0x8f, 0xca, 0x50, 0xe8, 0xf6, 0x87, 0x46, 0x41, 0xa0, 0xaf, 0x47, 0xd6, 0xc0,
-	0xd0, 0xcd, 0x9f, 0xa0, 0xd1, 0x8b, 0x7a, 0x37, 0xb9, 0x5f, 0x6b, 0xe6, 0xb7, 0x74, 0x15, 0xf2,
-	0x2b, 0xae, 0x82, 0x0f, 0x8d, 0xd7, 0x2e, 0x3f, 0x9f, 0x84, 0xe4, 0xed, 0xff, 0x2f, 0x5f, 0x2c,
-	0x47, 0x21, 0x25, 0xc7, 0x9f, 0x05, 0x68, 0xc8, 0x66, 0x7b, 0x43, 0xc3, 0xd8, 0xe3, 0x57, 0x70,
-	0x37, 0x12, 0xd0, 0x5e, 0xe5, 0x78, 0x98, 0xb3, 0x9a, 0x11, 0xdc, 0x5d, 0x08, 0xe0, 0x10, 0x1a,
-	0xf4, 0x17, 0x4e, 0x43, 0x8f, 0x5c, 0xda, 0xaa, 0x4a, 0xd1, 0x05, 0xd9, 0xc1, 0x19, 0x07, 0x78,
-	0xa0, 0x78, 0xea, 0x80, 0x61, 0xce, 0xda, 0x8c, 0x3f, 0x55, 0xb5, 0xd9, 0x83, 0xe6, 0x84, 0x32,
-	0x9e, 0x0d, 0xa0, 0x20, 0x03, 0xd0, 0xac, 0x2d, 0x01, 0x2e, 0xba, 0x3f, 0x80, 0x8d, 0xc4, 0xbd,
-	0x40, 0x65, 0xd1, 0xd7, 0x71, 0xae, 0x59, 0xf5, 0xf8, 0xc3, 0x7d, 0x91, 0x7d, 0x56, 0xc8, 0xe2,
-	0xfb, 0x85, 0x2c, 0xdd, 0x08, 0xd9, 0x9a, 0x41, 0x23, 0x73, 0x32, 0x6a, 0x03, 0x22, 0xce, 0xb9,
-	0x1d, 0xfa, 0x73, 0xee, 0x7a, 0xd3, 0xc5, 0xea, 0x19, 0xc4, 0x39, 0xb7, 0x22, 0x40, 0x25, 0xa0,
-	0xd8, 0x99, 0x8c, 0xf3, 0x09, 0x7b, 0x21, 0xdd, 0x5e, 0x25, 0xbe, 0x0a, 0xbd, 0x92, 0x0c, 0x86,
-	0x9b, 0x7f, 0x69, 0x60, 0xdc, 0xe4, 0xaa, 0x7a, 0xb3, 0x0d, 0x88, 0x85, 0xce, 0xca, 0x3a, 0x5a,
-	0x06, 0x0b, 0x9d, 0x45, 0x0d, 0x1f, 0xc1, 0x96, 0x60, 0xaf, 0x6a, 0xd3, 0x06, 0x0b, 0x9d, 0x5e,
-	0xaa, 0x53, 0x11, 0xbe, 0xa5, 0x42, 0xab, 0xea, 0xd3, 0x06, 0x24, 0xf9, 0x8b, 0x87, 0x47, 0xaf,
-	0x8a, 0x21, 0x90, 0xf4, 0xe9, 0xe6, 0x5b, 0x68, 0xf6, 0xcf, 0x09, 0xef, 0xcf, 0x19, 0xf7, 0x67,
-	0x37, 0x9d, 0xf9, 0x00, 0x74, 0x31, 0x59, 0x65, 0x02, 0xb5, 0xce, 0x06, 0x1e, 0xc9, 0x31, 0xcb,
-	0xa9, 0xe0, 0x0e, 0x73, 0x96, 0x04, 0x11, 0x82, 0xc2, 0x8c, 0x4d, 0x65, 0xdc, 0xd5, 0x61, 0xce,
-	0x12, 0x7f, 0xd0, 0x0e, 0x94, 0xcf, 0x89, 0x37, 0xb5, 0xe7, 0x81, 0x7a, 0x3a, 0x8a, 0xf8, 0x95,
-	0xef, 0x4e, 0x86, 0x39, 0xab, 0x24, 0xec, 0x2f, 0x83, 0x5e, 0x11, 0x0a, 0x21, 0xbd, 0x32, 0x9f,
-	0x40, 0x3d, 0x7d, 0xa8, 0x90, 0x24, 0xa4, 0x6c, 0x3e, 0xa3, 0x36, 0xa3, 0x8c, 0xb9, 0xbe, 0x67,
-	0xbb, 0x13, 0xe9, 0xbe, 0x6a, 0x35, 0x22, 0xe0, 0x24, 0xb2, 0x8f, 0x26, 0xe6, 0x73, 0xa8, 0x77,
-	0xa7, 0xd4, 0xe3, 0x47, 0x94, 0x31, 0x32, 0xa5, 0xe2, 0x45, 0x26, 0xe2, 0xbf, 0xed, 0x91, 0x19,
-	0x55, 0x1f, 0x55, 0xa5, 0x65, 0x4c, 0x66, 0x14, 0x19, 0xa9, 0x38, 0x65, 0x94, 0xe6, 0x14, 0xee,
-	0x2c, 0x66, 0x9d, 0x4c, 0xf0, 0xb2, 0xf2, 0xae, 0x32, 0xaf, 0x60, 0xe5, 0x75, 0x98, 0xb3, 0x62,
-	0x08, 0xdd, 0xbf, 0x39, 0x4f, 0x68, 0x93, 0x0e, 0x45, 0xc9, 0x20, 0x7a, 0x25, 0xa4, 0x2c, 0x30,
-	0xdf, 0x69, 0x60, 0x08, 0x4f, 0x92, 0x73, 0xf3, 0xd0, 0x94, 0x88, 0xe3, 0xd0, 0x20, 0x96, 0xb7,
-	0x26, 0x06, 0x3a, 0x0d, 0xb8, 0x12, 0x57, 0x81, 0x2b, 0xe5, 0x6d, 0xc3, 0xc6, 0x25, 0x25, 0x3f,
-	0x27, 0x22, 0x65, 0x45, 0xae, 0x4b, 0x54, 0xc5, 0x1c, 0x4b, 0xfd, 0x05, 0xc0, 0x8d, 0x83, 0x68,
-	0x7c, 0x65, 0x14, 0xae, 0xb2, 0x44, 0xdb, 0x5f, 0x35, 0xa8, 0x0a, 0xde, 0xc0, 0xe3, 0xe1, 0x75,
-	0x32, 0xcc, 0xb4, 0x35, 0x87, 0xd9, 0x03, 0xa8, 0x3b, 0x4a, 0x54, 0x3b, 0x1d, 0x7c, 0x2d, 0xb6,
-	0x1e, 0xc9, 0x24, 0xa2, 0xe2, 0x48, 0x46, 0x61, 0xb5, 0x8a, 0x15, 0xc9, 0x38, 0x62, 0xd3, 0x5e,
-	0x19, 0x8a, 0x54, 0xc4, 0x62, 0xfe, 0xae, 0xc1, 0x56, 0x4a, 0x4b, 0x55, 0xb2, 0xaf, 0xc1, 0x88,
-	0xf4, 0xa2, 0x13, 0xfb, 0xfd, 0xb5, 0x6b, 0xc4, 0x1c, 0x65, 0x42, 0x9f, 0xa6, 0x6b, 0x08, 0x38,
-	0xc9, 0x38, 0x25, 0x74, 0xac, 0x12, 0xf5, 0x26, 0x74, 0xb2, 0x24, 0xb4, 0x42, 0x07, 0x02, 0x4c,
-	0xca, 0xcd, 0xa0, 0x1c, 0x3b, 0xb8, 0x5d, 0x66, 0x31, 0xa4, 0x12, 0xa1, 0x64, 0xd7, 0x46, 0xdd,
-	0x99, 0xa8, 0x27, 0x1b, 0xf7, 0x21, 0x94, 0xcf, 0x5d, 0xc6, 0xfd, 0xf0, 0x7a, 0xbb, 0x20, 0xf7,
-	0xc9, 0x54, 0xa0, 0x56, 0x0c, 0x3d, 0x32, 0x40, 0x17, 0x41, 0x89, 0xd9, 0xf9, 0xea, 0x78, 0xb4,
-	0x6f, 0xe4, 0x3a, 0xff, 0xe6, 0x41, 0xef, 0x11, 0xef, 0x02, 0xb5, 0xa1, 0x96, 0xda, 0xa9, 0x51,
-	0x13, 0x2f, 0x6f, 0xd8, 0xad, 0x64, 0x47, 0x45, 0xcf, 0xa0, 0x9e, 0x5e, 0x8a, 0xd1, 0x1d, 0xbc,
-	0x62, 0x47, 0x6e, 0xdd, 0x5b, 0x6a, 0x82, 0x81, 0x58, 0xf3, 0xd1, 0x53, 0xa8, 0xa5, 0x96, 0x62,
-	0xf4, 0x1e, 0x5a, 0xeb, 0x0e, 0x5e, 0xb5, 0x3a, 0x3f, 0x81, 0x46, 0x66, 0x57, 0x44, 0x1f, 0xe1,
-	0xd5, 0xdb, 0x63, 0xab, 0x8e, 0x53, 0xd6, 0x3d, 0x0d, 0xb5, 0xa1, 0xac, 0xb6, 0x13, 0xd4, 0xc8,
-	0xec, 0x29, 0x2d, 0x03, 0x67, 0x97, 0x08, 0x0c, 0x95, 0x78, 0xf0, 0x23, 0x03, 0x67, 0x76, 0x80,
-	0x15, 0xfc, 0xc7, 0x50, 0x89, 0x1f, 0x7b, 0x64, 0x64, 0x67, 0x5c, 0x6b, 0x0b, 0x67, 0x27, 0x41,
-	0xe7, 0x9d, 0x06, 0xe5, 0x93, 0x79, 0x10, 0xf8, 0x21, 0x47, 0xcf, 0xa1, 0x9e, 0x7e, 0x67, 0x84,
-	0xa2, 0xcb, 0x8f, 0x6d, 0xeb, 0x2e, 0x5e, 0xf5, 0x18, 0xed, 0x6a, 0x7b, 0x1a, 0xfa, 0x26, 0xba,
-	0x8c, 0xb2, 0xe5, 0xd1, 0x16, 0xce, 0x3e, 0x25, 0x2d, 0x84, 0x97, 0x6e, 0x84, 0xf8, 0xae, 0x57,
-	0xfa, 0x51, 0x9f, 0x11, 0xd7, 0x3b, 0x2b, 0x49, 0xf5, 0xbf, 0xfc, 0x2f, 0x00, 0x00, 0xff, 0xff,
-	0x4f, 0x31, 0xdc, 0x9e, 0xa7, 0x0d, 0x00, 0x00,
+var fileDescriptor_bank_485eb966c3eae5d1 = []byte{
+	// 913 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0xdd, 0x6e, 0xe2, 0x46,
+	0x18, 0x8d, 0xb1, 0x21, 0xe4, 0x83, 0xc0, 0x64, 0xd8, 0x4d, 0x23, 0x57, 0x55, 0xb3, 0x6e, 0x2b,
+	0x45, 0x15, 0x9a, 0x44, 0xb4, 0x57, 0xdd, 0xed, 0x05, 0x10, 0x37, 0xa0, 0xec, 0x82, 0x3a, 0x61,
+	0x1b, 0xb5, 0x52, 0x65, 0x19, 0x33, 0x9b, 0x58, 0x01, 0x9b, 0x78, 0x06, 0xb5, 0x79, 0x9a, 0xbe,
+	0x47, 0x5f, 0xa0, 0x52, 0xdf, 0xa1, 0x97, 0x7d, 0x89, 0x5e, 0x55, 0x1e, 0x8f, 0x59, 0xe3, 0x78,
+	0x57, 0xac, 0xb4, 0x77, 0x66, 0xce, 0x99, 0x39, 0xdf, 0xcf, 0x99, 0xf9, 0x00, 0x98, 0xba, 0xc1,
+	0x1d, 0x59, 0x46, 0xa1, 0x08, 0xcd, 0x4f, 0x6f, 0xc2, 0xf0, 0x66, 0xce, 0x4e, 0xe5, 0xaf, 0xe9,
+	0xea, 0xcd, 0x29, 0x5b, 0x2c, 0xc5, 0x83, 0x02, 0x3f, 0xcf, 0x83, 0xc2, 0x5f, 0x30, 0x2e, 0xdc,
+	0xc5, 0x32, 0x21, 0x58, 0x77, 0x80, 0xc7, 0x4b, 0x16, 0x74, 0x3d, 0x2f, 0x5c, 0x05, 0x82, 0xb2,
+	0xfb, 0x15, 0xe3, 0x02, 0x77, 0xe0, 0xa9, 0x1f, 0xf8, 0xc2, 0x77, 0xe7, 0xce, 0x8c, 0x2d, 0x43,
+	0xee, 0x0b, 0xc7, 0x63, 0x81, 0xe0, 0x47, 0xda, 0xb1, 0x76, 0x52, 0xa6, 0x2d, 0x05, 0x9e, 0x27,
+	0x58, 0x3f, 0x86, 0xf0, 0x33, 0x30, 0xc4, 0xc3, 0x92, 0x1d, 0x95, 0x8e, 0xb5, 0x93, 0x46, 0x67,
+	0x9f, 0xa8, 0x23, 0xc9, 0xe4, 0x61, 0xc9, 0xa8, 0x84, 0xac, 0x17, 0xd0, 0xea, 0xcf, 0x43, 0xce,
+	0x72, 0x6a, 0x5f, 0x41, 0xc3, 0x4d, 0x56, 0x9c, 0x60, 0xb5, 0x98, 0xb2, 0x48, 0xca, 0x18, 0x74,
+	0x5f, 0xad, 0x8e, 0xe4, 0xa2, 0xf5, 0x1c, 0x5a, 0x17, 0x4c, 0xa8, 0xbd, 0x9c, 0x32, 0xbe, 0x0c,
+	0x03, 0xce, 0xf0, 0x97, 0x50, 0x55, 0xbc, 0x38, 0x3c, 0xfd, 0xa4, 0xd6, 0xa9, 0xa6, 0xda, 0x74,
+	0x8d, 0x58, 0xff, 0x6a, 0xb0, 0xab, 0x56, 0xb7, 0xd4, 0xdb, 0x22, 0x21, 0xfc, 0x05, 0xec, 0x4f,
+	0xdd, 0xb9, 0x1b, 0x78, 0x4c, 0xd5, 0x47, 0x97, 0xf5, 0xa9, 0xab, 0x45, 0x59, 0x18, 0xeb, 0x0e,
+	0x8c, 0x78, 0x0b, 0xae, 0xc1, 0xee, 0xeb, 0xd1, 0xe5, 0x68, 0x7c, 0x3d, 0x42, 0x3b, 0xb8, 0x0e,
+	0xd5, 0xfe, 0xc0, 0xee, 0x5f, 0x0e, 0x47, 0x17, 0x48, 0xc3, 0x00, 0x95, 0xab, 0xee, 0x4f, 0xf1,
+	0x77, 0x09, 0x23, 0xa8, 0xbf, 0x1a, 0x8f, 0xec, 0x9f, 0x9d, 0x57, 0x5d, 0x7a, 0x69, 0x4f, 0x90,
+	0x8e, 0x31, 0x34, 0x5e, 0x0e, 0x47, 0xb6, 0x33, 0xfe, 0xc1, 0xe9, 0x53, 0xfb, 0x7c, 0x38, 0x41,
+	0x06, 0xae, 0x82, 0xf1, 0x72, 0xdc, 0x1d, 0xa1, 0x72, 0x7c, 0x92, 0xfd, 0xe3, 0xeb, 0xe1, 0x64,
+	0x68, 0x5f, 0xa1, 0x8a, 0xf5, 0x87, 0x06, 0x87, 0x17, 0x4c, 0x4c, 0x22, 0x37, 0xe0, 0xae, 0x27,
+	0xfc, 0x30, 0xe0, 0x1f, 0x56, 0x66, 0x7c, 0x06, 0x65, 0x2e, 0xdc, 0x48, 0xc8, 0xbc, 0x6b, 0x1d,
+	0x93, 0x24, 0x16, 0x22, 0xa9, 0x85, 0xc8, 0x24, 0xb5, 0x10, 0x4d, 0x88, 0xb8, 0x0d, 0x3a, 0x0b,
+	0x66, 0x32, 0xf7, 0xf7, 0xf3, 0x63, 0x9a, 0xf5, 0xa7, 0x06, 0xb5, 0x4c, 0x78, 0xdb, 0x86, 0xf5,
+	0x19, 0x00, 0x67, 0xf7, 0x29, 0xa5, 0x24, 0x29, 0x7b, 0x9c, 0xdd, 0x2b, 0x98, 0x80, 0x31, 0x73,
+	0x05, 0xdb, 0x22, 0x08, 0xc9, 0xc3, 0xcf, 0xa0, 0xee, 0x2e, 0xa4, 0x68, 0xd2, 0x38, 0x43, 0x36,
+	0xae, 0x96, 0xac, 0x25, 0x86, 0xc6, 0x60, 0xcc, 0x18, 0xf7, 0x8e, 0xca, 0xc7, 0xda, 0xc9, 0x1e,
+	0x95, 0xdf, 0xd6, 0x3f, 0x1a, 0x34, 0x94, 0xeb, 0x3f, 0xb0, 0xac, 0x79, 0xc1, 0xd2, 0x63, 0x41,
+	0x02, 0x15, 0x1e, 0xae, 0x22, 0x2f, 0xc9, 0xa2, 0xd1, 0x39, 0x24, 0x9b, 0x52, 0xe4, 0x4a, 0xa2,
+	0x54, 0xb1, 0xd6, 0x01, 0x1a, 0x99, 0x00, 0xbf, 0x87, 0x4a, 0xc2, 0xda, 0xb4, 0x5b, 0x15, 0x8c,
+	0x7e, 0xf7, 0x6a, 0x80, 0x34, 0xbc, 0x07, 0x65, 0x69, 0x3c, 0x54, 0xc2, 0xbb, 0xa0, 0x77, 0xfb,
+	0x03, 0xa4, 0xc7, 0xe8, 0xf5, 0x90, 0xda, 0xc8, 0xb0, 0x7e, 0x85, 0x66, 0x2f, 0xf1, 0xee, 0xfa,
+	0x7e, 0x6d, 0x99, 0xdf, 0xa3, 0xab, 0x50, 0x2a, 0xb8, 0x0a, 0x21, 0x34, 0xaf, 0x7d, 0x71, 0x3b,
+	0x8b, 0xdc, 0xdf, 0x3e, 0x7e, 0xf9, 0xd2, 0x72, 0xe8, 0x99, 0x72, 0xfc, 0xa5, 0x43, 0x53, 0x9a,
+	0xed, 0x0d, 0x8b, 0x52, 0xc5, 0x6f, 0xe1, 0x69, 0x52, 0x40, 0xa7, 0x48, 0x78, 0xb0, 0x43, 0x5b,
+	0x09, 0xdc, 0xdd, 0x08, 0xe0, 0x12, 0x9a, 0xec, 0x77, 0xc1, 0xa2, 0xc0, 0x9d, 0x3b, 0xaa, 0x4b,
+	0xc9, 0x05, 0x39, 0x26, 0x39, 0x01, 0x62, 0x2b, 0x9e, 0x3a, 0x60, 0xb0, 0x43, 0x1b, 0xe9, 0x56,
+	0xd5, 0x9b, 0x33, 0x68, 0xcd, 0x18, 0x17, 0xf9, 0x00, 0x74, 0x19, 0x80, 0x46, 0x0f, 0x62, 0x70,
+	0x53, 0xfe, 0x02, 0xf6, 0xd7, 0xf2, 0x31, 0x2a, 0x9b, 0xbe, 0x8d, 0xb8, 0x46, 0xeb, 0xe9, 0xc6,
+	0xf3, 0x38, 0xfb, 0x7c, 0x21, 0xcb, 0xef, 0x2e, 0x64, 0xe5, 0x6d, 0x21, 0xcd, 0x05, 0x34, 0x73,
+	0x27, 0xe3, 0x36, 0x60, 0xd7, 0xbb, 0x75, 0xa2, 0x70, 0x25, 0xfc, 0xe0, 0x66, 0xb3, 0x7b, 0xc8,
+	0xf5, 0x6e, 0x69, 0x02, 0xa8, 0x04, 0x14, 0x3b, 0x97, 0x71, 0x69, 0xcd, 0xde, 0x48, 0xb7, 0x57,
+	0x4d, 0xaf, 0x42, 0xaf, 0x22, 0x83, 0x11, 0xd6, 0xdf, 0x1a, 0xa0, 0xb7, 0xb9, 0x2a, 0x6f, 0xb6,
+	0x01, 0xf3, 0xc8, 0x2b, 0xec, 0x23, 0x45, 0x3c, 0xf2, 0x36, 0x6b, 0xf8, 0x35, 0x1c, 0xc4, 0xec,
+	0x22, 0x9b, 0x36, 0x79, 0xe4, 0xf5, 0x32, 0x4e, 0xc5, 0xe4, 0x3d, 0x1d, 0x2a, 0xea, 0x4f, 0x1b,
+	0xb0, 0xe4, 0x6f, 0x1e, 0x9e, 0xbc, 0x2a, 0x28, 0x46, 0xb2, 0xa7, 0x77, 0xfe, 0x2b, 0x81, 0xd1,
+	0x73, 0x83, 0x3b, 0xdc, 0x86, 0x5a, 0x66, 0xfc, 0xe2, 0x16, 0x79, 0x3c, 0x8c, 0xcd, 0xf5, 0x38,
+	0xc3, 0x2f, 0xa0, 0x9e, 0x9d, 0x9f, 0xf8, 0x09, 0x29, 0x18, 0xa7, 0xe6, 0xe1, 0xa3, 0xc7, 0xcf,
+	0x8e, 0xff, 0x11, 0xe0, 0xe7, 0x50, 0xcb, 0xcc, 0x4f, 0xfc, 0x0e, 0x9a, 0xf9, 0x84, 0x14, 0x4d,
+	0xd9, 0xef, 0xa0, 0x99, 0x1b, 0x2b, 0xf8, 0x13, 0x52, 0x3c, 0x68, 0xcc, 0x3a, 0xc9, 0xac, 0x9e,
+	0x69, 0xb8, 0x0d, 0xbb, 0xea, 0x21, 0xc3, 0xcd, 0xdc, 0x93, 0x66, 0x22, 0x92, 0x7f, 0x6f, 0x08,
+	0x54, 0xd3, 0x37, 0x02, 0x23, 0x92, 0x7b, 0x2e, 0x0a, 0xf8, 0xa7, 0x50, 0x4d, 0x7d, 0x81, 0x51,
+	0xfe, 0x3a, 0x98, 0x07, 0x24, 0x6f, 0x9a, 0x5e, 0xe5, 0x17, 0x63, 0xe1, 0xfa, 0xc1, 0xb4, 0x22,
+	0x13, 0xff, 0xe6, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xac, 0x47, 0x1e, 0xdd, 0x4d, 0x09, 0x00,
+	0x00,
 }
