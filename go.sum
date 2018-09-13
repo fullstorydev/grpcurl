@@ -1,0 +1,13 @@
+github.com/golang/protobuf v1.1.0 h1:0iH4Ffd/meGoXqF2lSAhZHt8X+cPgkfn/cb6Cce5Vpc=
+github.com/golang/protobuf v1.1.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/jhump/protoreflect v1.0.0 h1:l94KtQ6gRI3ouKVcXNdofCQJWoHATzcI6tDizOgUaf0=
+github.com/jhump/protoreflect v1.0.0/go.mod h1:kG/zRVeS2M91gYaCvvUbPkMjjtFQS4qqjcPFzFkh2zE=
+golang.org/x/net v0.0.0-20180530234432-1e491301e022 h1:MVYFTUmVD3/+ERcvRRI+P/C2+WOUimXh+Pd8LVsklZ4=
+golang.org/x/net v0.0.0-20180530234432-1e491301e022/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+google.golang.org/genproto v0.0.0-20170818100345-ee236bd376b0 h1:jgaHBfsPDMBDKsth1hPtI1HcOyecWndWOFSGW21VgaM=
+google.golang.org/genproto v0.0.0-20170818100345-ee236bd376b0/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
+google.golang.org/grpc v1.8.0/go.mod h1:yo6s7OP7yaDglbqo1J04qKzAhqBH6lvTonzMVmEdcZw=
+google.golang.org/grpc v1.12.0 h1:Mm8atZtkT+P6R43n/dqNDWkPPu5BwRVu/1rJnJCeZH8=
+google.golang.org/grpc v1.12.0/go.mod h1:yo6s7OP7yaDglbqo1J04qKzAhqBH6lvTonzMVmEdcZw=
