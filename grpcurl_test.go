@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	sourceProtoFiles, err = DescriptorSourceFromProtoFiles(nil, "../../../google.golang.org/grpc/interop/grpc_testing/test.proto")
+	sourceProtoFiles, err = DescriptorSourceFromProtoFiles(nil, "testing/test.proto")
 	if err != nil {
 		panic(err)
 	}
