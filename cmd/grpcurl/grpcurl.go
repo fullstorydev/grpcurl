@@ -30,6 +30,8 @@ import (
 	"github.com/fullstorydev/grpcurl"
 )
 
+var version = "<not set>"
+
 var (
 	exit = os.Exit
 
@@ -37,6 +39,8 @@ var (
 
 	help = flag.Bool("help", false,
 		`Print usage instructions and exit.`)
+	printVersion = flag.Bool("version", false,
+		`Print version.`)
 	plaintext = flag.Bool("plaintext", false,
 		`Use plain-text HTTP/2 when connecting to server (no TLS).`)
 	insecure = flag.Bool("insecure", false,
@@ -144,6 +148,10 @@ func main() {
 	flag.Parse()
 	if *help {
 		usage()
+		os.Exit(0)
+	}
+	if *printVersion {
+		fmt.Fprintf(os.Stderr, "%s v%s\n", os.Args[0], version)
 		os.Exit(0)
 	}
 

@@ -1,0 +1,22 @@
+builds:
+  - binary: grpcurl
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - 386
+
+archive:
+  wrap_in_directory: true
+  format: tar.gz
+  format_overrides:
+    - goos: windows
+      format: zip
+  replacements:
+    amd64: x64
+    386: x86
+    darwin: macos
+  files:
+    - LICENSE
