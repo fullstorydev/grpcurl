@@ -9,7 +9,6 @@ builds:
       - 386
 
 archive:
-  wrap_in_directory: true
   format: tar.gz
   format_overrides:
     - goos: windows
