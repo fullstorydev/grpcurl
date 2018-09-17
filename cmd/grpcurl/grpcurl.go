@@ -30,7 +30,7 @@ import (
 	"github.com/fullstorydev/grpcurl"
 )
 
-var version = "<not set>"
+var version = "dev build <no version set>"
 
 var (
 	exit = os.Exit
