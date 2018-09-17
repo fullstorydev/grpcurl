@@ -17,5 +17,3 @@ archive:
     amd64: x64
     386: x86
     darwin: macos
-  files:
-    - LICENSE
