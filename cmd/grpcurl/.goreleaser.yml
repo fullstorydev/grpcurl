@@ -16,4 +16,4 @@ archive:
   replacements:
     amd64: x64
     386: x86
-    darwin: macos
+    darwin: osx
