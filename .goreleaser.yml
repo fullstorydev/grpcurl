@@ -1,5 +1,6 @@
 builds:
   - binary: grpcurl
+    main: ./cmd/grpcurl/grpcurl.go
     goos:
       - linux
       - darwin
@@ -17,3 +18,5 @@ archive:
     amd64: x86_64
     386: x86_32
     darwin: osx
+  files:
+    - LICENSE
