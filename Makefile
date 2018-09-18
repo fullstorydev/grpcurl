@@ -3,6 +3,9 @@
 # violations already in the code). They can be useful to catch errors, but
 # they are just too noisy to be a requirement for a CI -- we don't even *want*
 # to fix some of the things they consider to be violations.
+
+version=$(shell git describe --always --dirty)
+
 .PHONY: ci
 ci: deps checkgofmt vet staticcheck unused ineffassign predeclared test
 
@@ -16,7 +19,7 @@ updatedeps:
 
 .PHONY: install
 install:
-	go install ./...
+	go install -ldflags '-X "main.version=dev build $(version)"' ./...
 
 .PHONY: checkgofmt
 checkgofmt:
