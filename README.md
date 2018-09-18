@@ -43,7 +43,11 @@ As mentioned above, `grpcurl` works seamlessly if the server supports the reflec
 service. If not, you can supply the `.proto` source files or you can supply protoset
 files (containing compiled descriptors, produced by `protoc`) to `grpcurl`.
 
-## Installation
+## Installation (binaries)
+
+Download the binary from the [releases](https://github.com/fullstorydev/grpcurl/releases) page.
+
+## Installation (source)
 You can use the `go` tool to install `grpcurl`:
 ```shell
 go get github.com/fullstorydev/grpcurl
