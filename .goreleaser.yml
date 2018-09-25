@@ -1,6 +1,6 @@
 builds:
   - binary: grpcurl
-    main: ./cmd/grpcurl/grpcurl.go
+    main: ./cmd/grpcurl
     goos:
       - linux
       - darwin
