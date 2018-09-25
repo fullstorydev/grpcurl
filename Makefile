@@ -1,4 +1,4 @@
-dev_build_version=$(shell git describe --always --dirty)
+dev_build_version=$(shell git describe --tags --always --dirty)
 
 # TODO: run golint and errcheck, but only to catch *new* violations and
 # decide whether to change code or not (e.g. we need to be able to whitelist
