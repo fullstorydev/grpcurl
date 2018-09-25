@@ -1,3 +1,5 @@
+dev_build_version=$(shell git describe --tags --always --dirty)
+
 # TODO: run golint and errcheck, but only to catch *new* violations and
 # decide whether to change code or not (e.g. we need to be able to whitelist
 # violations already in the code). They can be useful to catch errors, but
@@ -16,7 +18,12 @@ updatedeps:
 
 .PHONY: install
 install:
-	go install ./...
+	go install -ldflags '-X "main.version=dev build $(dev_build_version)"' ./...
+
+.PHONY: release
+release:
+	@GO111MODULE=off go get github.com/goreleaser/goreleaser
+	goreleaser --rm-dist
 
 .PHONY: checkgofmt
 checkgofmt:
