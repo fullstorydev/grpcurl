@@ -323,7 +323,7 @@ type InvocationEventHandler interface {
 // the supplier has no more messages, it should return nil, io.EOF.
 type RequestMessageSupplier func() ([]byte, error)
 
-// InvokeRpc uses te given GRPC connection to invoke the given method. The given descriptor source
+// InvokeRpc uses the given GRPC connection to invoke the given method. The given descriptor source
 // is used to determine the type of method and the type of request and response message. The given
 // headers are sent as request metadata. Methods on the given event handler are called as the
 // invocation proceeds.
