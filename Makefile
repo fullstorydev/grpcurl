@@ -59,7 +59,7 @@ predeclared:
 # Intentionally omitted from CI, but target here for ad-hoc reports.
 .PHONY: golint
 golint:
-	@go get github.com/golang/lint/golint
+	@go get golang.org/x/lint/golint
 	golint -min_confidence 0.9 -set_exit_status ./...
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
