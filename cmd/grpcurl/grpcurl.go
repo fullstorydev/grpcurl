@@ -616,7 +616,7 @@ func (h *handler) OnReceiveResponse(resp proto.Message) {
 	}
 	respStr, err := h.formatter(resp)
 	if err != nil {
-		fail(err, "failed to generate JSON form of response message")
+		fail(err, "failed to generate %s form of response message", *format)
 	}
 	fmt.Fprintln(h.out, respStr)
 }
@@ -770,7 +770,24 @@ func (tf *textFormatter) format(m proto.Message) (string, error) {
 			return "", err
 		}
 	}
-	if err := proto.MarshalText(&buf, m); err != nil {
+
+	// If message implements MarshalText method (such as a *dynamic.Message),
+	// it won't get details about whether or not to format to text compactly
+	// or with indentation. So first see if the message also implements a
+	// MarshalTextIndent method and use that instead if available.
+	type indentMarshaler interface {
+		MarshalTextIndent() ([]byte, error)
+	}
+
+	if indenter, ok := m.(indentMarshaler); ok {
+		b, err := indenter.MarshalTextIndent()
+		if err != nil {
+			return "", err
+		}
+		if _, err := buf.Write(b); err != nil {
+			return "", err
+		}
+	} else if err := proto.MarshalText(&buf, m); err != nil {
 		return "", err
 	}
 
