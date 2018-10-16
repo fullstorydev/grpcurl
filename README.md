@@ -14,21 +14,21 @@ This program accepts messages using JSON encoding, which is much more friendly f
 humans and scripts.
 
 With this tool you can also browse the schema for gRPC services, either by querying
-a server that supports [service reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto),
-by reading proto source files, or by loading in compiled "protoset" files (files that contain encoded file
-[descriptor protos](https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto)).
+a server that supports [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto),
+by reading proto source files, or by loading in compiled "protoset" files (files that contain
+encoded file [descriptor protos](https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto)).
 In fact, the way the tool transforms JSON request data into a binary encoded protobuf
 is using that very same schema. So, if the server you interact with does not support
 reflection, you will either need the proto source files that define the service or need
 protoset files that `grpcurl` can use.
-
-[Examples for how to set up server reflection can be found here.](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations)
 
 This repo also provides a library package, `github.com/fullstorydev/grpcurl`, that has
 functions for simplifying the construction of other command-line tools that dynamically
 invoke gRPC endpoints. This code is a great example of how to use the various packages of
 the [protoreflect](https://godoc.org/github.com/jhump/protoreflect) library, and shows
 off what they can do.
+
+See also the [`grpcurl` talk at GopherCon 2018](https://www.youtube.com/watch?v=dDr-8kbMnaw).
 
 ## Features
 `grpcurl` supports all kinds of RPC methods, including streaming methods. You can even
@@ -43,11 +43,13 @@ As mentioned above, `grpcurl` works seamlessly if the server supports the reflec
 service. If not, you can supply the `.proto` source files or you can supply protoset
 files (containing compiled descriptors, produced by `protoc`) to `grpcurl`.
 
-## Installation (binaries)
+## Installation
+
+### Binaries
 
 Download the binary from the [releases](https://github.com/fullstorydev/grpcurl/releases) page.
 
-## Installation (source)
+### From Source
 You can use the `go` tool to install `grpcurl`:
 ```shell
 go get github.com/fullstorydev/grpcurl
@@ -63,7 +65,11 @@ If you have already pulled down this repo to a location that is not in your
 run `make install`.
 
 If you encounter compile errors, you could have out-dated versions of `grpcurl`'s
-dependencies. You can update the dependencies by running `make updatedeps`.
+dependencies. You can update the dependencies by running `make updatedeps`. You can
+also use [`vgo`](https://github.com/golang/vgo) to install, which will use the right
+versions of dependencies. Or, if you are using Go 1.11, you can add `GO111MODULE=on`
+as a prefix to the commands above, which will also build using the right versions of
+dependencies (vs. whatever you may already in your `GOPATH`).
 
 ## Usage
 The usage doc for the tool explains the numerous options:
@@ -76,7 +82,7 @@ In the sections below, you will find numerous examples demonstrating how to use
 
 ### Invoking RPCs
 Invoking an RPC on a trusted server (e.g. TLS without self-signed key or custom CA)
-that requires no client certs and supports service reflection is the simplest thing to
+that requires no client certs and supports server reflection is the simplest thing to
 do with `grpcurl`. This minimal invocation sends an empty request body:
 ```shell
 grpcurl grpc.server.com:443 my.custom.server.Service/Method
@@ -142,7 +148,24 @@ grpcurl -protoset my-protos.bin describe my.custom.server.Service.MethodOne
 grpcurl -import-path ../protos -proto my-stuff.proto describe my.custom.server.Service.MethodOne
 ```
 
-## Proto Source Files
+## Descriptor Sources
+The `grpcurl` tool can operate on a variety of sources for descriptors. The descriptors
+are required, in order for `grpcurl` to understand the RPC schema, translate inputs
+into the protobuf binary format as well as translate responses from the binary format
+into text. The sections below describe the supported sources and what command-line flags
+are needed to use them.
+
+### Server Reflection
+
+Without any additional command-line flags, `grpcurl` will try to use [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto).
+
+Examples for how to set up server reflection can be found [here](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations).
+
+When using reflection, the server address (host:port or path to Unix socket) is required
+even for "list" and "describe" operations, so that `grpcurl` can connect to the server
+and ask it for its descriptors.
+
+### Proto Source Files
 To use `grpcurl` on servers that do not support reflection, you can use `.proto` source
 files.
 
@@ -155,7 +178,11 @@ location of the standard protos included with `protoc` (which contain various "w
 types" with a package definition of `google.protobuf`). These files are "known" by `grpcurl`
 as a snapshot of their descriptors is built into the `grpcurl` binary.
 
-## Protoset Files
+When using proto sources, you can omit the server address (host:port or path to Unix socket)
+when using the "list" and "describe" operations since they only need to consult the proto
+source files.
+
+### Protoset Files
 You can also use compiled protoset files with `grpcurl`. If you are scripting `grpcurl` and
 need to re-use the same proto sources for many invocations, you will see better performance
 by using protoset files (since it skips the parsing and compilation steps with each
@@ -173,3 +200,8 @@ protoc --proto_path=. \
 The `--descriptor_set_out` argument is what tells `protoc` to produce a protoset,
 and the `--include_imports` argument is necessary for the protoset to contain
 everything that `grpcurl` needs to process and understand the schema.
+
+When using protosets, you can omit the server address (host:port or path to Unix socket)
+when using the "list" and "describe" operations since they only need to consult the
+protoset files.
+
