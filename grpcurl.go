@@ -783,16 +783,29 @@ func MetadataToString(md metadata.MD) string {
 	if len(md) == 0 {
 		return "(empty)"
 	}
+
+	keys := make([]string, 0, len(md))
+	for k := range md {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	var b bytes.Buffer
-	for k, vs := range md {
+	first := true
+	for _, k := range keys {
+		vs := md[k]
 		for _, v := range vs {
+			if first {
+				first = false
+			} else {
+				b.WriteString("\n")
+			}
 			b.WriteString(k)
 			b.WriteString(": ")
 			if strings.HasSuffix(k, "-bin") {
 				v = base64.StdEncoding.EncodeToString([]byte(v))
 			}
 			b.WriteString(v)
-			b.WriteString("\n")
 		}
 	}
 	return b.String()

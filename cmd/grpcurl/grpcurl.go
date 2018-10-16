@@ -65,21 +65,22 @@ var (
 	rpcHeaders  multiString
 	reflHeaders multiString
 	authority   = flag.String("authority", "",
-		":authority pseudo header value to be passed along with underlying HTTP/2 requests. It defaults to `host [ \":\" port ]` part of the target url.")
+		`:authority pseudo header value to be passed along with underlying HTTP/2
+    	requests. It defaults to 'host [ ":" port ]' part of the target url.`)
 	data = flag.String("d", "",
 		`Data for request contents. If the value is '@' then the request contents
     	are read from stdin. For calls that accept a stream of requests, the
     	contents should include all such request messages concatenated together
     	(optionally separated by whitespace).`)
-	format = flag.String("format", "",
-		`The format of request data. The allowed values are 'json' (the default)
-    	or 'text'. For 'json', the input data must be in JSON format. Multiple
-    	request values may be concatenated (messages with a JSON representation
-    	other than Object must be separated by whitespace, such as a newline). For
-    	'text', the input data must be in the protobuf text format, in which case
-    	multiple request values must be separated by the "record separate" ASCII
-    	character: 0x1E. The stream should not end in a record separator. If it
-    	does, it will be interpreted as a final, blank message after the separator.`)
+	format = flag.String("format", "json",
+		`The format of request data. The allowed values are 'json' or 'text'. For
+    	'json', the input data must be in JSON format. Multiple request values may
+    	be concatenated (messages with a JSON representation other than object
+    	must be separated by whitespace, such as a newline). For 'text', the input
+    	data must be in the protobuf text format, in which case multiple request
+    	values must be separated by the "record separate" ASCII character: 0x1E.
+    	The stream should not end in a record separator. If it does, it will be
+    	interpreted as a final, blank message after the separator.`)
 	connectTimeout = flag.String("connect-timeout", "",
 		`The maximum time, in seconds, to wait for connection to be established.
     	Defaults to 10 seconds.`)
@@ -180,7 +181,7 @@ func main() {
 	if (*key == "") != (*cert == "") {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
-	if *format != "" && *format != "json" && *format != "text" {
+	if *format != "json" && *format != "text" {
 		fail(nil, "The -format option must be 'json' or 'text.")
 	}
 
@@ -432,7 +433,7 @@ func main() {
 				// create a request to invoke an RPC
 				tmpl := makeTemplate(dynamic.NewMessage(dsc))
 				fmt.Println("\nMessage template:")
-				if *format == "" || *format == "json" {
+				if *format == "json" {
 					jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
 					err := jsm.Marshal(os.Stdout, tmpl)
 					if err != nil {
@@ -460,24 +461,12 @@ func main() {
 			in = strings.NewReader(*data)
 		}
 
-		var rf requestFactory
-		var h handler
-		if *format == "" || *format == "json" {
-			resolver, err := anyResolver(descSource)
-			if err != nil {
-				fail(err, "Error creating message resolver")
-			}
-			rf = newJsonFactory(in, resolver)
-			h = handler{
-				descSource: descSource,
-				marshaler: jsonpb.Marshaler{
-					EmitDefaults: *emitDefaults,
-					AnyResolver:  resolver,
-				},
-			}
-		} else {
-			rf = newTextFactory(in)
-			h = handler{descSource: descSource}
+		rf, formatter := formatDetails(*format, descSource, *verbose, in)
+		h := handler{
+			out:        os.Stdout,
+			descSource: descSource,
+			formatter:  formatter,
+			verbose:    *verbose,
 		}
 
 		err := grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), &h, rf.next)
@@ -568,63 +557,74 @@ func anyResolver(source grpcurl.DescriptorSource) (jsonpb.AnyResolver, error) {
 	return dynamic.AnyResolver(mf, files...), nil
 }
 
+func formatDetails(format string, descSource grpcurl.DescriptorSource, verbose bool, in io.Reader) (requestFactory, func(proto.Message) (string, error)) {
+	if format == "json" {
+		resolver, err := anyResolver(descSource)
+		if err != nil {
+			fail(err, "Error creating message resolver")
+		}
+		marshaler := jsonpb.Marshaler{
+			EmitDefaults: *emitDefaults,
+			Indent:       "  ",
+			AnyResolver:  resolver,
+		}
+		return newJsonFactory(in, resolver), marshaler.MarshalToString
+	}
+	/* else *format == "text" */
+
+	// if not verbose output, then also include record delimiters
+	// before each message (other than the first) so output could
+	// potentially piped to another grpcurl process
+	tf := textFormatter{useSeparator: !verbose}
+	return newTextFactory(in), tf.format
+}
+
 type handler struct {
+	out        io.Writer
 	descSource grpcurl.DescriptorSource
 	respCount  int
 	stat       *status.Status
-	marshaler  jsonpb.Marshaler
+	formatter  func(proto.Message) (string, error)
+	verbose    bool
 }
 
 func (h *handler) OnResolveMethod(md *desc.MethodDescriptor) {
-	if *verbose {
+	if h.verbose {
 		txt, err := grpcurl.GetDescriptorText(md, h.descSource)
 		if err == nil {
-			fmt.Printf("\nResolved method descriptor:\n%s\n", txt)
+			fmt.Fprintf(h.out, "\nResolved method descriptor:\n%s\n", txt)
 		}
 	}
 }
 
-func (*handler) OnSendHeaders(md metadata.MD) {
-	if *verbose {
-		fmt.Printf("\nRequest metadata to send:\n%s\n", grpcurl.MetadataToString(md))
+func (h *handler) OnSendHeaders(md metadata.MD) {
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nRequest metadata to send:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
 
-func (*handler) OnReceiveHeaders(md metadata.MD) {
-	if *verbose {
-		fmt.Printf("\nResponse headers received:\n%s\n", grpcurl.MetadataToString(md))
+func (h *handler) OnReceiveHeaders(md metadata.MD) {
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nResponse headers received:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
-
-const rs = string(0x1e)
 
 func (h *handler) OnReceiveResponse(resp proto.Message) {
 	h.respCount++
-	if *verbose {
-		fmt.Print("\nResponse contents:\n")
+	if h.verbose {
+		fmt.Fprint(h.out, "\nResponse contents:\n")
 	}
-	var respStr string
-	var err error
-	if *format == "" || *format == "json" {
-		respStr, err = h.marshaler.MarshalToString(resp)
-	} else /* *format == "text" */ {
-		respStr = proto.MarshalTextString(resp)
-		if !*verbose {
-			// if not verbose output, then also include record delimiters,
-			// so output could potentially piped to another grpcurl process
-			respStr = respStr + rs
-		}
-	}
+	respStr, err := h.formatter(resp)
 	if err != nil {
 		fail(err, "failed to generate JSON form of response message")
 	}
-	fmt.Println(respStr)
+	fmt.Fprintln(h.out, respStr)
 }
 
 func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	h.stat = stat
-	if *verbose {
-		fmt.Printf("\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
 
@@ -720,6 +720,10 @@ func (f *jsonFactory) numRequests() int {
 	return f.requestCount
 }
 
+const (
+	textSeparatorChar = 0x1e
+)
+
 type textFactory struct {
 	r            *bufio.Reader
 	err          error
@@ -736,18 +740,47 @@ func (f *textFactory) next(m proto.Message) error {
 	}
 
 	var b []byte
-	b, f.err = f.r.ReadBytes(0x1e)
+	b, f.err = f.r.ReadBytes(textSeparatorChar)
 	if f.err != nil && f.err != io.EOF {
 		return f.err
 	}
 	// remove delimiter
-	if b[len(b)-1] == 0x1e {
+	if len(b) > 0 && b[len(b)-1] == textSeparatorChar {
 		b = b[:len(b)-1]
 	}
+
+	f.requestCount++
 
 	return proto.UnmarshalText(string(b), m)
 }
 
 func (f *textFactory) numRequests() int {
 	return f.requestCount
+}
+
+type textFormatter struct {
+	useSeparator bool
+	numFormatted int
+}
+
+func (tf *textFormatter) format(m proto.Message) (string, error) {
+	var buf bytes.Buffer
+	if tf.useSeparator && tf.numFormatted > 0 {
+		if err := buf.WriteByte(textSeparatorChar); err != nil {
+			return "", err
+		}
+	}
+	if err := proto.MarshalText(&buf, m); err != nil {
+		return "", err
+	}
+
+	// no trailing newline needed
+	str := buf.String()
+	if str[len(str)-1] == '\n' {
+		str = str[:len(str)-1]
+	}
+
+	tf.numFormatted++
+
+	return str, nil
 }
