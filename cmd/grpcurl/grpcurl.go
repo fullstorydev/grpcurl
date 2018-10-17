@@ -402,30 +402,61 @@ func main() {
 				fail(err, "Failed to resolve symbol %q", s)
 			}
 
-			txt, err := grpcurl.GetDescriptorText(dsc, descSource)
-			if err != nil {
-				fail(err, "Failed to describe symbol %q", s)
-			}
-
-			switch dsc.(type) {
+			fqn := dsc.GetFullyQualifiedName()
+			var elementType string
+			switch d := dsc.(type) {
 			case *desc.MessageDescriptor:
-				fmt.Printf("%s is a message:\n", dsc.GetFullyQualifiedName())
+				elementType = "a message"
+				parent, ok := d.GetParent().(*desc.MessageDescriptor)
+				if ok {
+					if d.IsMapEntry() {
+						for _, f := range parent.GetFields() {
+							if f.IsMap() && f.GetMessageType() == d {
+								// found it: describe the map field instead
+								elementType = "the entry type for a map field"
+								dsc = f
+								break
+							}
+						}
+					} else {
+						// see if it's a group
+						for _, f := range parent.GetFields() {
+							if f.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP && f.GetMessageType() == d {
+								// found it: describe the map field instead
+								elementType = "the type of a group field"
+								dsc = f
+								break
+							}
+						}
+					}
+				}
 			case *desc.FieldDescriptor:
-				fmt.Printf("%s is a field:\n", dsc.GetFullyQualifiedName())
+				elementType = "a field"
+				if d.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP {
+					elementType = "a group field"
+				} else if d.IsExtension() {
+					elementType = "an extension"
+				}
 			case *desc.OneOfDescriptor:
-				fmt.Printf("%s is a one-of:\n", dsc.GetFullyQualifiedName())
+				elementType = "a one-of"
 			case *desc.EnumDescriptor:
-				fmt.Printf("%s is an enum:\n", dsc.GetFullyQualifiedName())
+				elementType = "an enum"
 			case *desc.EnumValueDescriptor:
-				fmt.Printf("%s is an enum value:\n", dsc.GetFullyQualifiedName())
+				elementType = "an enum value"
 			case *desc.ServiceDescriptor:
-				fmt.Printf("%s is a service:\n", dsc.GetFullyQualifiedName())
+				elementType = "a service"
 			case *desc.MethodDescriptor:
-				fmt.Printf("%s is a method:\n", dsc.GetFullyQualifiedName())
+				elementType = "a method"
 			default:
 				err = fmt.Errorf("descriptor has unrecognized type %T", dsc)
 				fail(err, "Failed to describe symbol %q", s)
 			}
+
+			txt, err := grpcurl.GetDescriptorText(dsc, descSource)
+			if err != nil {
+				fail(err, "Failed to describe symbol %q", s)
+			}
+			fmt.Printf("%s is %s:\n", fqn, elementType)
 			fmt.Println(txt)
 
 			if dsc, ok := dsc.(*desc.MessageDescriptor); ok && *msgTemplate {
