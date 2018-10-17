@@ -1,12 +1,15 @@
-// Command grpcurl makes GRPC requests (a la cURL, but HTTP/2). It can use a supplied descriptor file or
-// service reflection to translate JSON request data into the appropriate protobuf request data and vice
-// versa for presenting the response contents.
+// Command grpcurl makes GRPC requests (a la cURL, but HTTP/2). It can use a supplied descriptor
+// file, protobuf sources, or service reflection to translate JSON or text request data into the
+// appropriate protobuf messages and vice versa for presenting the response contents.
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -62,12 +65,22 @@ var (
 	rpcHeaders  multiString
 	reflHeaders multiString
 	authority   = flag.String("authority", "",
-		":authority pseudo header value to be passed along with underlying HTTP/2 requests. It defaults to `host [ \":\" port ]` part of the target url.")
+		`:authority pseudo header value to be passed along with underlying HTTP/2
+    	requests. It defaults to 'host [ ":" port ]' part of the target url.`)
 	data = flag.String("d", "",
-		`JSON request contents. If the value is '@' then the request contents are
-    	read from stdin. For calls that accept a stream of requests, the
+		`Data for request contents. If the value is '@' then the request contents
+    	are read from stdin. For calls that accept a stream of requests, the
     	contents should include all such request messages concatenated together
     	(optionally separated by whitespace).`)
+	format = flag.String("format", "json",
+		`The format of request data. The allowed values are 'json' or 'text'. For
+    	'json', the input data must be in JSON format. Multiple request values may
+    	be concatenated (messages with a JSON representation other than object
+    	must be separated by whitespace, such as a newline). For 'text', the input
+    	data must be in the protobuf text format, in which case multiple request
+    	values must be separated by the "record separate" ASCII character: 0x1E.
+    	The stream should not end in a record separator. If it does, it will be
+    	interpreted as a final, blank message after the separator.`)
 	connectTimeout = flag.String("connect-timeout", "",
 		`The maximum time, in seconds, to wait for connection to be established.
     	Defaults to 10 seconds.`)
@@ -81,9 +94,9 @@ var (
     	preventing batch jobs that use grpcurl from hanging due to slow or bad
     	network links or due to incorrect stream method usage.`)
 	emitDefaults = flag.Bool("emit-defaults", false,
-		`Emit default values from JSON-encoded responses.`)
+		`Emit default values for JSON-encoded responses.`)
 	msgTemplate = flag.Bool("msg-template", false,
-		`When describing messages, show a JSON template for the message type.`)
+		`When describing messages, show a template of input data.`)
 	verbose = flag.Bool("v", false,
 		`Enable verbose output.`)
 	serverName = flag.String("servername", "", "Override servername when validating TLS certificate.")
@@ -167,6 +180,9 @@ func main() {
 	}
 	if (*key == "") != (*cert == "") {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
+	}
+	if *format != "json" && *format != "text" {
+		fail(nil, "The -format option must be 'json' or 'text.")
 	}
 
 	args := flag.Args()
@@ -417,10 +433,17 @@ func main() {
 				// create a request to invoke an RPC
 				tmpl := makeTemplate(dynamic.NewMessage(dsc))
 				fmt.Println("\nMessage template:")
-				jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
-				err := jsm.Marshal(os.Stdout, tmpl)
-				if err != nil {
-					fail(err, "Failed to print template for message %s", s)
+				if *format == "json" {
+					jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
+					err := jsm.Marshal(os.Stdout, tmpl)
+					if err != nil {
+						fail(err, "Failed to print template for message %s", s)
+					}
+				} else /* *format == "text" */ {
+					err := proto.MarshalText(os.Stdout, tmpl)
+					if err != nil {
+						fail(err, "Failed to print template for message %s", s)
+					}
 				}
 				fmt.Println()
 			}
@@ -431,28 +454,36 @@ func main() {
 		if cc == nil {
 			cc = dial()
 		}
-		var dec *json.Decoder
+		var in io.Reader
 		if *data == "@" {
-			dec = json.NewDecoder(os.Stdin)
+			in = os.Stdin
 		} else {
-			dec = json.NewDecoder(strings.NewReader(*data))
+			in = strings.NewReader(*data)
 		}
 
-		h := &handler{dec: dec, descSource: descSource}
-		err := grpcurl.InvokeRpc(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, h.getRequestData)
+		rf, formatter := formatDetails(*format, descSource, *verbose, in)
+		h := handler{
+			out:        os.Stdout,
+			descSource: descSource,
+			formatter:  formatter,
+			verbose:    *verbose,
+		}
+
+		err := grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), &h, rf.next)
 		if err != nil {
 			fail(err, "Error invoking method %q", symbol)
 		}
 		reqSuffix := ""
 		respSuffix := ""
-		if h.reqCount != 1 {
+		reqCount := rf.numRequests()
+		if reqCount != 1 {
 			reqSuffix = "s"
 		}
 		if h.respCount != 1 {
 			respSuffix = "s"
 		}
 		if *verbose {
-			fmt.Printf("Sent %d request%s and received %d response%s\n", h.reqCount, reqSuffix, h.respCount, respSuffix)
+			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.respCount, respSuffix)
 		}
 		if h.stat.Code() != codes.OK {
 			fmt.Fprintf(os.Stderr, "ERROR:\n  Code: %s\n  Message: %s\n", h.stat.Code().String(), h.stat.Message())
@@ -512,64 +543,88 @@ func fail(err error, msg string, args ...interface{}) {
 	}
 }
 
+func anyResolver(source grpcurl.DescriptorSource) (jsonpb.AnyResolver, error) {
+	files, err := grpcurl.GetAllFiles(source)
+	if err != nil {
+		return nil, err
+	}
+
+	var er dynamic.ExtensionRegistry
+	for _, fd := range files {
+		er.AddExtensionsFromFile(fd)
+	}
+	mf := dynamic.NewMessageFactoryWithExtensionRegistry(&er)
+	return dynamic.AnyResolver(mf, files...), nil
+}
+
+func formatDetails(format string, descSource grpcurl.DescriptorSource, verbose bool, in io.Reader) (requestFactory, func(proto.Message) (string, error)) {
+	if format == "json" {
+		resolver, err := anyResolver(descSource)
+		if err != nil {
+			fail(err, "Error creating message resolver")
+		}
+		marshaler := jsonpb.Marshaler{
+			EmitDefaults: *emitDefaults,
+			Indent:       "  ",
+			AnyResolver:  resolver,
+		}
+		return newJsonFactory(in, resolver), marshaler.MarshalToString
+	}
+	/* else *format == "text" */
+
+	// if not verbose output, then also include record delimiters
+	// before each message (other than the first) so output could
+	// potentially piped to another grpcurl process
+	tf := textFormatter{useSeparator: !verbose}
+	return newTextFactory(in), tf.format
+}
+
 type handler struct {
-	dec        *json.Decoder
+	out        io.Writer
 	descSource grpcurl.DescriptorSource
-	reqCount   int
 	respCount  int
 	stat       *status.Status
+	formatter  func(proto.Message) (string, error)
+	verbose    bool
 }
 
 func (h *handler) OnResolveMethod(md *desc.MethodDescriptor) {
-	if *verbose {
+	if h.verbose {
 		txt, err := grpcurl.GetDescriptorText(md, h.descSource)
 		if err == nil {
-			fmt.Printf("\nResolved method descriptor:\n%s\n", txt)
+			fmt.Fprintf(h.out, "\nResolved method descriptor:\n%s\n", txt)
 		}
 	}
 }
 
-func (*handler) OnSendHeaders(md metadata.MD) {
-	if *verbose {
-		fmt.Printf("\nRequest metadata to send:\n%s\n", grpcurl.MetadataToString(md))
+func (h *handler) OnSendHeaders(md metadata.MD) {
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nRequest metadata to send:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
 
-func (h *handler) getRequestData() ([]byte, error) {
-	// we don't use a mutex, though this methods will be called from different goroutine
-	// than other methods for bidi calls, because this method does not share any state
-	// with the other methods.
-	var msg json.RawMessage
-	if err := h.dec.Decode(&msg); err != nil {
-		return nil, err
-	}
-	h.reqCount++
-	return msg, nil
-}
-
-func (*handler) OnReceiveHeaders(md metadata.MD) {
-	if *verbose {
-		fmt.Printf("\nResponse headers received:\n%s\n", grpcurl.MetadataToString(md))
+func (h *handler) OnReceiveHeaders(md metadata.MD) {
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nResponse headers received:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
 
 func (h *handler) OnReceiveResponse(resp proto.Message) {
 	h.respCount++
-	if *verbose {
-		fmt.Print("\nResponse contents:\n")
+	if h.verbose {
+		fmt.Fprint(h.out, "\nResponse contents:\n")
 	}
-	jsm := jsonpb.Marshaler{EmitDefaults: *emitDefaults, Indent: "  "}
-	respStr, err := jsm.MarshalToString(resp)
+	respStr, err := h.formatter(resp)
 	if err != nil {
-		fail(err, "failed to generate JSON form of response message")
+		fail(err, "failed to generate %s form of response message", *format)
 	}
-	fmt.Println(respStr)
+	fmt.Fprintln(h.out, respStr)
 }
 
 func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	h.stat = stat
-	if *verbose {
-		fmt.Printf("\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
+	if h.verbose {
+		fmt.Fprintf(h.out, "\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
 	}
 }
 
@@ -632,4 +687,117 @@ func makeTemplate(msg proto.Message) proto.Message {
 		}
 	}
 	return dm
+}
+
+type requestFactory interface {
+	next(proto.Message) error
+	numRequests() int
+}
+
+type jsonFactory struct {
+	dec          *json.Decoder
+	unmarshaler  jsonpb.Unmarshaler
+	requestCount int
+}
+
+func newJsonFactory(in io.Reader, resolver jsonpb.AnyResolver) *jsonFactory {
+	return &jsonFactory{
+		dec:         json.NewDecoder(in),
+		unmarshaler: jsonpb.Unmarshaler{AnyResolver: resolver},
+	}
+}
+
+func (f *jsonFactory) next(m proto.Message) error {
+	var msg json.RawMessage
+	if err := f.dec.Decode(&msg); err != nil {
+		return err
+	}
+	f.requestCount++
+	return f.unmarshaler.Unmarshal(bytes.NewReader(msg), m)
+}
+
+func (f *jsonFactory) numRequests() int {
+	return f.requestCount
+}
+
+const (
+	textSeparatorChar = 0x1e
+)
+
+type textFactory struct {
+	r            *bufio.Reader
+	err          error
+	requestCount int
+}
+
+func newTextFactory(in io.Reader) *textFactory {
+	return &textFactory{r: bufio.NewReader(in)}
+}
+
+func (f *textFactory) next(m proto.Message) error {
+	if f.err != nil {
+		return f.err
+	}
+
+	var b []byte
+	b, f.err = f.r.ReadBytes(textSeparatorChar)
+	if f.err != nil && f.err != io.EOF {
+		return f.err
+	}
+	// remove delimiter
+	if len(b) > 0 && b[len(b)-1] == textSeparatorChar {
+		b = b[:len(b)-1]
+	}
+
+	f.requestCount++
+
+	return proto.UnmarshalText(string(b), m)
+}
+
+func (f *textFactory) numRequests() int {
+	return f.requestCount
+}
+
+type textFormatter struct {
+	useSeparator bool
+	numFormatted int
+}
+
+func (tf *textFormatter) format(m proto.Message) (string, error) {
+	var buf bytes.Buffer
+	if tf.useSeparator && tf.numFormatted > 0 {
+		if err := buf.WriteByte(textSeparatorChar); err != nil {
+			return "", err
+		}
+	}
+
+	// If message implements MarshalText method (such as a *dynamic.Message),
+	// it won't get details about whether or not to format to text compactly
+	// or with indentation. So first see if the message also implements a
+	// MarshalTextIndent method and use that instead if available.
+	type indentMarshaler interface {
+		MarshalTextIndent() ([]byte, error)
+	}
+
+	if indenter, ok := m.(indentMarshaler); ok {
+		b, err := indenter.MarshalTextIndent()
+		if err != nil {
+			return "", err
+		}
+		if _, err := buf.Write(b); err != nil {
+			return "", err
+		}
+	} else if err := proto.MarshalText(&buf, m); err != nil {
+		return "", err
+	}
+
+	// no trailing newline needed
+	str := buf.String()
+	if str[len(str)-1] == '\n' {
+		str = str[:len(str)-1]
+	}
+
+	tf.numFormatted++
+
+	return str, nil
 }

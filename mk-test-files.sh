@@ -7,8 +7,8 @@ cd "$(dirname $0)"
 # Run this script to generate files used by tests.
 
 echo "Creating protosets..."
-protoc ../../../google.golang.org/grpc/interop/grpc_testing/test.proto \
-	-I../../../ --include_imports \
+protoc testing/test.proto \
+	--include_imports \
 	--descriptor_set_out=testing/test.protoset
 
 protoc testing/example.proto \

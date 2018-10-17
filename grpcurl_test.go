@@ -44,6 +44,10 @@ type descSourceCase struct {
 	includeRefl bool
 }
 
+// NB: These tests intentionally use the deprecated InvokeRpc since that
+// calls the other (non-deprecated InvokeRPC). That allows the tests to
+// easily exercise both functions.
+
 func TestMain(m *testing.M) {
 	var err error
 	sourceProtoset, err = DescriptorSourceFromProtoSets("testing/test.protoset")
@@ -233,6 +237,73 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 	if err != nil && !strings.Contains(err.Error(), "Symbol not found: FooService") {
 		t.Errorf("ListMethods should have returned 'not found' error but instead returned %v", err)
 	}
+}
+
+func TestGetAllFiles(t *testing.T) {
+	expectedFiles := []string{"testing/test.proto"}
+	// server reflection picks up filename from linked in Go package,
+	// which indicates "grpc_testing/test.proto", not our local copy.
+	expectedFilesWithReflection := []string{"grpc_reflection_v1alpha/reflection.proto", "grpc_testing/test.proto"}
+
+	for _, ds := range descSources {
+		t.Run(ds.name, func(t *testing.T) {
+			files, err := GetAllFiles(ds.source)
+			if err != nil {
+				t.Fatalf("failed to get all files: %v", err)
+			}
+			names := fileNames(files)
+			expected := expectedFiles
+			if ds.includeRefl {
+				expected = expectedFilesWithReflection
+			}
+			if !reflect.DeepEqual(expected, names) {
+				t.Errorf("GetAllFiles returned wrong results: wanted %v, got %v", expected, names)
+			}
+		})
+	}
+
+	// try cases with more complicated set of files
+	otherSourceProtoset, err := DescriptorSourceFromProtoSets("testing/test.protoset", "testing/example.protoset")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	otherSourceProtoFiles, err := DescriptorSourceFromProtoFiles(nil, "testing/test.proto", "testing/example.proto")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	otherDescSources := []descSourceCase{
+		{"protoset[b]", otherSourceProtoset, false},
+		{"proto[b]", otherSourceProtoFiles, false},
+	}
+	expectedFiles = []string{
+		"google/protobuf/any.proto",
+		"google/protobuf/descriptor.proto",
+		"google/protobuf/empty.proto",
+		"google/protobuf/timestamp.proto",
+		"testing/example.proto",
+		"testing/example2.proto",
+		"testing/test.proto",
+	}
+	for _, ds := range otherDescSources {
+		t.Run(ds.name, func(t *testing.T) {
+			files, err := GetAllFiles(ds.source)
+			if err != nil {
+				t.Fatalf("failed to get all files: %v", err)
+			}
+			names := fileNames(files)
+			if !reflect.DeepEqual(expectedFiles, names) {
+				t.Errorf("GetAllFiles returned wrong results: wanted %v, got %v", expectedFiles, names)
+			}
+		})
+	}
+}
+
+func fileNames(files []*desc.FileDescriptor) []string {
+	names := make([]string, len(files))
+	for i, f := range files {
+		names[i] = f.GetName()
+	}
+	return names
 }
 
 func TestDescribe(t *testing.T) {
