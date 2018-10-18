@@ -135,8 +135,10 @@ grpcurl localhost:8787 list my.custom.server.Service
 
 ### Describing Elements
 The "describe" verb will print the type of any symbol that the server knows about
-or that is found in a given protoset file and also print the full descriptor for the
-symbol, in JSON.
+or that is found in a given protoset file. It also prints a description of that
+symbol, in the form of snippets of proto source. It won't necessarily be the
+original source that defined the element, but it will be equivalent.
+
 ```shell
 # Server supports reflection
 grpcurl localhost:8787 describe my.custom.server.Service.MethodOne
@@ -152,7 +154,7 @@ grpcurl -import-path ../protos -proto my-stuff.proto describe my.custom.server.S
 The `grpcurl` tool can operate on a variety of sources for descriptors. The descriptors
 are required, in order for `grpcurl` to understand the RPC schema, translate inputs
 into the protobuf binary format as well as translate responses from the binary format
-into text. The sections below describe the supported sources and what command-line flags
+into text. The sections below document the supported sources and what command-line flags
 are needed to use them.
 
 ### Server Reflection
@@ -189,7 +191,7 @@ by using protoset files (since it skips the parsing and compilation steps with e
 invocation).
 
 Protoset files contain binary encoded `google.protobuf.FileDescriptorSet` protos. To create
-a protoset file, invoke `protoc` with the `*.proto` files that describe the service:
+a protoset file, invoke `protoc` with the `*.proto` files that define the service:
 ```shell
 protoc --proto_path=. \
     --descriptor_set_out=myservice.protoset \
