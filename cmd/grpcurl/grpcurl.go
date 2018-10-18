@@ -529,29 +529,20 @@ Available flags:
 }
 
 func prettify(docString string) string {
-	var buf bytes.Buffer
-	first := true
-	for {
-		pos := strings.IndexByte(docString, '\n')
-		if pos < 0 {
-			pos = len(docString)
+	parts := strings.Split(docString, "\n")
+
+	// cull empty lines and also remove trailing and leading spaces
+	// from each line in the doc string
+	j := 0
+	for _, part := range parts {
+		if part == "" {
+			continue
 		}
-		line := strings.TrimSpace(docString[:pos])
-		if line != "" {
-			if first {
-				first = false
-			} else {
-				buf.WriteByte('\n')
-				buf.WriteString(indent())
-			}
-			buf.WriteString(line)
-		}
-		if pos >= len(docString) {
-			break
-		}
-		docString = docString[pos+1:]
+		parts[j] = strings.TrimSpace(part)
+		j++
 	}
-	return buf.String()
+
+	return strings.Join(parts[:j], "\n"+indent())
 }
 
 func warn(msg string, args ...interface{}) {
