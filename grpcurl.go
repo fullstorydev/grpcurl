@@ -24,9 +24,10 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -59,13 +60,13 @@ type DescriptorSource interface {
 // DescriptorSourceFromProtoSets creates a DescriptorSource that is backed by the named files, whose contents
 // are encoded FileDescriptorSet protos.
 func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error) {
-	files := &descriptor.FileDescriptorSet{}
+	files := &descpb.FileDescriptorSet{}
 	for _, fileName := range fileNames {
 		b, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("could not load protoset file %q: %v", fileName, err)
 		}
-		var fs descriptor.FileDescriptorSet
+		var fs descpb.FileDescriptorSet
 		err = proto.Unmarshal(b, &fs)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse contents of protoset file %q: %v", fileName, err)
@@ -91,8 +92,8 @@ func DescriptorSourceFromProtoFiles(importPaths []string, fileNames ...string) (
 }
 
 // DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the FileDescriptorSet.
-func DescriptorSourceFromFileDescriptorSet(files *descriptor.FileDescriptorSet) (DescriptorSource, error) {
-	unresolved := map[string]*descriptor.FileDescriptorProto{}
+func DescriptorSourceFromFileDescriptorSet(files *descpb.FileDescriptorSet) (DescriptorSource, error) {
+	unresolved := map[string]*descpb.FileDescriptorProto{}
 	for _, fd := range files.File {
 		unresolved[fd.GetName()] = fd
 	}
@@ -106,7 +107,7 @@ func DescriptorSourceFromFileDescriptorSet(files *descriptor.FileDescriptorSet) 
 	return &fileSource{files: resolved}, nil
 }
 
-func resolveFileDescriptor(unresolved map[string]*descriptor.FileDescriptorProto, resolved map[string]*desc.FileDescriptor, filename string) (*desc.FileDescriptor, error) {
+func resolveFileDescriptor(unresolved map[string]*descpb.FileDescriptorProto, resolved map[string]*desc.FileDescriptor, filename string) (*desc.FileDescriptor, error) {
 	if r, ok := resolved[filename]; ok {
 		return r, nil
 	}
@@ -811,10 +812,27 @@ func MetadataToString(md metadata.MD) string {
 	return b.String()
 }
 
+var printer = &protoprint.Printer{
+	Compact:                  true,
+	OmitComments:             protoprint.CommentsNonDoc,
+	SortElements:             true,
+	ForceFullyQualifiedNames: true,
+}
+
 // GetDescriptorText returns a string representation of the given descriptor.
-func GetDescriptorText(dsc desc.Descriptor, descSource DescriptorSource) (string, error) {
-	dscProto := EnsureExtensions(descSource, dsc.AsProto())
-	return (&jsonpb.Marshaler{Indent: "  "}).MarshalToString(dscProto)
+// This returns a snippet of proto source that describes the given element.
+func GetDescriptorText(dsc desc.Descriptor, _ DescriptorSource) (string, error) {
+	// Note: DescriptorSource is not used, but remains an argument for backwards
+	// compatibility with previous implementation.
+	txt, err := printer.PrintProtoToString(dsc)
+	if err != nil {
+		return "", err
+	}
+	// callers don't expect trailing newlines
+	if txt[len(txt)-1] == '\n' {
+		txt = txt[:len(txt)-1]
+	}
+	return txt, nil
 }
 
 // EnsureExtensions uses the given descriptor source to download extensions for

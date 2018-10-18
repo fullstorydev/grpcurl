@@ -165,7 +165,7 @@ func TestHandler(t *testing.T) {
 
 				out := buf.String()
 				if !compare(out, expectedOutput) {
-					t.Errorf("%s: Incorrect output.", name) // Expected:\n%s\nGot:\n%s", name, expectedOutput, out)
+					t.Errorf("%s: Incorrect output. Expected:\n%s\nGot:\n%s", name, expectedOutput, out)
 				}
 			}
 		}
@@ -209,14 +209,7 @@ func makeProto() (proto.Message, error) {
 var (
 	verbosePrefix = `
 Resolved method descriptor:
-{
-  "name": "GetFiles",
-  "inputType": ".TestRequest",
-  "outputType": ".TestResponse",
-  "options": {
-    
-  }
-}
+rpc GetFiles ( .TestRequest ) returns ( .TestResponse );
 
 Request metadata to send:
 bar: 456
