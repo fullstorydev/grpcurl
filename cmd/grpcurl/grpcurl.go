@@ -4,9 +4,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -15,8 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/fullstorydev/grpcurl"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
@@ -28,9 +24,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
-	"google.golang.org/grpc/status"
-
-	"github.com/fullstorydev/grpcurl"
 )
 
 var version = "dev build <no version set>"
@@ -466,21 +459,17 @@ func main() {
 			if dsc, ok := dsc.(*desc.MessageDescriptor); ok && *msgTemplate {
 				// for messages, also show a template in JSON, to make it easier to
 				// create a request to invoke an RPC
-				tmpl := makeTemplate(dynamic.NewMessage(dsc))
-				fmt.Println("\nMessage template:")
-				if *format == "json" {
-					jsm := jsonpb.Marshaler{Indent: "  ", EmitDefaults: true}
-					err := jsm.Marshal(os.Stdout, tmpl)
-					if err != nil {
-						fail(err, "Failed to print template for message %s", s)
-					}
-				} else /* *format == "text" */ {
-					err := proto.MarshalText(os.Stdout, tmpl)
-					if err != nil {
-						fail(err, "Failed to print template for message %s", s)
-					}
+				tmpl := grpcurl.MakeTemplate(dynamic.NewMessage(dsc))
+				_, formatter, err := grpcurl.RequestParserAndFormatterFor(grpcurl.Format(*format), descSource, true, false, nil)
+				if err != nil {
+					fail(err, "Failed to construct formatter for %q", *format)
 				}
-				fmt.Println()
+				str, err := formatter(tmpl)
+				if err != nil {
+					fail(err, "Failed to print template for message %s", s)
+				}
+				fmt.Println("\nMessage template:")
+				fmt.Println(str)
 			}
 		}
 
@@ -496,32 +485,34 @@ func main() {
 			in = strings.NewReader(*data)
 		}
 
-		rf, formatter := formatDetails(*format, descSource, *verbose, in)
-		h := handler{
-			out:        os.Stdout,
-			descSource: descSource,
-			formatter:  formatter,
-			verbose:    *verbose,
+		// if not verbose output, then also include record delimiters
+		// between each message, so output could potentially be piped
+		// to another grpcurl process
+		includeSeparators := !*verbose
+		rf, formatter, err := grpcurl.RequestParserAndFormatterFor(grpcurl.Format(*format), descSource, *emitDefaults, includeSeparators, in)
+		if err != nil {
+			fail(err, "Failed to construct request parser and formatter for %q", *format)
 		}
+		h := grpcurl.NewDefaultEventHandler(os.Stdout, descSource, formatter, *verbose)
 
-		err := grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), &h, rf.next)
+		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {
 			fail(err, "Error invoking method %q", symbol)
 		}
 		reqSuffix := ""
 		respSuffix := ""
-		reqCount := rf.numRequests()
+		reqCount := rf.NumRequests()
 		if reqCount != 1 {
 			reqSuffix = "s"
 		}
-		if h.respCount != 1 {
+		if h.NumResponses != 1 {
 			respSuffix = "s"
 		}
 		if *verbose {
-			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.respCount, respSuffix)
+			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
-		if h.stat.Code() != codes.OK {
-			fmt.Fprintf(os.Stderr, "ERROR:\n  Code: %s\n  Message: %s\n", h.stat.Code().String(), h.stat.Message())
+		if h.Status.Code() != codes.OK {
+			fmt.Fprintf(os.Stderr, "ERROR:\n  Code: %s\n  Message: %s\n", h.Status.Code().String(), h.Status.Message())
 			exit(1)
 		}
 	}
@@ -596,263 +587,4 @@ func fail(err error, msg string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, "Try '%s -help' for more details.\n", os.Args[0])
 		exit(2)
 	}
-}
-
-func anyResolver(source grpcurl.DescriptorSource) (jsonpb.AnyResolver, error) {
-	files, err := grpcurl.GetAllFiles(source)
-	if err != nil {
-		return nil, err
-	}
-
-	var er dynamic.ExtensionRegistry
-	for _, fd := range files {
-		er.AddExtensionsFromFile(fd)
-	}
-	mf := dynamic.NewMessageFactoryWithExtensionRegistry(&er)
-	return dynamic.AnyResolver(mf, files...), nil
-}
-
-func formatDetails(format string, descSource grpcurl.DescriptorSource, verbose bool, in io.Reader) (requestFactory, func(proto.Message) (string, error)) {
-	if format == "json" {
-		resolver, err := anyResolver(descSource)
-		if err != nil {
-			fail(err, "Error creating message resolver")
-		}
-		marshaler := jsonpb.Marshaler{
-			EmitDefaults: *emitDefaults,
-			Indent:       "  ",
-			AnyResolver:  resolver,
-		}
-		return newJsonFactory(in, resolver), marshaler.MarshalToString
-	}
-	/* else *format == "text" */
-
-	// if not verbose output, then also include record delimiters
-	// before each message (other than the first) so output could
-	// potentially piped to another grpcurl process
-	tf := textFormatter{useSeparator: !verbose}
-	return newTextFactory(in), tf.format
-}
-
-type handler struct {
-	out        io.Writer
-	descSource grpcurl.DescriptorSource
-	respCount  int
-	stat       *status.Status
-	formatter  func(proto.Message) (string, error)
-	verbose    bool
-}
-
-func (h *handler) OnResolveMethod(md *desc.MethodDescriptor) {
-	if h.verbose {
-		txt, err := grpcurl.GetDescriptorText(md, h.descSource)
-		if err == nil {
-			fmt.Fprintf(h.out, "\nResolved method descriptor:\n%s\n", txt)
-		}
-	}
-}
-
-func (h *handler) OnSendHeaders(md metadata.MD) {
-	if h.verbose {
-		fmt.Fprintf(h.out, "\nRequest metadata to send:\n%s\n", grpcurl.MetadataToString(md))
-	}
-}
-
-func (h *handler) OnReceiveHeaders(md metadata.MD) {
-	if h.verbose {
-		fmt.Fprintf(h.out, "\nResponse headers received:\n%s\n", grpcurl.MetadataToString(md))
-	}
-}
-
-func (h *handler) OnReceiveResponse(resp proto.Message) {
-	h.respCount++
-	if h.verbose {
-		fmt.Fprint(h.out, "\nResponse contents:\n")
-	}
-	respStr, err := h.formatter(resp)
-	if err != nil {
-		fail(err, "failed to generate %s form of response message", *format)
-	}
-	fmt.Fprintln(h.out, respStr)
-}
-
-func (h *handler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
-	h.stat = stat
-	if h.verbose {
-		fmt.Fprintf(h.out, "\nResponse trailers received:\n%s\n", grpcurl.MetadataToString(md))
-	}
-}
-
-// makeTemplate fleshes out the given message so that it is a suitable template for creating
-// an instance of that message in JSON. In particular, it ensures that any repeated fields
-// (which include map fields) are not empty, so they will render with a single element (to
-// show the types and optionally nested fields). It also ensures that nested messages are
-// not nil by setting them to a message that is also fleshed out as a template message.
-func makeTemplate(msg proto.Message) proto.Message {
-	dm, ok := msg.(*dynamic.Message)
-	if !ok {
-		return msg
-	}
-	// for repeated fields, add a single element with default value
-	// and for message fields, add a message with all default fields
-	// that also has non-nil message and non-empty repeated fields
-	for _, fd := range dm.GetMessageDescriptor().GetFields() {
-		if fd.IsRepeated() {
-			switch fd.GetType() {
-			case descpb.FieldDescriptorProto_TYPE_FIXED32,
-				descpb.FieldDescriptorProto_TYPE_UINT32:
-				dm.AddRepeatedField(fd, uint32(0))
-
-			case descpb.FieldDescriptorProto_TYPE_SFIXED32,
-				descpb.FieldDescriptorProto_TYPE_SINT32,
-				descpb.FieldDescriptorProto_TYPE_INT32,
-				descpb.FieldDescriptorProto_TYPE_ENUM:
-				dm.AddRepeatedField(fd, int32(0))
-
-			case descpb.FieldDescriptorProto_TYPE_FIXED64,
-				descpb.FieldDescriptorProto_TYPE_UINT64:
-				dm.AddRepeatedField(fd, uint64(0))
-
-			case descpb.FieldDescriptorProto_TYPE_SFIXED64,
-				descpb.FieldDescriptorProto_TYPE_SINT64,
-				descpb.FieldDescriptorProto_TYPE_INT64:
-				dm.AddRepeatedField(fd, int64(0))
-
-			case descpb.FieldDescriptorProto_TYPE_STRING:
-				dm.AddRepeatedField(fd, "")
-
-			case descpb.FieldDescriptorProto_TYPE_BYTES:
-				dm.AddRepeatedField(fd, []byte{})
-
-			case descpb.FieldDescriptorProto_TYPE_BOOL:
-				dm.AddRepeatedField(fd, false)
-
-			case descpb.FieldDescriptorProto_TYPE_FLOAT:
-				dm.AddRepeatedField(fd, float32(0))
-
-			case descpb.FieldDescriptorProto_TYPE_DOUBLE:
-				dm.AddRepeatedField(fd, float64(0))
-
-			case descpb.FieldDescriptorProto_TYPE_MESSAGE,
-				descpb.FieldDescriptorProto_TYPE_GROUP:
-				dm.AddRepeatedField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType())))
-			}
-		} else if fd.GetMessageType() != nil {
-			dm.SetField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType())))
-		}
-	}
-	return dm
-}
-
-type requestFactory interface {
-	next(proto.Message) error
-	numRequests() int
-}
-
-type jsonFactory struct {
-	dec          *json.Decoder
-	unmarshaler  jsonpb.Unmarshaler
-	requestCount int
-}
-
-func newJsonFactory(in io.Reader, resolver jsonpb.AnyResolver) *jsonFactory {
-	return &jsonFactory{
-		dec:         json.NewDecoder(in),
-		unmarshaler: jsonpb.Unmarshaler{AnyResolver: resolver},
-	}
-}
-
-func (f *jsonFactory) next(m proto.Message) error {
-	var msg json.RawMessage
-	if err := f.dec.Decode(&msg); err != nil {
-		return err
-	}
-	f.requestCount++
-	return f.unmarshaler.Unmarshal(bytes.NewReader(msg), m)
-}
-
-func (f *jsonFactory) numRequests() int {
-	return f.requestCount
-}
-
-const (
-	textSeparatorChar = 0x1e
-)
-
-type textFactory struct {
-	r            *bufio.Reader
-	err          error
-	requestCount int
-}
-
-func newTextFactory(in io.Reader) *textFactory {
-	return &textFactory{r: bufio.NewReader(in)}
-}
-
-func (f *textFactory) next(m proto.Message) error {
-	if f.err != nil {
-		return f.err
-	}
-
-	var b []byte
-	b, f.err = f.r.ReadBytes(textSeparatorChar)
-	if f.err != nil && f.err != io.EOF {
-		return f.err
-	}
-	// remove delimiter
-	if len(b) > 0 && b[len(b)-1] == textSeparatorChar {
-		b = b[:len(b)-1]
-	}
-
-	f.requestCount++
-
-	return proto.UnmarshalText(string(b), m)
-}
-
-func (f *textFactory) numRequests() int {
-	return f.requestCount
-}
-
-type textFormatter struct {
-	useSeparator bool
-	numFormatted int
-}
-
-func (tf *textFormatter) format(m proto.Message) (string, error) {
-	var buf bytes.Buffer
-	if tf.useSeparator && tf.numFormatted > 0 {
-		if err := buf.WriteByte(textSeparatorChar); err != nil {
-			return "", err
-		}
-	}
-
-	// If message implements MarshalText method (such as a *dynamic.Message),
-	// it won't get details about whether or not to format to text compactly
-	// or with indentation. So first see if the message also implements a
-	// MarshalTextIndent method and use that instead if available.
-	type indentMarshaler interface {
-		MarshalTextIndent() ([]byte, error)
-	}
-
-	if indenter, ok := m.(indentMarshaler); ok {
-		b, err := indenter.MarshalTextIndent()
-		if err != nil {
-			return "", err
-		}
-		if _, err := buf.Write(b); err != nil {
-			return "", err
-		}
-	} else if err := proto.MarshalText(&buf, m); err != nil {
-		return "", err
-	}
-
-	// no trailing newline needed
-	str := buf.String()
-	if str[len(str)-1] == '\n' {
-		str = str[:len(str)-1]
-	}
-
-	tf.numFormatted++
-
-	return str, nil
 }
