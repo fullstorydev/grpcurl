@@ -201,12 +201,12 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 		t.Fatalf("failed to list methods for TestService: %v", err)
 	}
 	expected := []string{
-		"EmptyCall",
-		"FullDuplexCall",
-		"HalfDuplexCall",
-		"StreamingInputCall",
-		"StreamingOutputCall",
-		"UnaryCall",
+		"grpc.testing.TestService.EmptyCall",
+		"grpc.testing.TestService.FullDuplexCall",
+		"grpc.testing.TestService.HalfDuplexCall",
+		"grpc.testing.TestService.StreamingInputCall",
+		"grpc.testing.TestService.StreamingOutputCall",
+		"grpc.testing.TestService.UnaryCall",
 	}
 	if !reflect.DeepEqual(expected, names) {
 		t.Errorf("ListMethods returned wrong results: wanted %v, got %v", expected, names)
@@ -218,7 +218,7 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 		if err != nil {
 			t.Fatalf("failed to list methods for ServerReflection: %v", err)
 		}
-		expected = []string{"ServerReflectionInfo"}
+		expected = []string{"grpc.reflection.v1alpha.ServerReflection.ServerReflectionInfo"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
@@ -226,7 +226,7 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 		if err != nil {
 			t.Fatalf("failed to list methods for ServerReflection: %v", err)
 		}
-		expected = []string{"UnimplementedCall"}
+		expected = []string{"grpc.testing.UnimplementedService.UnimplementedCall"}
 	}
 	if !reflect.DeepEqual(expected, names) {
 		t.Errorf("ListMethods returned wrong results: wanted %v, got %v", expected, names)
