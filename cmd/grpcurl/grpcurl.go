@@ -566,10 +566,11 @@ func prettify(docString string) string {
 	// from each line in the doc string
 	j := 0
 	for _, part := range parts {
+		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
-		parts[j] = strings.TrimSpace(part)
+		parts[j] = part
 		j++
 	}
 
