@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
@@ -349,6 +350,83 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 		}
 	}
 	return dm, nil
+}
+
+// MakeTemplate fleshes out the given message so that it is a suitable template
+// for creating an instance of that message in JSON. In particular, it ensures
+// that any repeated fields (which include map fields) are not empty, so they
+// will render with a single element (to show the types and optionally nested
+// fields). It also ensures that nested messages are not nil by setting them to
+// a message that is also fleshed out as a template message.
+func MakeTemplate(msg proto.Message) proto.Message {
+	return makeTemplate(msg, nil)
+}
+
+func makeTemplate(msg proto.Message, path []*desc.MessageDescriptor) proto.Message {
+	dm, ok := msg.(*dynamic.Message)
+	if !ok {
+		return msg
+	}
+
+	// if a message is recursive structure, we don't want to blow the stack
+	for _, md := range path {
+		if md == dm.GetMessageDescriptor() {
+			// already visited this type; avoid infinite recursion
+			return msg
+		}
+	}
+
+	path = append(path, dm.GetMessageDescriptor())
+
+	// for repeated fields, add a single element with default value
+	// and for message fields, add a message with all default fields
+	// that also has non-nil message and non-empty repeated fields
+	for _, fd := range dm.GetMessageDescriptor().GetFields() {
+		if fd.IsRepeated() {
+			switch fd.GetType() {
+			case descpb.FieldDescriptorProto_TYPE_FIXED32,
+				descpb.FieldDescriptorProto_TYPE_UINT32:
+				dm.AddRepeatedField(fd, uint32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_SFIXED32,
+				descpb.FieldDescriptorProto_TYPE_SINT32,
+				descpb.FieldDescriptorProto_TYPE_INT32,
+				descpb.FieldDescriptorProto_TYPE_ENUM:
+				dm.AddRepeatedField(fd, int32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_FIXED64,
+				descpb.FieldDescriptorProto_TYPE_UINT64:
+				dm.AddRepeatedField(fd, uint64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_SFIXED64,
+				descpb.FieldDescriptorProto_TYPE_SINT64,
+				descpb.FieldDescriptorProto_TYPE_INT64:
+				dm.AddRepeatedField(fd, int64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_STRING:
+				dm.AddRepeatedField(fd, "")
+
+			case descpb.FieldDescriptorProto_TYPE_BYTES:
+				dm.AddRepeatedField(fd, []byte{})
+
+			case descpb.FieldDescriptorProto_TYPE_BOOL:
+				dm.AddRepeatedField(fd, false)
+
+			case descpb.FieldDescriptorProto_TYPE_FLOAT:
+				dm.AddRepeatedField(fd, float32(0))
+
+			case descpb.FieldDescriptorProto_TYPE_DOUBLE:
+				dm.AddRepeatedField(fd, float64(0))
+
+			case descpb.FieldDescriptorProto_TYPE_MESSAGE,
+				descpb.FieldDescriptorProto_TYPE_GROUP:
+				dm.AddRepeatedField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType()), path))
+			}
+		} else if fd.GetMessageType() != nil {
+			dm.SetField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType()), path))
+		}
+	}
+	return dm
 }
 
 // ClientTransportCredentials builds transport credentials for a gRPC client using the
