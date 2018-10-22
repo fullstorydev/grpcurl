@@ -1,6 +1,7 @@
 package grpcurl_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
+	jsonpbtest "github.com/golang/protobuf/jsonpb/jsonpb_test_proto"
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -304,6 +306,51 @@ func fileNames(files []*desc.FileDescriptor) []string {
 		names[i] = f.GetName()
 	}
 	return names
+}
+
+const expectKnownType = `{
+  "dur": "0s",
+  "ts": "1970-01-01T00:00:00Z",
+  "dbl": 0,
+  "flt": 0,
+  "i64": "0",
+  "u64": "0",
+  "i32": 0,
+  "u32": 0,
+  "bool": false,
+  "str": "",
+  "bytes": null,
+  "st": {"google.protobuf.Struct": "supports arbitrary JSON objects"},
+  "an": {"@type": "type.googleapis.com/google.protobuf.Empty", "value": {}},
+  "lv": [{"google.protobuf.ListValue": "is an array of arbitrary JSON values"}],
+  "val": {"google.protobuf.Value": "supports arbitrary JSON"}
+}`
+
+func TestMakeTemplateKnownTypes(t *testing.T) {
+	descriptor, err := desc.LoadMessageDescriptorForMessage((*jsonpbtest.KnownTypes)(nil))
+	if err != nil {
+		t.Fatalf("failed to load descriptor: %v", err)
+	}
+	message := MakeTemplate(descriptor)
+
+	jsm := jsonpb.Marshaler{EmitDefaults: true}
+	out, err := jsm.MarshalToString(message)
+	if err != nil {
+		t.Fatalf("failed to marshal to JSON: %v", err)
+	}
+
+	// make sure template JSON matches expected
+	var actual, expected interface{}
+	if err := json.Unmarshal([]byte(out), &actual); err != nil {
+		t.Fatalf("failed to parse actual JSON: %v", err)
+	}
+	if err := json.Unmarshal([]byte(expectKnownType), &expected); err != nil {
+		t.Fatalf("failed to parse expected JSON: %v", err)
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("template message is not as expected; want:\n%s\ngot:\n%s", expectKnownType, out)
+	}
 }
 
 func TestDescribe(t *testing.T) {

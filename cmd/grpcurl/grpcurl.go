@@ -15,7 +15,6 @@ import (
 	"github.com/fullstorydev/grpcurl"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -459,7 +458,7 @@ func main() {
 			if dsc, ok := dsc.(*desc.MessageDescriptor); ok && *msgTemplate {
 				// for messages, also show a template in JSON, to make it easier to
 				// create a request to invoke an RPC
-				tmpl := grpcurl.MakeTemplate(dynamic.NewMessage(dsc))
+				tmpl := grpcurl.MakeTemplate(dsc)
 				_, formatter, err := grpcurl.RequestParserAndFormatterFor(grpcurl.Format(*format), descSource, true, false, nil)
 				if err != nil {
 					fail(err, "Failed to construct formatter for %q", *format)
