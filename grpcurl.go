@@ -21,6 +21,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/golang/protobuf/ptypes/struct"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
@@ -352,35 +355,75 @@ func fullyConvertToDynamic(msgFact *dynamic.MessageFactory, msg proto.Message) (
 	return dm, nil
 }
 
-// MakeTemplate fleshes out the given message so that it is a suitable template
-// for creating an instance of that message in JSON. In particular, it ensures
-// that any repeated fields (which include map fields) are not empty, so they
-// will render with a single element (to show the types and optionally nested
-// fields). It also ensures that nested messages are not nil by setting them to
-// a message that is also fleshed out as a template message.
-func MakeTemplate(msg proto.Message) proto.Message {
-	return makeTemplate(msg, nil)
+// MakeTemplate returns a message instance for the given descriptor that is a
+// suitable template for creating an instance of that message in JSON. In
+// particular, it ensures that any repeated fields (which include map fields)
+// are not empty, so they will render with a single element (to show the types
+// and optionally nested fields). It also ensures that nested messages are not
+// nil by setting them to a message that is also fleshed out as a template
+// message.
+func MakeTemplate(md *desc.MessageDescriptor) proto.Message {
+	return makeTemplate(md, nil)
 }
 
-func makeTemplate(msg proto.Message, path []*desc.MessageDescriptor) proto.Message {
-	dm, ok := msg.(*dynamic.Message)
-	if !ok {
+func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) proto.Message {
+	switch md.GetFullyQualifiedName() {
+	case "google.protobuf.Any":
+		// empty type URL is not allowed by JSON representation
+		// so we must give it a dummy type
+		msg, _ := ptypes.MarshalAny(&empty.Empty{})
 		return msg
-	}
-
-	// if a message is recursive structure, we don't want to blow the stack
-	for _, md := range path {
-		if md == dm.GetMessageDescriptor() {
-			// already visited this type; avoid infinite recursion
-			return msg
+	case "google.protobuf.Value":
+		// unset kind is not allowed by JSON representation
+		// so we must give it something
+		return &structpb.Value{
+			Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"google.protobuf.Value": {Kind: &structpb.Value_StringValue{
+						StringValue: "supports arbitrary JSON",
+					}},
+				},
+			}},
+		}
+	case "google.protobuf.ListValue":
+		return &structpb.ListValue{
+			Values: []*structpb.Value{
+				{
+					Kind: &structpb.Value_StructValue{StructValue: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"google.protobuf.ListValue": {Kind: &structpb.Value_StringValue{
+								StringValue: "is an array of arbitrary JSON values",
+							}},
+						},
+					}},
+				},
+			},
+		}
+	case "google.protobuf.Struct":
+		return &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"google.protobuf.Struct": {Kind: &structpb.Value_StringValue{
+					StringValue: "supports arbitrary JSON objects",
+				}},
+			},
 		}
 	}
 
+	dm := dynamic.NewMessage(md)
+
+	// if the message is a recursive structure, we don't want to blow the stack
+	for _, seen := range path {
+		if seen == md {
+			// already visited this type; avoid infinite recursion
+			return dm
+		}
+	}
 	path = append(path, dm.GetMessageDescriptor())
 
 	// for repeated fields, add a single element with default value
 	// and for message fields, add a message with all default fields
 	// that also has non-nil message and non-empty repeated fields
+
 	for _, fd := range dm.GetMessageDescriptor().GetFields() {
 		if fd.IsRepeated() {
 			switch fd.GetType() {
@@ -420,10 +463,10 @@ func makeTemplate(msg proto.Message, path []*desc.MessageDescriptor) proto.Messa
 
 			case descpb.FieldDescriptorProto_TYPE_MESSAGE,
 				descpb.FieldDescriptorProto_TYPE_GROUP:
-				dm.AddRepeatedField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType()), path))
+				dm.AddRepeatedField(fd, makeTemplate(fd.GetMessageType(), path))
 			}
 		} else if fd.GetMessageType() != nil {
-			dm.SetField(fd, makeTemplate(dynamic.NewMessage(fd.GetMessageType()), path))
+			dm.SetField(fd, makeTemplate(fd.GetMessageType(), path))
 		}
 	}
 	return dm
