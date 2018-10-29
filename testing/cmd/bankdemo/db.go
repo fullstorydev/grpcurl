@@ -38,6 +38,7 @@ func (a *accounts) openAccount(customer string, accountType Account_Type, initia
 	a.AccountNumbersByCustomer[customer] = accountNums
 	var acct account
 	acct.AccountNumber = num
+	acct.Type = accountType
 	acct.BalanceCents = initialBalanceCents
 	acct.Transactions = append(acct.Transactions, &Transaction{
 		AccountNumber: num,
