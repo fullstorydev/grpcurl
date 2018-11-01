@@ -284,6 +284,9 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 func invokeBidi(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescriptor, handler InvocationEventHandler,
 	requestData RequestSupplier, req proto.Message) error {
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// invoke the RPC!
 	str, err := stub.InvokeRpcBidiStream(ctx, md)
 
@@ -318,6 +321,7 @@ func invokeBidi(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescr
 
 			if err != nil {
 				sendErr.Store(err)
+				cancel()
 			}
 		}()
 	}
