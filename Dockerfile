@@ -1,7 +1,7 @@
 FROM golang:1.9-alpine as builder
 RUN apk add --no-cache git gcc make musl-dev bash
 
-WORKDIR /go/src/github.com/jkev53/grpcurl
+WORKDIR /go/src/github.com/fullstorydev/grpcurl
 COPY . .
 
 RUN make deps install
