@@ -516,6 +516,7 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 // client certs. The serverCertFile and serverKeyFile must both not be blank.
 func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string, requireClientCerts bool) (credentials.TransportCredentials, error) {
 	var tlsConf tls.Config
+	tlsConf.MaxVersion = tls.VersionTLS12
 
 	// Load the server certificates from disk
 	certificate, err := tls.LoadX509KeyPair(serverCertFile, serverKeyFile)
