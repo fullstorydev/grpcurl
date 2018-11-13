@@ -15,3 +15,4 @@ RUN addgroup -S appgroup && adduser -S user -G appgroup
 USER user
 COPY --from=builder /go/bin/grpcurl /usr/local/bin
 WORKDIR /home/user
+CMD ["sh", "-c", "tail -f /dev/null"]
