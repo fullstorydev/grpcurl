@@ -516,6 +516,8 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 // client certs. The serverCertFile and serverKeyFile must both not be blank.
 func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string, requireClientCerts bool) (credentials.TransportCredentials, error) {
 	var tlsConf tls.Config
+	// TODO(jh): Remove this line once https://github.com/golang/go/issues/28779 is fixed
+	// in Go tip. Until then, the recently merged TLS 1.3 support breaks the TLS tests.
 	tlsConf.MaxVersion = tls.VersionTLS12
 
 	// Load the server certificates from disk
