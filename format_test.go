@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func TestRequestFactory(t *testing.T) {
+func TestRequestParser(t *testing.T) {
 	source, err := DescriptorSourceFromProtoSets("testing/example.protoset")
 	if err != nil {
 		t.Fatalf("failed to create descriptor source: %v", err)
