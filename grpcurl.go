@@ -55,37 +55,40 @@ func GetAllFiles(source DescriptorSource) ([]*desc.FileDescriptor, error) {
 	var files []*desc.FileDescriptor
 	srcFiles, ok := source.(sourceWithFiles)
 
+	// If an error occurs, we still try to load as many files as we can, so that
+	// caller can decide whether to ignore error or not.
+	var firstError error
 	if ok {
-		var err error
-		files, err = srcFiles.GetAllFiles()
-		if err != nil {
-			return nil, err
-		}
+		files, firstError = srcFiles.GetAllFiles()
 	} else {
 		// Source does not implement GetAllFiles method, so use ListServices
 		// and grab files from there.
-		allFiles := map[string]*desc.FileDescriptor{}
 		svcNames, err := source.ListServices()
 		if err != nil {
-			return nil, err
-		}
-		for _, name := range svcNames {
-			d, err := source.FindSymbol(name)
-			if err != nil {
-				return nil, err
+			firstError = err
+		} else {
+			allFiles := map[string]*desc.FileDescriptor{}
+			for _, name := range svcNames {
+				d, err := source.FindSymbol(name)
+				if err != nil {
+					if firstError == nil {
+						firstError = err
+					}
+				} else {
+					addAllFilesToSet(d.GetFile(), allFiles)
+				}
 			}
-			addAllFilesToSet(d.GetFile(), allFiles)
-		}
-		files = make([]*desc.FileDescriptor, len(allFiles))
-		i := 0
-		for _, fd := range allFiles {
-			files[i] = fd
-			i++
+			files = make([]*desc.FileDescriptor, len(allFiles))
+			i := 0
+			for _, fd := range allFiles {
+				files[i] = fd
+				i++
+			}
 		}
 	}
 
 	sort.Sort(filesByName(files))
-	return files, nil
+	return files, firstError
 }
 
 type filesByName []*desc.FileDescriptor

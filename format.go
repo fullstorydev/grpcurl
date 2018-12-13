@@ -189,10 +189,14 @@ const (
 )
 
 func anyResolver(source DescriptorSource) (jsonpb.AnyResolver, error) {
-	files, err := GetAllFiles(source)
-	if err != nil {
-		return nil, err
-	}
+	// TODO: instead of pro-actively downloading file descriptors to
+	// build a dynamic resolver, it would be better if the resolver
+	// impl was lazy, and simply downloaded the descriptors as needed
+	// when asked to resolve a particular type URL
+
+	// best effort: build resolver with whatever files we can
+	// load, ignoring any errors
+	files, _ := GetAllFiles(source)
 
 	var er dynamic.ExtensionRegistry
 	for _, fd := range files {
