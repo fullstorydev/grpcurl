@@ -120,7 +120,7 @@ func unaryLogger(ctx context.Context, req interface{}, info *grpc.UnaryServerInf
 	} else {
 		code = codes.Unknown
 	}
-	grpclog.Infof("completed <%d>: %v (%d) %v\n", i, code, code, time.Now().Sub(start))
+	grpclog.Infof("completed <%d>: %v (%d) %v\n", i, code, code, time.Since(start))
 	return rsp, err
 }
 
@@ -135,7 +135,7 @@ func streamLogger(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServer
 	} else {
 		code = codes.Unknown
 	}
-	grpclog.Infof("completed <%d>: %v(%d) %v\n", i, code, code, time.Now().Sub(start))
+	grpclog.Infof("completed <%d>: %v(%d) %v\n", i, code, code, time.Since(start))
 	return err
 }
 
