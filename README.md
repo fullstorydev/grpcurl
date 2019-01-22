@@ -49,6 +49,11 @@ files (containing compiled descriptors, produced by `protoc`) to `grpcurl`.
 
 Download the binary from the [releases](https://github.com/fullstorydev/grpcurl/releases) page.
 
+On macOS, `grpcurl` is available via Homebrew:
+```shell
+brew install grpcurl
+```
+
 ### From Source
 You can use the `go` tool to install `grpcurl`:
 ```shell
