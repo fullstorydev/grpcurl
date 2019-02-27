@@ -311,6 +311,7 @@ func invokeBidi(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescr
 				}
 				if err != nil {
 					err = fmt.Errorf("error getting request data: %v", err)
+					cancel()
 					break
 				}
 
@@ -321,7 +322,6 @@ func invokeBidi(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescr
 
 			if err != nil {
 				sendErr.Store(err)
-				cancel()
 			}
 		}()
 	}
