@@ -10,6 +10,7 @@ matrix:
       env: GO111MODULE=off
     - go: "1.11"
       env: GO111MODULE=on
+    - go: "1.12"
     - go: tip
 
 script:
