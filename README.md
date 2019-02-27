@@ -107,7 +107,7 @@ If you want to include `grpcurl` in a command pipeline, such as when using `jq` 
 create a request body, you can use `-d @`, which tells `grpcurl` to read the actual
 request body from stdin:
 ```shell
-grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<<EOM
+grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<EOM
 {
   "id": 1234,
   "tags": [
