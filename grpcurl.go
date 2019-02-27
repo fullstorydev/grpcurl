@@ -17,7 +17,6 @@ import (
 	"net"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -574,11 +573,8 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		}
 	}
 
-	dialer := func(address string, timeout time.Duration) (net.Conn, error) {
-		ctx, cancel := context.WithTimeout(ctx, timeout)
-		defer cancel()
-
-		conn, err := (&net.Dialer{Cancel: ctx.Done()}).Dial(network, address)
+	dialer := func(ctx context.Context, address string) (net.Conn, error) {
+		conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
 		if err != nil {
 			writeResult(err)
 			return nil, err
@@ -601,7 +597,7 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append(opts,
 			grpc.WithBlock(),
 			grpc.FailOnNonTempDialError(true),
-			grpc.WithDialer(dialer),
+			grpc.WithContextDialer(dialer),
 			grpc.WithInsecure(), // we are handling TLS, so tell grpc not to
 		)
 		conn, err := grpc.DialContext(ctx, address, opts...)
