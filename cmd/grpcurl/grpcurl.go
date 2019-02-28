@@ -31,22 +31,24 @@ var (
 
 	isUnixSocket func() bool // nil when run on non-unix platform
 
-	help = flag.Bool("help", false, prettify(`
+	flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	help = flags.Bool("help", false, prettify(`
 		Print usage instructions and exit.`))
-	printVersion = flag.Bool("version", false, prettify(`
+	printVersion = flags.Bool("version", false, prettify(`
 		Print version.`))
-	plaintext = flag.Bool("plaintext", false, prettify(`
+	plaintext = flags.Bool("plaintext", false, prettify(`
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
-	insecure = flag.Bool("insecure", false, prettify(`
+	insecure = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
-	cacert = flag.String("cacert", "", prettify(`
+	cacert = flags.String("cacert", "", prettify(`
 		File containing trusted root certificates for verifying the server.
 		Ignored if -insecure is specified.`))
-	cert = flag.String("cert", "", prettify(`
+	cert = flags.String("cert", "", prettify(`
 		File containing client certificate (public key), to present to the
 		server. Not valid with -plaintext option. Must also provide -key option.`))
-	key = flag.String("key", "", prettify(`
+	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
 	protoset    multiString
@@ -55,15 +57,15 @@ var (
 	addlHeaders multiString
 	rpcHeaders  multiString
 	reflHeaders multiString
-	authority   = flag.String("authority", "", prettify(`
+	authority   = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
-	data = flag.String("d", "", prettify(`
+	data = flags.String("d", "", prettify(`
 		Data for request contents. If the value is '@' then the request contents
 		are read from stdin. For calls that accept a stream of requests, the
 		contents should include all such request messages concatenated together
 		(possibly delimited; see -format).`))
-	format = flag.String("format", "json", prettify(`
+	format = flags.String("format", "json", prettify(`
 		The format of request data. The allowed values are 'json' or 'text'. For
 		'json', the input data must be in JSON format. Multiple request values
 		may be concatenated (messages with a JSON representation other than
@@ -73,46 +75,46 @@ var (
 		ASCII character: 0x1E. The stream should not end in a record separator.
 		If it does, it will be interpreted as a final, blank message after the
 		separator.`))
-	connectTimeout = flag.Float64("connect-timeout", 0, prettify(`
+	connectTimeout = flags.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
-	keepaliveTime = flag.Float64("keepalive-time", 0, prettify(`
+	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
 		is received for this same period then the connection is closed and the
 		operation fails.`))
-	maxTime = flag.Float64("max-time", 0, prettify(`
+	maxTime = flags.Float64("max-time", 0, prettify(`
 		The maximum total time the operation can take, in seconds. This is
 		useful for preventing batch jobs that use grpcurl from hanging due to
 		slow or bad network links or due to incorrect stream method usage.`))
-	maxMsgSz = flag.Int("max-msg-sz", 0, prettify(`
+	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
 		The maximum encoded size of a message that grpcurl will accept. If not
 		specified, defaults to 4mb.`))
-	emitDefaults = flag.Bool("emit-defaults", false, prettify(`
+	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
-	msgTemplate = flag.Bool("msg-template", false, prettify(`
+	msgTemplate = flags.Bool("msg-template", false, prettify(`
 		When describing messages, show a template of input data.`))
-	verbose = flag.Bool("v", false, prettify(`
+	verbose = flags.Bool("v", false, prettify(`
 		Enable verbose output.`))
-	serverName = flag.String("servername", "", prettify(`
+	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate.`))
 )
 
 func init() {
-	flag.Var(&addlHeaders, "H", prettify(`
+	flags.Var(&addlHeaders, "H", prettify(`
 		Additional headers in 'name: value' format. May specify more than one
 		via multiple flags. These headers will also be included in reflection
 		requests requests to a server.`))
-	flag.Var(&rpcHeaders, "rpc-header", prettify(`
+	flags.Var(&rpcHeaders, "rpc-header", prettify(`
 		Additional RPC headers in 'name: value' format. May specify more than
 		one via multiple flags. These headers will *only* be used when invoking
 		the requested RPC method. They are excluded from reflection requests.`))
-	flag.Var(&reflHeaders, "reflect-header", prettify(`
+	flags.Var(&reflHeaders, "reflect-header", prettify(`
 		Additional reflection headers in 'name: value' format. May specify more
 		than one via multiple flags. These headers will *only* be used during
 		reflection requests and will be excluded when invoking the requested RPC
 		method.`))
-	flag.Var(&protoset, "protoset", prettify(`
+	flags.Var(&protoset, "protoset", prettify(`
 		The name of a file containing an encoded FileDescriptorSet. This file's
 		contents will be used to determine the RPC schema instead of querying
 		for it from the remote server via the gRPC reflection API. When set: the
@@ -121,7 +123,7 @@ func init() {
 		symbols found in the given descriptors. May specify more than one via
 		multiple -protoset flags. It is an error to use both -protoset and
 		-proto flags.`))
-	flag.Var(&protoFiles, "proto", prettify(`
+	flags.Var(&protoFiles, "proto", prettify(`
 		The name of a proto source file. Source files given will be used to
 		determine the RPC schema instead of querying for it from the remote
 		server via the gRPC reflection API. When set: the 'list' action lists
@@ -131,7 +133,7 @@ func init() {
 		-proto flags. Imports will be resolved using the given -import-path
 		flags. Multiple proto files can be specified by specifying multiple
 		-proto flags. It is an error to use both -protoset and -proto flags.`))
-	flag.Var(&importPaths, "import-path", prettify(`
+	flags.Var(&importPaths, "import-path", prettify(`
 		The path to a directory from which proto sources can be imported, for
 		use with -proto flags. Multiple import paths can be configured by
 		specifying multiple -import-path flags. Paths will be searched in the
@@ -152,8 +154,8 @@ func (s *multiString) Set(value string) error {
 }
 
 func main() {
-	flag.CommandLine.Usage = usage
-	flag.Parse()
+	flags.Usage = usage
+	flags.Parse(os.Args[1:])
 	if *help {
 		usage()
 		os.Exit(0)
@@ -195,7 +197,7 @@ func main() {
 		warn("The -emit-defaults is only used when using json format.")
 	}
 
-	args := flag.Args()
+	args := flags.Args()
 
 	if len(args) == 0 {
 		fail(nil, "Too few arguments.")
@@ -551,7 +553,7 @@ path to the domain socket.
 
 Available flags:
 `, os.Args[0])
-	flag.PrintDefaults()
+	flags.PrintDefaults()
 }
 
 func prettify(docString string) string {
