@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -74,18 +73,21 @@ var (
 		ASCII character: 0x1E. The stream should not end in a record separator.
 		If it does, it will be interpreted as a final, blank message after the
 		separator.`))
-	connectTimeout = flag.String("connect-timeout", "", prettify(`
+	connectTimeout = flag.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
-	keepaliveTime = flag.String("keepalive-time", "", prettify(`
+	keepaliveTime = flag.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
 		is received for this same period then the connection is closed and the
 		operation fails.`))
-	maxTime = flag.String("max-time", "", prettify(`
-		The maximum total time the operation can take. This is useful for
-		preventing batch jobs that use grpcurl from hanging due to slow or bad
-		network links or due to incorrect stream method usage.`))
+	maxTime = flag.Float64("max-time", 0, prettify(`
+		The maximum total time the operation can take, in seconds. This is
+		useful for preventing batch jobs that use grpcurl from hanging due to
+		slow or bad network links or due to incorrect stream method usage.`))
+	maxMsgSz = flag.Int("max-msg-sz", 0, prettify(`
+		The maximum encoded size of a message that grpcurl will accept. If not
+		specified, defaults to 4mb.`))
 	emitDefaults = flag.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
 	msgTemplate = flag.Bool("msg-template", false, prettify(`
@@ -162,6 +164,18 @@ func main() {
 	}
 
 	// Do extra validation on arguments and figure out what user asked us to do.
+	if *connectTimeout < 0 {
+		fail(nil, "The -connect-timeout argument must not be negative.")
+	}
+	if *keepaliveTime < 0 {
+		fail(nil, "The -keepalive-time argument must not be negative.")
+	}
+	if *maxTime < 0 {
+		fail(nil, "The -max-time argument must not be negative.")
+	}
+	if *maxMsgSz < 0 {
+		fail(nil, "The -max-msg-sz argument must not be negative.")
+	}
 	if *plaintext && *insecure {
 		fail(nil, "The -plaintext and -insecure arguments are mutually exclusive.")
 	}
@@ -246,37 +260,28 @@ func main() {
 	}
 
 	ctx := context.Background()
-	if *maxTime != "" {
-		t, err := strconv.ParseFloat(*maxTime, 64)
-		if err != nil {
-			fail(nil, "The -max-time argument must be a valid number.")
-		}
-		timeout := time.Duration(t * float64(time.Second))
+	if *maxTime > 0 {
+		timeout := time.Duration(*maxTime * float64(time.Second))
 		ctx, _ = context.WithTimeout(ctx, timeout)
 	}
 
 	dial := func() *grpc.ClientConn {
 		dialTime := 10 * time.Second
-		if *connectTimeout != "" {
-			t, err := strconv.ParseFloat(*connectTimeout, 64)
-			if err != nil {
-				fail(nil, "The -connect-timeout argument must be a valid number.")
-			}
-			dialTime = time.Duration(t * float64(time.Second))
+		if *connectTimeout > 0 {
+			dialTime = time.Duration(*connectTimeout * float64(time.Second))
 		}
 		ctx, cancel := context.WithTimeout(ctx, dialTime)
 		defer cancel()
 		var opts []grpc.DialOption
-		if *keepaliveTime != "" {
-			t, err := strconv.ParseFloat(*keepaliveTime, 64)
-			if err != nil {
-				fail(nil, "The -keepalive-time argument must be a valid number.")
-			}
-			timeout := time.Duration(t * float64(time.Second))
+		if *keepaliveTime > 0 {
+			timeout := time.Duration(*keepaliveTime * float64(time.Second))
 			opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
 				Time:    timeout,
 				Timeout: timeout,
 			}))
+		}
+		if *maxMsgSz > 0 {
+			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
 		if *authority != "" {
 			opts = append(opts, grpc.WithAuthority(*authority))
