@@ -88,8 +88,8 @@ var (
 		useful for preventing batch jobs that use grpcurl from hanging due to
 		slow or bad network links or due to incorrect stream method usage.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
-		The maximum encoded size of a message that grpcurl will accept. If not
-		specified, defaults to 4mb.`))
+		The maximum encoded size of a response message, in bytes, that grpcurl
+		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
 	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
 	msgTemplate = flags.Bool("msg-template", false, prettify(`
