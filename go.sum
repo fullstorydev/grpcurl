@@ -6,8 +6,8 @@ github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfb
 github.com/golang/protobuf v1.1.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
-github.com/jhump/protoreflect v1.1.0 h1:h+zsMrsiq0vIl7yWmeowmd8e8VtnWk75U04GgXA2s6Y=
-github.com/jhump/protoreflect v1.1.0/go.mod h1:kG/zRVeS2M91gYaCvvUbPkMjjtFQS4qqjcPFzFkh2zE=
+github.com/jhump/protoreflect v1.2.0 h1:W4HDXsqxgmE9OUmEXWaU2ZoUap/A29J5hW+zRXWbdC8=
+github.com/jhump/protoreflect v1.2.0/go.mod h1:kG/zRVeS2M91gYaCvvUbPkMjjtFQS4qqjcPFzFkh2zE=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/net v0.0.0-20180530234432-1e491301e022/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d h1:g9qWBGx4puODJTMVyoPrpoxPFgVGd+z1DZwjfRu4d0I=
