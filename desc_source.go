@@ -109,7 +109,7 @@ func resolveFileDescriptor(unresolved map[string]*descpb.FileDescriptorProto, re
 	return result, nil
 }
 
-// DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the given
+// DescriptorSourceFromFileDescriptors creates a DescriptorSource that is backed by the given
 // file descriptors
 func DescriptorSourceFromFileDescriptors(files ...*desc.FileDescriptor) (DescriptorSource, error) {
 	fds := map[string]*desc.FileDescriptor{}
