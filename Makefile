@@ -6,7 +6,7 @@ dev_build_version=$(shell git describe --tags --always --dirty)
 # they are just too noisy to be a requirement for a CI -- we don't even *want*
 # to fix some of the things they consider to be violations.
 .PHONY: ci
-ci: deps checkgofmt vet staticcheck unused ineffassign predeclared test
+ci: deps checkgofmt vet staticcheck ineffassign predeclared test
 
 .PHONY: deps
 deps:
@@ -47,12 +47,7 @@ vet:
 .PHONY: staticcheck
 staticcheck:
 	@go get honnef.co/go/tools/cmd/staticcheck
-	staticcheck -ignore github.com/fullstorydev/grpcurl/tls_settings_test.go:SA1019 ./...
-
-.PHONY: unused
-unused:
-	@go get honnef.co/go/tools/cmd/unused
-	unused ./...
+	staticcheck ./...
 
 .PHONY: ineffassign
 ineffassign:
