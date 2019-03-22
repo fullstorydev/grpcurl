@@ -5,12 +5,16 @@ matrix:
   include:
     - go: "1.9"
     - go: "1.10"
-      env: VET=1
     - go: "1.11"
-      env: GO111MODULE=off
+      env:
+      - GO111MODULE=off
+      - VET=1
     - go: "1.11"
       env: GO111MODULE=on
     - go: "1.12"
+      env: GO111MODULE=off
+    - go: "1.12"
+      env: GO111MODULE=on
     - go: tip
 
 script:

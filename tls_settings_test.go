@@ -285,7 +285,7 @@ func simpleTest(t *testing.T, cc *grpc.ClientConn) {
 	cl := grpc_testing.NewTestServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_, err := cl.UnaryCall(ctx, &grpc_testing.SimpleRequest{}, grpc.FailFast(false))
+	_, err := cl.UnaryCall(ctx, &grpc_testing.SimpleRequest{}, grpc.WaitForReady(true))
 	if err != nil {
 		t.Errorf("simple RPC failed: %v", err)
 	}
