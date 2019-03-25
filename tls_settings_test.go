@@ -109,8 +109,18 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 	}
 
 	// client connection (usually) succeeds since client is not waiting for TLS handshake
-	e, err := createTestServerAndClient(serverCreds, nil)
-	if err != nil {
+	// (we try several times, but if we never get a connection and the error message is
+	// a known/expected possibility, we'll just bail)
+	var e testEnv
+	failCount := 0
+	for {
+		e, err = createTestServerAndClient(serverCreds, nil)
+		if err == nil {
+			// success!
+			defer e.Close()
+			break
+		}
+
 		if strings.Contains(err.Error(), "deadline exceeded") ||
 			strings.Contains(err.Error(), "use of closed network connection") {
 			// It is possible that the connection never becomes healthy:
@@ -124,11 +134,17 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 			// result in a "deadline exceeded" error, but more recent versions
 			// of the grpc library report any underlying I/O error instead, so
 			// we also check for "use of closed network connection".
-			return
+			failCount++
+			if failCount > 5 {
+				return // bail...
+			}
+			// we'll try again
+
+		} else {
+			// some other error occurred, so we'll consider that a test failure
+			t.Fatalf("failed to setup server and client: %v", err)
 		}
-		t.Fatalf("failed to setup server and client: %v", err)
 	}
-	defer e.Close()
 
 	// but request fails because server closes connection upon seeing request
 	// bytes that are not a TLS handshake
