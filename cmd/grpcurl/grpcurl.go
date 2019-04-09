@@ -518,7 +518,7 @@ func main() {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
 		if h.Status.Code() != codes.OK {
-			fmt.Fprintf(os.Stderr, "ERROR:\n  Code: %s\n  Message: %s\n", h.Status.Code().String(), h.Status.Message())
+			grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
 			exit(1)
 		}
 	}

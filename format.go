@@ -3,14 +3,19 @@ package grpcurl
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
+	"strings"
+	"sync"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -142,6 +147,8 @@ type textFormatter struct {
 	numFormatted int
 }
 
+var protoTextMarshaler = proto.TextMarshaler{ExpandAny: true}
+
 func (tf *textFormatter) format(m proto.Message) (string, error) {
 	var buf bytes.Buffer
 	if tf.useSeparator && tf.numFormatted > 0 {
@@ -166,7 +173,7 @@ func (tf *textFormatter) format(m proto.Message) (string, error) {
 		if _, err := buf.Write(b); err != nil {
 			return "", err
 		}
-	} else if err := proto.MarshalText(&buf, m); err != nil {
+	} else if err := protoTextMarshaler.Marshal(&buf, m); err != nil {
 		return "", err
 	}
 
@@ -188,23 +195,136 @@ const (
 	FormatText = Format("text")
 )
 
-func anyResolver(source DescriptorSource) (jsonpb.AnyResolver, error) {
-	// TODO: instead of pro-actively downloading file descriptors to
-	// build a dynamic resolver, it would be better if the resolver
-	// impl was lazy, and simply downloaded the descriptors as needed
-	// when asked to resolve a particular type URL
+type anyResolver struct {
+	source DescriptorSource
 
-	// best effort: build resolver with whatever files we can
-	// load, ignoring any errors
-	files, _ := GetAllFiles(source)
+	er dynamic.ExtensionRegistry
 
-	var er dynamic.ExtensionRegistry
-	for _, fd := range files {
-		er.AddExtensionsFromFile(fd)
-	}
-	mf := dynamic.NewMessageFactoryWithExtensionRegistry(&er)
-	return dynamic.AnyResolver(mf, files...), nil
+	mu       sync.RWMutex
+	mf       *dynamic.MessageFactory
+	resolved map[string]func() proto.Message
 }
+
+func (r *anyResolver) Resolve(typeUrl string) (proto.Message, error) {
+	mname := typeUrl
+	if slash := strings.LastIndex(mname, "/"); slash >= 0 {
+		mname = mname[slash+1:]
+	}
+
+	r.mu.RLock()
+	factory := r.resolved[mname]
+	r.mu.RUnlock()
+
+	// already resolved?
+	if factory != nil {
+		return factory(), nil
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// double-check, in case we were racing with another goroutine
+	// that resolved this one
+	factory = r.resolved[mname]
+	if factory != nil {
+		return factory(), nil
+	}
+
+	// use descriptor source to resolve message type
+	d, err := r.source.FindSymbol(mname)
+	if err != nil {
+		return nil, err
+	}
+	md, ok := d.(*desc.MessageDescriptor)
+	if !ok {
+		return nil, fmt.Errorf("unknown message: %s", typeUrl)
+	}
+	// populate any extensions for this message, too
+	if exts, err := r.source.AllExtensionsForType(mname); err != nil {
+		return nil, err
+	} else if err := r.er.AddExtension(exts...); err != nil {
+		return nil, err
+	}
+
+	if r.mf == nil {
+		r.mf = dynamic.NewMessageFactoryWithExtensionRegistry(&r.er)
+	}
+
+	factory = func() proto.Message {
+		return r.mf.NewMessage(md)
+	}
+	if r.resolved == nil {
+		r.resolved = map[string]func() proto.Message{}
+	}
+	r.resolved[mname] = factory
+	return factory(), nil
+}
+
+// anyResolverWithFallback can provide a fallback value for unknown
+// messages that will format itself to JSON using an "@value" field
+// that has the base64-encoded data for the unknown message value.
+type anyResolverWithFallback struct {
+	jsonpb.AnyResolver
+}
+
+func (r anyResolverWithFallback) Resolve(typeUrl string) (proto.Message, error) {
+	msg, err := r.AnyResolver.Resolve(typeUrl)
+	if err == nil {
+		return msg, err
+	}
+
+	// Try "default" resolution logic. This mirrors the default behavior
+	// of jsonpb, which checks to see if the given message name is registered
+	// in the proto package.
+	mname := typeUrl
+	if slash := strings.LastIndex(mname, "/"); slash >= 0 {
+		mname = mname[slash+1:]
+	}
+	mt := proto.MessageType(mname)
+	if mt != nil {
+		return reflect.New(mt.Elem()).Interface().(proto.Message), nil
+	}
+
+	// finally, fallback to a special placeholder that can marshal itself
+	// to JSON using a special "@value" property to show base64-encoded
+	// data for the embedded message
+	return &unknownAny{TypeUrl: typeUrl, Error: fmt.Sprintf("%s is not recognized; see @value for raw binary message data", mname)}, nil
+}
+
+type unknownAny struct {
+	TypeUrl string `json:"@type"`
+	Error   string `json:"@error"`
+	Value   string `json:"@value"`
+}
+
+func (a *unknownAny) MarshalJSONPB(jsm *jsonpb.Marshaler) ([]byte, error) {
+	if jsm.Indent != "" {
+		return json.MarshalIndent(a, "", jsm.Indent)
+	}
+	return json.Marshal(a)
+}
+
+func (a *unknownAny) Unmarshal(b []byte) error {
+	a.Value = base64.StdEncoding.EncodeToString(b)
+	return nil
+}
+
+func (a *unknownAny) Reset() {
+	a.Value = ""
+}
+
+func (a *unknownAny) String() string {
+	b, err := a.MarshalJSONPB(&jsonpb.Marshaler{})
+	if err != nil {
+		return fmt.Sprintf("ERROR: %v", err.Error())
+	}
+	return string(b)
+}
+
+func (a *unknownAny) ProtoMessage() {
+}
+
+var _ proto.Message = (*unknownAny)(nil)
 
 // RequestParserAndFormatterFor returns a request parser and formatter for the
 // given format. The given descriptor source may be used for parsing message
@@ -214,11 +334,8 @@ func anyResolver(source DescriptorSource) (jsonpb.AnyResolver, error) {
 func RequestParserAndFormatterFor(format Format, descSource DescriptorSource, emitJSONDefaultFields, includeTextSeparator bool, in io.Reader) (RequestParser, Formatter, error) {
 	switch format {
 	case FormatJSON:
-		resolver, err := anyResolver(descSource)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error creating message resolver: %v", err)
-		}
-		return NewJSONRequestParser(in, resolver), NewJSONFormatter(emitJSONDefaultFields, resolver), nil
+		resolver := anyResolver{source: descSource}
+		return NewJSONRequestParser(in, &resolver), NewJSONFormatter(emitJSONDefaultFields, anyResolverWithFallback{AnyResolver: &resolver}), nil
 	case FormatText:
 		return NewTextRequestParser(in), NewTextFormatter(includeTextSeparator), nil
 	default:
@@ -293,5 +410,44 @@ func (h *DefaultEventHandler) OnReceiveTrailers(stat *status.Status, md metadata
 	h.Status = stat
 	if h.verbose {
 		fmt.Fprintf(h.out, "\nResponse trailers received:\n%s\n", MetadataToString(md))
+	}
+}
+
+// PrintStatus prints details about the given status to the given writer. The given
+// formatter is used to print any detail messages that may be included in the status.
+// If the given status has a code of OK, "OK" is printed and that is all. Otherwise,
+// "ERROR:" is printed along with a line showing the code, one showing the message
+// string, and each detail message if any are present. The detail messages will be
+// printed as proto text format or JSON, depending on the given formatter.
+func PrintStatus(w io.Writer, stat *status.Status, formatter Formatter) {
+	if stat.Code() == codes.OK {
+		fmt.Fprintln(w, "OK")
+		return
+	}
+	fmt.Fprintf(w, "ERROR:\n  Code: %s\n  Message: %s\n", stat.Code().String(), stat.Message())
+
+	statpb := stat.Proto()
+	if len(statpb.Details) > 0 {
+		fmt.Fprintf(w, "  Details:\n")
+		for i, det := range statpb.Details {
+			prefix := fmt.Sprintf("  %d)", i+1)
+			fmt.Fprintf(w, "%s\t", prefix)
+			prefix = strings.Repeat(" ", len(prefix)) + "\t"
+
+			output, err := formatter(det)
+			if err != nil {
+				fmt.Fprintf(w, "Error parsing detail message: %v\n", err)
+			} else {
+				lines := strings.Split(output, "\n")
+				for i, line := range lines {
+					if i == 0 {
+						// first line is already indented
+						fmt.Fprintf(w, "%s\n", line)
+					} else {
+						fmt.Fprintf(w, "%s%s\n", prefix, line)
+					}
+				}
+			}
+		}
 	}
 }
