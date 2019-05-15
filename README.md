@@ -57,7 +57,7 @@ brew install grpcurl
 ### From Source
 You can use the `go` tool to install `grpcurl`:
 ```shell
-go get github.com/fullstorydev/grpcurl
+go get -u github.com/fullstorydev/grpcurl
 go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 ```
 
