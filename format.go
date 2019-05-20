@@ -195,6 +195,22 @@ const (
 	FormatText = Format("text")
 )
 
+// AnyResolverFromDescriptorSource returns an AnyResolver that will search for
+// types using the given descriptor source.
+func AnyResolverFromDescriptorSource(source DescriptorSource) jsonpb.AnyResolver {
+	return &anyResolver{source: source}
+}
+
+// AnyResolverWithFallbackFromDescriptorSource returns an AnyResolver that will
+// search for types using the given descriptor source and then fallback to a
+// special message if the type is not found. The fallback type will render to
+// JSON with a "@type" property, just like an Any message, but also with a
+// custom "@value" property that includes the binary encoded payload.
+func AnyResolverWithFallbackFromDescriptorSource(source DescriptorSource) jsonpb.AnyResolver {
+	res := anyResolver{source: source}
+	return &anyResolverWithFallback{AnyResolver: &res}
+}
+
 type anyResolver struct {
 	source DescriptorSource
 
@@ -334,8 +350,8 @@ var _ proto.Message = (*unknownAny)(nil)
 func RequestParserAndFormatterFor(format Format, descSource DescriptorSource, emitJSONDefaultFields, includeTextSeparator bool, in io.Reader) (RequestParser, Formatter, error) {
 	switch format {
 	case FormatJSON:
-		resolver := anyResolver{source: descSource}
-		return NewJSONRequestParser(in, &resolver), NewJSONFormatter(emitJSONDefaultFields, anyResolverWithFallback{AnyResolver: &resolver}), nil
+		resolver := AnyResolverFromDescriptorSource(descSource)
+		return NewJSONRequestParser(in, resolver), NewJSONFormatter(emitJSONDefaultFields, anyResolverWithFallback{AnyResolver: resolver}), nil
 	case FormatText:
 		return NewTextRequestParser(in), NewTextFormatter(includeTextSeparator), nil
 	default:
