@@ -201,12 +201,12 @@ func AnyResolverFromDescriptorSource(source DescriptorSource) jsonpb.AnyResolver
 	return &anyResolver{source: source}
 }
 
-// AnyResolverWithFallbackFromDescriptorSource returns an AnyResolver that will
+// AnyResolverFromDescriptorSourceWithFallback returns an AnyResolver that will
 // search for types using the given descriptor source and then fallback to a
 // special message if the type is not found. The fallback type will render to
 // JSON with a "@type" property, just like an Any message, but also with a
 // custom "@value" property that includes the binary encoded payload.
-func AnyResolverWithFallbackFromDescriptorSource(source DescriptorSource) jsonpb.AnyResolver {
+func AnyResolverFromDescriptorSourceWithFallback(source DescriptorSource) jsonpb.AnyResolver {
 	res := anyResolver{source: source}
 	return &anyResolverWithFallback{AnyResolver: &res}
 }
