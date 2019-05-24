@@ -58,9 +58,14 @@ func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error
 // whose contents are Protocol Buffer source files. The given importPaths are used to locate
 // any imported files.
 func DescriptorSourceFromProtoFiles(importPaths []string, fileNames ...string) (DescriptorSource, error) {
+	fileNames, err := protoparse.ResolveFilenames(importPaths, fileNames...)
+	if err != nil {
+		return nil, err
+	}
 	p := protoparse.Parser{
-		ImportPaths:      importPaths,
-		InferImportPaths: len(importPaths) == 0,
+		ImportPaths:           importPaths,
+		InferImportPaths:      len(importPaths) == 0,
+		IncludeSourceCodeInfo: true,
 	}
 	fds, err := p.ParseFiles(fileNames...)
 	if err != nil {
