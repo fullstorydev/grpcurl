@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -161,7 +162,7 @@ func main() {
 		os.Exit(0)
 	}
 	if *printVersion {
-		fmt.Fprintf(os.Stderr, "%s %s\n", os.Args[0], version)
+		fmt.Fprintf(os.Stderr, "%s %s\n", filepath.Base(os.Args[0]), version)
 		os.Exit(0)
 	}
 
