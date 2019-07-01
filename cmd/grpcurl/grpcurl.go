@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -98,6 +99,8 @@ var (
 		Enable verbose output.`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate.`))
+	describeFormat = flags.String("describe-format", "text", prettify(`
+		the format to output describe definitions.`))
 )
 
 func init() {
@@ -143,6 +146,28 @@ func init() {
 }
 
 type multiString []string
+
+type SymbolElementType string
+
+var (
+	Message = SymbolElementType("Message")
+	Field = SymbolElementType("Field")
+	OneOf = SymbolElementType("OneOf")
+	Enum = SymbolElementType("Enum")
+	EnumValue = SymbolElementType("EnumValue")
+	Service = SymbolElementType("Service")
+	Method = SymbolElementType("Method")
+)
+
+
+type symbolDescription struct {
+	FullyQualifiedName string
+	ElementType SymbolElementType
+	elementTypeDescription string
+	ProtoDefinition string
+	Template string
+}
+
 
 func (s *multiString) String() string {
 	return strings.Join(*s, ",")
@@ -191,10 +216,13 @@ func main() {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 	if *format != "json" && *format != "text" {
-		fail(nil, "The -format option must be 'json' or 'text.")
+		fail(nil, "The -format option must be 'json' or 'text'.")
 	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
+	}
+	if *describeFormat != "text" && *describeFormat != "json" {
+		fail(nil, "The -describe-format option must be 'text' or 'json'.")
 	}
 
 	args := flags.Args()
@@ -381,6 +409,7 @@ func main() {
 		}
 
 	} else if describe {
+		var symbolMap = make(map[string]symbolDescription)
 		var symbols []string
 		if symbol != "" {
 			symbols = []string{symbol}
@@ -406,17 +435,20 @@ func main() {
 			}
 
 			fqn := dsc.GetFullyQualifiedName()
-			var elementType string
+			currentSymbol := symbolDescription{FullyQualifiedName:fqn}
+
+			var elementTypeDescription string
 			switch d := dsc.(type) {
 			case *desc.MessageDescriptor:
-				elementType = "a message"
+				currentSymbol.ElementType = Message
+				elementTypeDescription = "a message"
 				parent, ok := d.GetParent().(*desc.MessageDescriptor)
 				if ok {
 					if d.IsMapEntry() {
 						for _, f := range parent.GetFields() {
 							if f.IsMap() && f.GetMessageType() == d {
 								// found it: describe the map field instead
-								elementType = "the entry type for a map field"
+								elementTypeDescription = "the entry type for a map field"
 								dsc = f
 								break
 							}
@@ -426,7 +458,7 @@ func main() {
 						for _, f := range parent.GetFields() {
 							if f.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP && f.GetMessageType() == d {
 								// found it: describe the map field instead
-								elementType = "the type of a group field"
+								elementTypeDescription = "the type of a group field"
 								dsc = f
 								break
 							}
@@ -434,22 +466,28 @@ func main() {
 					}
 				}
 			case *desc.FieldDescriptor:
-				elementType = "a field"
+				currentSymbol.ElementType = Field
+				elementTypeDescription = "a field"
 				if d.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP {
-					elementType = "a group field"
+					elementTypeDescription = "a group field"
 				} else if d.IsExtension() {
-					elementType = "an extension"
+					elementTypeDescription = "an extension"
 				}
 			case *desc.OneOfDescriptor:
-				elementType = "a one-of"
+				currentSymbol.ElementType = OneOf
+				elementTypeDescription = "a one-of"
 			case *desc.EnumDescriptor:
-				elementType = "an enum"
+				currentSymbol.ElementType = Enum
+				elementTypeDescription = "an enum"
 			case *desc.EnumValueDescriptor:
-				elementType = "an enum value"
+				currentSymbol.ElementType = EnumValue
+				elementTypeDescription = "an enum value"
 			case *desc.ServiceDescriptor:
-				elementType = "a service"
+				currentSymbol.ElementType = Service
+				elementTypeDescription = "a service"
 			case *desc.MethodDescriptor:
-				elementType = "a method"
+				currentSymbol.ElementType = Method
+				elementTypeDescription = "a method"
 			default:
 				err = fmt.Errorf("descriptor has unrecognized type %T", dsc)
 				fail(err, "Failed to describe symbol %q", s)
@@ -459,8 +497,9 @@ func main() {
 			if err != nil {
 				fail(err, "Failed to describe symbol %q", s)
 			}
-			fmt.Printf("%s is %s:\n", fqn, elementType)
-			fmt.Println(txt)
+
+			currentSymbol.elementTypeDescription = elementTypeDescription
+			currentSymbol.ProtoDefinition = txt
 
 			if dsc, ok := dsc.(*desc.MessageDescriptor); ok && *msgTemplate {
 				// for messages, also show a template in JSON, to make it easier to
@@ -474,9 +513,25 @@ func main() {
 				if err != nil {
 					fail(err, "Failed to print template for message %s", s)
 				}
-				fmt.Println("\nMessage template:")
-				fmt.Println(str)
+				currentSymbol.Template = str
 			}
+
+			symbolMap[fqn] = currentSymbol
+		}
+
+		if *describeFormat == "text" {
+			for _, data := range symbolMap {
+				fmt.Printf("%s is %s:\n", data.FullyQualifiedName, data.elementTypeDescription)
+				fmt.Println(data.ProtoDefinition)
+				if data.Template != "" {
+					fmt.Println("\nMessage template:")
+					fmt.Println(data.Template)
+				}
+
+			}
+		} else {
+			data, _ := json.Marshal(symbolMap)
+			fmt.Println(string(data))
 		}
 
 	} else {
