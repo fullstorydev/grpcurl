@@ -150,24 +150,22 @@ type multiString []string
 type SymbolElementType string
 
 var (
-	Message = SymbolElementType("Message")
-	Field = SymbolElementType("Field")
-	OneOf = SymbolElementType("OneOf")
-	Enum = SymbolElementType("Enum")
+	Message   = SymbolElementType("Message")
+	Field     = SymbolElementType("Field")
+	OneOf     = SymbolElementType("OneOf")
+	Enum      = SymbolElementType("Enum")
 	EnumValue = SymbolElementType("EnumValue")
-	Service = SymbolElementType("Service")
-	Method = SymbolElementType("Method")
+	Service   = SymbolElementType("Service")
+	Method    = SymbolElementType("Method")
 )
 
-
 type symbolDescription struct {
-	FullyQualifiedName string
-	ElementType SymbolElementType
+	FullyQualifiedName     string
+	ElementType            SymbolElementType
 	elementTypeDescription string
-	ProtoDefinition string
-	Template string
+	ProtoDefinition        string
+	Template               string
 }
-
 
 func (s *multiString) String() string {
 	return strings.Join(*s, ",")
@@ -435,7 +433,7 @@ func main() {
 			}
 
 			fqn := dsc.GetFullyQualifiedName()
-			currentSymbol := symbolDescription{FullyQualifiedName:fqn}
+			currentSymbol := symbolDescription{FullyQualifiedName: fqn}
 
 			var elementTypeDescription string
 			switch d := dsc.(type) {
