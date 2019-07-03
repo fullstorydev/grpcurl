@@ -25,6 +25,12 @@ release:
 	@GO111MODULE=off go get github.com/goreleaser/goreleaser
 	goreleaser --rm-dist
 
+.PHONY: docker
+docker:
+	@echo $(dev_build_version) > VERSION
+	docker build -t fullstorydev/grpcurl:$(dev_build_version) .
+	@rm VERSION
+
 .PHONY: checkgofmt
 checkgofmt:
 	gofmt -s -l .
