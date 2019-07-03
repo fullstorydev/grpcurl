@@ -7,8 +7,8 @@ github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5y
 github.com/golang/protobuf v1.3.1 h1:YF8+flBXS5eO826T4nzqPrxfhQThhXl0YzfuUPu4SBg=
 github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
-github.com/jhump/protoreflect v1.4.1 h1:tgahjuElRiJthp9JfaMUFxabBVIytT/lnMSadY5kMjM=
-github.com/jhump/protoreflect v1.4.1/go.mod h1:gZ3i/BeD62fjlaIL0VW4UDMT70CTX+3m4pOnAlJ0BX8=
+github.com/jhump/protoreflect v1.4.4 h1:kySdALZUh7xRtW6UoZjjHtlR8k7rLzx5EXJFRvsO5UY=
+github.com/jhump/protoreflect v1.4.4/go.mod h1:gZ3i/BeD62fjlaIL0VW4UDMT70CTX+3m4pOnAlJ0BX8=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/net v0.0.0-20180530234432-1e491301e022/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
