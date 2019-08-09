@@ -127,10 +127,10 @@ source or protoset files.
 grpcurl localhost:8787 list
 
 # Using compiled protoset files
-grpcurl -protoset my-protos.bin list
+grpcurl --protoset my-protos.bin list
 
 # Using proto sources
-grpcurl -import-path ../protos -proto my-stuff.proto list
+grpcurl --import-path ../protos --proto my-stuff.proto list
 ```
 
 The "list" verb also lets you see all methods in a particular service:
@@ -149,10 +149,10 @@ original source that defined the element, but it will be equivalent.
 grpcurl localhost:8787 describe my.custom.server.Service.MethodOne
 
 # Using compiled protoset files
-grpcurl -protoset my-protos.bin describe my.custom.server.Service.MethodOne
+grpcurl --protoset my-protos.bin describe my.custom.server.Service.MethodOne
 
 # Using proto sources
-grpcurl -import-path ../protos -proto my-stuff.proto describe my.custom.server.Service.MethodOne
+grpcurl --import-path ../protos --proto my-stuff.proto describe my.custom.server.Service.MethodOne
 ```
 
 ## Descriptor Sources
@@ -176,8 +176,8 @@ and ask it for its descriptors.
 To use `grpcurl` on servers that do not support reflection, you can use `.proto` source
 files.
 
-In addition to using `-proto` flags to point `grpcurl` at the relevant proto source file(s),
-you may also need to supply `-import-path` flags to tell `grpcurl` the folders from which
+In addition to using `--proto` flags to point `grpcurl` at the relevant proto source file(s),
+you may also need to supply `--import-path` flags to tell `grpcurl` the folders from which
 dependencies can be imported.
 
 Just like when compiling with `protoc`, you do *not* need to provide an import path for the
