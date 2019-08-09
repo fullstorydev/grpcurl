@@ -4,13 +4,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	flag "github.com/spf13/pflag"
 
 	"github.com/fullstorydev/grpcurl"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -34,24 +35,24 @@ var (
 
 	flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	help = flags.Bool("help", false, prettify(`
+	help = flags.BoolP("help", "h", false, prettify(`
 		Print usage instructions and exit.`))
 	printVersion = flags.Bool("version", false, prettify(`
 		Print version.`))
 	plaintext = flags.Bool("plaintext", false, prettify(`
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
-	insecure = flags.Bool("insecure", false, prettify(`
+	insecure = flags.BoolP("insecure", "k", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
-		valid with -plaintext option.`))
+		valid with --plaintext option.`))
 	cacert = flags.String("cacert", "", prettify(`
 		File containing trusted root certificates for verifying the server.
-		Ignored if -insecure is specified.`))
-	cert = flags.String("cert", "", prettify(`
+		Ignored if --insecure is specified.`))
+	cert = flags.StringP("cert", "E", "", prettify(`
 		File containing client certificate (public key), to present to the
-		server. Not valid with -plaintext option. Must also provide -key option.`))
+		server. Not valid with --plaintext option. Must also provide --key option.`))
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
-		with -plaintext option. Must also provide -cert option.`))
+		with --plaintext option. Must also provide --cert option.`))
 	protoset    multiString
 	protoFiles  multiString
 	importPaths multiString
@@ -61,11 +62,11 @@ var (
 	authority   = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
-	data = flags.String("d", "", prettify(`
+	data = flags.StringP("data", "d", "", prettify(`
 		Data for request contents. If the value is '@' then the request contents
 		are read from stdin. For calls that accept a stream of requests, the
 		contents should include all such request messages concatenated together
-		(possibly delimited; see -format).`))
+		(possibly delimited; see --format).`))
 	format = flags.String("format", "json", prettify(`
 		The format of request data. The allowed values are 'json' or 'text'. For
 		'json', the input data must be in JSON format. Multiple request values
@@ -95,14 +96,14 @@ var (
 		Emit default values for JSON-encoded responses.`))
 	msgTemplate = flags.Bool("msg-template", false, prettify(`
 		When describing messages, show a template of input data.`))
-	verbose = flags.Bool("v", false, prettify(`
+	verbose = flags.BoolP("verbose", "v", false, prettify(`
 		Enable verbose output.`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate.`))
 )
 
 func init() {
-	flags.Var(&addlHeaders, "H", prettify(`
+	flags.VarP(&addlHeaders, "headers", "H", prettify(`
 		Additional headers in 'name: value' format. May specify more than one
 		via multiple flags. These headers will also be included in reflection
 		requests requests to a server.`))
@@ -122,8 +123,8 @@ func init() {
 		'list' action lists the services found in the given descriptors (vs.
 		those exposed by the remote server), and the 'describe' action describes
 		symbols found in the given descriptors. May specify more than one via
-		multiple -protoset flags. It is an error to use both -protoset and
-		-proto flags.`))
+		multiple --protoset flags. It is an error to use both --protoset and
+		--proto flags.`))
 	flags.Var(&protoFiles, "proto", prettify(`
 		The name of a proto source file. Source files given will be used to
 		determine the RPC schema instead of querying for it from the remote
@@ -131,15 +132,15 @@ func init() {
 		the services found in the given files and their imports (vs. those
 		exposed by the remote server), and the 'describe' action describes
 		symbols found in the given files. May specify more than one via multiple
-		-proto flags. Imports will be resolved using the given -import-path
+		--proto flags. Imports will be resolved using the given --import-path
 		flags. Multiple proto files can be specified by specifying multiple
-		-proto flags. It is an error to use both -protoset and -proto flags.`))
+		--proto flags. It is an error to use both --protoset and --proto flags.`))
 	flags.Var(&importPaths, "import-path", prettify(`
 		The path to a directory from which proto sources can be imported, for
-		use with -proto flags. Multiple import paths can be configured by
-		specifying multiple -import-path flags. Paths will be searched in the
+		use with --proto flags. Multiple import paths can be configured by
+		specifying multiple --import-path flags. Paths will be searched in the
 		order given. If no import paths are given, all files (including all
-		imports) must be provided as -proto flags, and grpcurl will attempt to
+		imports) must be provided as --proto flags, and grpcurl will attempt to
 		resolve all import statements from the set of file names given.`))
 }
 
@@ -152,6 +153,10 @@ func (s *multiString) String() string {
 func (s *multiString) Set(value string) error {
 	*s = append(*s, value)
 	return nil
+}
+
+func (s *multiString) Type() string {
+	return "stringSlice"
 }
 
 func main() {
@@ -168,34 +173,34 @@ func main() {
 
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
-		fail(nil, "The -connect-timeout argument must not be negative.")
+		fail(nil, "The --connect-timeout argument must not be negative.")
 	}
 	if *keepaliveTime < 0 {
-		fail(nil, "The -keepalive-time argument must not be negative.")
+		fail(nil, "The --keepalive-time argument must not be negative.")
 	}
 	if *maxTime < 0 {
-		fail(nil, "The -max-time argument must not be negative.")
+		fail(nil, "The --max-time argument must not be negative.")
 	}
 	if *maxMsgSz < 0 {
-		fail(nil, "The -max-msg-sz argument must not be negative.")
+		fail(nil, "The --max-msg-sz argument must not be negative.")
 	}
 	if *plaintext && *insecure {
-		fail(nil, "The -plaintext and -insecure arguments are mutually exclusive.")
+		fail(nil, "The --plaintext and --insecure arguments are mutually exclusive.")
 	}
 	if *plaintext && *cert != "" {
-		fail(nil, "The -plaintext and -cert arguments are mutually exclusive.")
+		fail(nil, "The --plaintext and --cert arguments are mutually exclusive.")
 	}
 	if *plaintext && *key != "" {
-		fail(nil, "The -plaintext and -key arguments are mutually exclusive.")
+		fail(nil, "The --plaintext and --key arguments are mutually exclusive.")
 	}
 	if (*key == "") != (*cert == "") {
-		fail(nil, "The -cert and -key arguments must be used together and both be present.")
+		fail(nil, "The --cert and --key arguments must be used together and both be present.")
 	}
 	if *format != "json" && *format != "text" {
-		fail(nil, "The -format option must be 'json' or 'text.")
+		fail(nil, "The --format option must be 'json' or 'text.")
 	}
 	if *emitDefaults && *format != "json" {
-		warn("The -emit-defaults is only used when using json format.")
+		warn("The --emit-defaults is only used when using json format.")
 	}
 
 	args := flags.Args()
@@ -232,10 +237,10 @@ func main() {
 		args = args[1:]
 	} else {
 		if *data != "" {
-			warn("The -d argument is not used with 'list' or 'describe' verb.")
+			warn("The --data argument is not used with 'list' or 'describe' verb.")
 		}
 		if len(rpcHeaders) > 0 {
-			warn("The -rpc-header argument is not used with 'list' or 'describe' verb.")
+			warn("The --rpc-header argument is not used with 'list' or 'describe' verb.")
 		}
 		if len(args) > 0 {
 			symbol = args[0]
@@ -253,13 +258,13 @@ func main() {
 		fail(nil, "No host:port specified, no protoset specified, and no proto sources specified.")
 	}
 	if len(protoset) > 0 && len(reflHeaders) > 0 {
-		warn("The -reflect-header argument is not used when -protoset files are used.")
+		warn("The --reflect-header argument is not used when --protoset files are used.")
 	}
 	if len(protoset) > 0 && len(protoFiles) > 0 {
-		fail(nil, "Use either -protoset files or -proto files, but not both.")
+		fail(nil, "Use either --protoset files or --proto files, but not both.")
 	}
 	if len(importPaths) > 0 && len(protoFiles) == 0 {
-		warn("The -import-path argument is not used unless -proto files are used.")
+		warn("The --import-path argument is not used unless --proto files are used.")
 	}
 
 	ctx := context.Background()
@@ -549,7 +554,7 @@ method's request type will be sent.
 The address will typically be in the form "host:port" where host can be an IP
 address or a hostname and port is a numeric port or service name. If an IPv6
 address is given, it must be surrounded by brackets, like "[2001:db8::1]". For
-Unix variants, if a -unix=true flag is present, then the address must be the
+Unix variants, if a --unix=true flag is present, then the address must be the
 path to the domain socket.
 
 Available flags:
@@ -591,7 +596,7 @@ func fail(err error, msg string, args ...interface{}) {
 		exit(1)
 	} else {
 		// nil error means it was CLI usage issue
-		fmt.Fprintf(os.Stderr, "Try '%s -help' for more details.\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Try '%s --help' for more details.\n", os.Args[0])
 		exit(2)
 	}
 }
