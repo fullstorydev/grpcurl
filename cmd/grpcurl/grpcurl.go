@@ -290,7 +290,7 @@ func main() {
 			opts = append(opts, grpc.WithAuthority(*authority))
 		}
 		var creds credentials.TransportCredentials
-		if !*plaintext {
+		if !*insecure {
 			var err error
 			creds, err = grpcurl.ClientTransportCredentials(*insecure, *cacert, *cert, *key)
 			if err != nil {
