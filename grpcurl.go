@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -159,6 +161,37 @@ func MetadataFromHeaders(headers []string) metadata.MD {
 		}
 	}
 	return md
+}
+
+/* Expands environmental variables contained in the header string
+ * If no corresponding environmental variable is found, the header
+ * string is not changed. Hence, if the regex matches accidentally
+ * no changes are made.
+ */
+func ExpandHeaders(headers []string) []string {
+	expandedHeaders := make([]string, len(headers))
+	for idx, header := range headers {
+		if header != "" {
+			regex := regexp.MustCompile(`\${\w+}`)
+			results := regex.FindAllString(header, -1)
+			if results != nil {
+				expandedHeader := header
+				for _, result := range results {
+					envVarValue := os.Getenv(result[2 : len(result)-1])
+					replacementValue := envVarValue
+					// If no corresponding env var is found, leave the header as is.
+					if len(envVarValue) == 0 {
+						replacementValue = result
+					}
+					expandedHeader = strings.Replace(expandedHeader, result, replacementValue, -1)
+				}
+				expandedHeaders[idx] = expandedHeader
+			} else {
+				expandedHeaders[idx] = headers[idx]
+			}
+		}
+	}
+	return expandedHeaders
 }
 
 var base64Codecs = []*base64.Encoding{base64.StdEncoding, base64.URLEncoding, base64.RawStdEncoding, base64.RawURLEncoding}
