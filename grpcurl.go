@@ -165,30 +165,30 @@ func MetadataFromHeaders(headers []string) metadata.MD {
 
 var envVarRegex = regexp.MustCompile(`\${\w+}`)
 
-// ExpandHeaders expands environmental variables contained in the header string.
-// If no corresponding environmental variable is found an error is thrown.
+// ExpandHeaders expands environment variables contained in the header string.
+// If no corresponding environment variable is found an error is returned.
 // TODO: Add escaping for `${`
 func ExpandHeaders(headers []string) ([]string, error) {
 	expandedHeaders := make([]string, len(headers))
 	for idx, header := range headers {
-		if header != "" {
-			results := envVarRegex.FindAllString(header, -1)
-			if results != nil {
-				expandedHeader := header
-				for _, result := range results {
-					envVarName := result[2 : len(result)-1]
-					envVarValue := os.Getenv(envVarName)
-					replacementValue := envVarValue
-					if len(envVarValue) == 0 {
-						return nil, fmt.Errorf("environmental variable '%s' is not set", envVarName)
-					}
-					expandedHeader = strings.Replace(expandedHeader, result, replacementValue, -1)
-				}
-				expandedHeaders[idx] = expandedHeader
-			} else {
-				expandedHeaders[idx] = headers[idx]
-			}
+		if header == "" {
+			continue
 		}
+		results := envVarRegex.FindAllString(header, -1)
+		if len(results) == 0 {
+			expandedHeaders[idx] = headers[idx]
+			continue
+		}
+		expandedHeader := header
+		for _, result := range results {
+			envVarName := result[2 : len(result)-1] // strip leading `${` and trailing `}`
+			envVarValue, ok := os.LookupEnv(envVarName)
+			if !ok {
+				return nil, fmt.Errorf("header %q refers to missing environment variable %q", header, envVarName)
+			}
+			expandedHeader = strings.Replace(expandedHeader, result, envVarValue, -1)
+		}
+		expandedHeaders[idx] = expandedHeader
 	}
 	return expandedHeaders, nil
 }

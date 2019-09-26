@@ -59,12 +59,13 @@ var (
 	rpcHeaders    multiString
 	reflHeaders   multiString
 	expandHeaders = flags.Bool("expand-headers", false, prettify(`
-		If set any environmental variables contained contained in any additional, rpc,
-		or reflection header string will be substituted for by the value of the environmental
-		variable. For instance, for the header 'key: ${VALUE}' where VALUE="foo"
-		will be expanded to 'key: foo'. Any undefined environmental variables
-		will throw an error. Note that verbose mode shows that the headers are
-		being expanded to. Escaping '${' is not supported.`))
+		If set, headers may use '${NAME}' syntax to reference environment variables.
+		These will be expanded to the actual environment variable value before
+		sending to the server. For example, if there is an environment variable
+		defined like FOO=bar, then a header of 'key: ${FOO}' would expand to 'key: bar'.
+		This applies to -H, -rpc-header, and -reflect-header options. No other
+		expansion/escaping is performed. This can be used to supply
+		credentials/secrets without having to put them in command-line arguments.`))
 	authority = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
@@ -324,15 +325,15 @@ func main() {
 		var err error
 		addlHeaders, err = grpcurl.ExpandHeaders(addlHeaders)
 		if err != nil {
-			fail(err, "Failed to expand additional headers, missing environmental variable")
+			fail(err, "Failed to expand additional headers")
 		}
 		rpcHeaders, err = grpcurl.ExpandHeaders(rpcHeaders)
 		if err != nil {
-			fail(err, "Failed to expand rpc headers, missing environmental variable")
+			fail(err, "Failed to expand rpc headers")
 		}
 		reflHeaders, err = grpcurl.ExpandHeaders(reflHeaders)
 		if err != nil {
-			fail(err, "Failed to expand reflection headers, missing environmental variable")
+			fail(err, "Failed to expand reflection headers")
 		}
 	}
 
