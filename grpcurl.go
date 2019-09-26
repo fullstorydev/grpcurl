@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -159,6 +161,36 @@ func MetadataFromHeaders(headers []string) metadata.MD {
 		}
 	}
 	return md
+}
+
+var envVarRegex = regexp.MustCompile(`\${\w+}`)
+
+// ExpandHeaders expands environment variables contained in the header string.
+// If no corresponding environment variable is found an error is returned.
+// TODO: Add escaping for `${`
+func ExpandHeaders(headers []string) ([]string, error) {
+	expandedHeaders := make([]string, len(headers))
+	for idx, header := range headers {
+		if header == "" {
+			continue
+		}
+		results := envVarRegex.FindAllString(header, -1)
+		if len(results) == 0 {
+			expandedHeaders[idx] = headers[idx]
+			continue
+		}
+		expandedHeader := header
+		for _, result := range results {
+			envVarName := result[2 : len(result)-1] // strip leading `${` and trailing `}`
+			envVarValue, ok := os.LookupEnv(envVarName)
+			if !ok {
+				return nil, fmt.Errorf("header %q refers to missing environment variable %q", header, envVarName)
+			}
+			expandedHeader = strings.Replace(expandedHeader, result, envVarValue, -1)
+		}
+		expandedHeaders[idx] = expandedHeader
+	}
+	return expandedHeaders, nil
 }
 
 var base64Codecs = []*base64.Encoding{base64.StdEncoding, base64.URLEncoding, base64.RawStdEncoding, base64.RawURLEncoding}

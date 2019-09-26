@@ -300,6 +300,33 @@ func TestGetAllFiles(t *testing.T) {
 	}
 }
 
+func TestExpandHeaders(t *testing.T) {
+	inHeaders := []string{"key1: ${value}", "key2: bar", "key3: ${woo", "key4: woo}", "key5: ${TEST}",
+		"key6: ${TEST_VAR}", "${TEST}: ${TEST_VAR}", "key8: ${EMPTY}"}
+	os.Setenv("value", "value")
+	os.Setenv("TEST", "value5")
+	os.Setenv("TEST_VAR", "value6")
+	os.Setenv("EMPTY", "")
+	expectedHeaders := map[string]bool{"key1: value": true, "key2: bar": true, "key3: ${woo": true, "key4: woo}": true,
+		"key5: value5": true, "key6: value6": true, "value5: value6": true, "key8: ": true}
+
+	outHeaders, err := ExpandHeaders(inHeaders)
+	if err != nil {
+		t.Errorf("The ExpandHeaders function generated an unexpected error %s", err)
+	}
+	for _, expandedHeader := range outHeaders {
+		if _, ok := expectedHeaders[expandedHeader]; !ok {
+			t.Errorf("The ExpandHeaders function has returned an unexpected header. Received unexpected header %s", expandedHeader)
+		}
+	}
+
+	badHeaders := []string{"key: ${DNE}"}
+	_, err = ExpandHeaders(badHeaders)
+	if err == nil {
+		t.Errorf("The ExpandHeaders function should return an error for missing environment variables %q", badHeaders)
+	}
+}
+
 func fileNames(files []*desc.FileDescriptor) []string {
 	names := make([]string, len(files))
 	for i, f := range files {

@@ -52,13 +52,21 @@ var (
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
-	protoset    multiString
-	protoFiles  multiString
-	importPaths multiString
-	addlHeaders multiString
-	rpcHeaders  multiString
-	reflHeaders multiString
-	authority   = flags.String("authority", "", prettify(`
+	protoset      multiString
+	protoFiles    multiString
+	importPaths   multiString
+	addlHeaders   multiString
+	rpcHeaders    multiString
+	reflHeaders   multiString
+	expandHeaders = flags.Bool("expand-headers", false, prettify(`
+		If set, headers may use '${NAME}' syntax to reference environment variables.
+		These will be expanded to the actual environment variable value before
+		sending to the server. For example, if there is an environment variable
+		defined like FOO=bar, then a header of 'key: ${FOO}' would expand to 'key: bar'.
+		This applies to -H, -rpc-header, and -reflect-header options. No other
+		expansion/escaping is performed. This can be used to supply
+		credentials/secrets without having to put them in command-line arguments.`))
+	authority = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
 	data = flags.String("d", "", prettify(`
@@ -311,6 +319,22 @@ func main() {
 			fail(err, "Failed to dial target host %q", target)
 		}
 		return cc
+	}
+
+	if *expandHeaders {
+		var err error
+		addlHeaders, err = grpcurl.ExpandHeaders(addlHeaders)
+		if err != nil {
+			fail(err, "Failed to expand additional headers")
+		}
+		rpcHeaders, err = grpcurl.ExpandHeaders(rpcHeaders)
+		if err != nil {
+			fail(err, "Failed to expand rpc headers")
+		}
+		reflHeaders, err = grpcurl.ExpandHeaders(reflHeaders)
+		if err != nil {
+			fail(err, "Failed to expand reflection headers")
+		}
 	}
 
 	var cc *grpc.ClientConn
