@@ -301,19 +301,28 @@ func TestGetAllFiles(t *testing.T) {
 }
 
 func TestExpandHeaders(t *testing.T) {
-	inHeaders := []string{"key1: ${value}", "key2: bar", "key3: ${woo", "key4: woo}", "key5: ${TEST}",
+	inHeaders := []string{"", "key1: ${value}", "key2: bar", "key3: ${woo", "key4: woo}", "key5: ${TEST}",
 		"key6: ${TEST_VAR}", "${TEST}: ${TEST_VAR}"}
 	os.Setenv("value", "value")
 	os.Setenv("TEST", "value5")
 	os.Setenv("TEST_VAR", "value6")
-	expectedHeaders := map[string]bool{"key1: value": true, "key2: bar": true, "key3: ${woo": true, "key4: woo}": true,
+	expectedHeaders := map[string]bool{"": true, "key1: value": true, "key2: bar": true, "key3: ${woo": true, "key4: woo}": true,
 		"key5: value5": true, "key6: value6": true, "value5: value6": true}
 
-	outHeaders := ExpandHeaders(inHeaders)
+	outHeaders, err := ExpandHeaders(inHeaders)
+	if err != nil {
+		t.Errorf("The ExpandHeaders function generated an unexpected error %s", err)
+	}
 	for _, expandedHeader := range outHeaders {
 		if _, ok := expectedHeaders[expandedHeader]; !ok {
 			t.Errorf("The ExpandHeaders function has generated an unexpected header. Recieved unexpected header %s", expandedHeader)
 		}
+	}
+
+	badHeaders := []string{"key: ${DNE}"}
+	_, err = ExpandHeaders(badHeaders)
+	if err == nil {
+		t.Errorf("The ExpandHeaders function should generate an error for missing environmental variables %q", badHeaders)
 	}
 }
 

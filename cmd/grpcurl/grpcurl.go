@@ -59,11 +59,12 @@ var (
 	rpcHeaders    multiString
 	reflHeaders   multiString
 	expandHeaders = flags.Bool("expand-headers", false, prettify(`
-		If set any environmental variables contained contained in the
-		header string will be substituted for by its corresponding environmental
+		If set any environmental variables contained contained in any additional, rpc,
+		or reflection header string will be substituted for by the value of the environmental
 		variable. For instance, for the header 'key: ${VALUE}' where VALUE="foo"
-		will be evaluated to 'key: foo'. Note if no corresponding environmental
-		variable is found the header will be unchanged.`))
+		will be expanded to 'key: foo'. Any undefined environmental variables
+		will throw an error. Note that verbose mode shows that the headers are
+		being expanded to. Escaping '${' is not supported.`))
 	authority = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
@@ -319,11 +320,20 @@ func main() {
 		return cc
 	}
 
-	var headers []string
 	if *expandHeaders {
-		headers = grpcurl.ExpandHeaders(addlHeaders)
-	} else {
-		headers = addlHeaders
+		var err error
+		addlHeaders, err = grpcurl.ExpandHeaders(addlHeaders)
+		if err != nil {
+			fail(err, "Failed to expand additional headers, missing environmental variable")
+		}
+		rpcHeaders, err = grpcurl.ExpandHeaders(rpcHeaders)
+		if err != nil {
+			fail(err, "Failed to expand rpc headers, missing environmental variable")
+		}
+		reflHeaders, err = grpcurl.ExpandHeaders(reflHeaders)
+		if err != nil {
+			fail(err, "Failed to expand reflection headers, missing environmental variable")
+		}
 	}
 
 	var cc *grpc.ClientConn
@@ -342,7 +352,7 @@ func main() {
 			fail(err, "Failed to process proto source files.")
 		}
 	} else {
-		md := grpcurl.MetadataFromHeaders(append(headers, reflHeaders...))
+		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
 		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
 		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
@@ -515,7 +525,7 @@ func main() {
 		}
 		h := grpcurl.NewDefaultEventHandler(os.Stdout, descSource, formatter, *verbose)
 
-		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(headers, rpcHeaders...), h, rf.Next)
+		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {
 			fail(err, "Error invoking method %q", symbol)
 		}

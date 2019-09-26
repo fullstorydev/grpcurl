@@ -163,25 +163,24 @@ func MetadataFromHeaders(headers []string) metadata.MD {
 	return md
 }
 
-/* Expands environmental variables contained in the header string
- * If no corresponding environmental variable is found, the header
- * string is not changed. Hence, if the regex matches accidentally
- * no changes are made.
- */
-func ExpandHeaders(headers []string) []string {
+var envVarRegex = regexp.MustCompile(`\${\w+}`)
+
+// ExpandHeaders expands environmental variables contained in the header string.
+// If no corresponding environmental variable is found an error is thrown.
+// TODO: Add escaping for `${`
+func ExpandHeaders(headers []string) ([]string, error) {
 	expandedHeaders := make([]string, len(headers))
 	for idx, header := range headers {
 		if header != "" {
-			regex := regexp.MustCompile(`\${\w+}`)
-			results := regex.FindAllString(header, -1)
+			results := envVarRegex.FindAllString(header, -1)
 			if results != nil {
 				expandedHeader := header
 				for _, result := range results {
-					envVarValue := os.Getenv(result[2 : len(result)-1])
+					envVarName := result[2 : len(result)-1]
+					envVarValue := os.Getenv(envVarName)
 					replacementValue := envVarValue
-					// If no corresponding env var is found, leave the header as is.
 					if len(envVarValue) == 0 {
-						replacementValue = result
+						return nil, fmt.Errorf("environmental variable '%s' is not set", envVarName)
 					}
 					expandedHeader = strings.Replace(expandedHeader, result, replacementValue, -1)
 				}
@@ -191,7 +190,7 @@ func ExpandHeaders(headers []string) []string {
 			}
 		}
 	}
-	return expandedHeaders
+	return expandedHeaders, nil
 }
 
 var base64Codecs = []*base64.Encoding{base64.StdEncoding, base64.URLEncoding, base64.RawStdEncoding, base64.RawURLEncoding}
