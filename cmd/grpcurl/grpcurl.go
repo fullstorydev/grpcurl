@@ -59,13 +59,14 @@ var (
 	rpcHeaders    multiString
 	reflHeaders   multiString
 	expandHeaders = flags.Bool("expand-headers", false, prettify(`
-		If set, headers may use '${NAME}' syntax to reference environment variables.
-		These will be expanded to the actual environment variable value before
-		sending to the server. For example, if there is an environment variable
-		defined like FOO=bar, then a header of 'key: ${FOO}' would expand to 'key: bar'.
-		This applies to -H, -rpc-header, and -reflect-header options. No other
-		expansion/escaping is performed. This can be used to supply
-		credentials/secrets without having to put them in command-line arguments.`))
+		If set, headers may use '${NAME}' syntax to reference environment
+		variables. These will be expanded to the actual environment variable
+		value before sending to the server. For example, if there is an
+		environment variable defined like FOO=bar, then a header of
+		'key: ${FOO}' would expand to 'key: bar'. This applies to -H,
+		-rpc-header, and -reflect-header options. No other expansion/escaping is
+		performed. This can be used to supply credentials/secrets without having
+		to put them in command-line arguments.`))
 	authority = flags.String("authority", "", prettify(`
 		Value of :authority pseudo-header to be use with underlying HTTP/2
 		requests. It defaults to the given address.`))
@@ -101,6 +102,13 @@ var (
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
 	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
+	protosetOut = flags.String("protoset-out", "", prettify(`
+		The name of a file to be written that will contain a FileDescriptorSet
+		proto. With the list and describe verbs, the listed or described
+		elements, and their transitive dependencies, will be written to the
+		named file if this option is given. When invoking an RPC and this option
+		is given, the method being invoked and its transitive dependencies will
+		be included in the output file.`))
 	msgTemplate = flags.Bool("msg-template", false, prettify(`
 		When describing messages, show a template of input data.`))
 	verbose = flags.Bool("v", false, prettify(`
@@ -391,6 +399,9 @@ func main() {
 					fmt.Printf("%s\n", svc)
 				}
 			}
+			if err := writeProtoset(descSource, svcs...); err != nil {
+				fail(err, "Failed to write protoset to %s", *protosetOut)
+			}
 		} else {
 			methods, err := grpcurl.ListMethods(descSource, symbol)
 			if err != nil {
@@ -402,6 +413,9 @@ func main() {
 				for _, m := range methods {
 					fmt.Printf("%s\n", m)
 				}
+			}
+			if err := writeProtoset(descSource, symbol); err != nil {
+				fail(err, "Failed to write protoset to %s", *protosetOut)
 			}
 		}
 
@@ -502,6 +516,9 @@ func main() {
 				fmt.Println("\nMessage template:")
 				fmt.Println(str)
 			}
+		}
+		if err := writeProtoset(descSource, symbols...); err != nil {
+			fail(err, "Failed to write protoset to %s", *protosetOut)
 		}
 
 	} else {
@@ -618,4 +635,16 @@ func fail(err error, msg string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, "Try '%s -help' for more details.\n", os.Args[0])
 		exit(2)
 	}
+}
+
+func writeProtoset(descSource grpcurl.DescriptorSource, symbols ...string) error {
+	if *protosetOut == "" {
+		return nil
+	}
+	f, err := os.Create(*protosetOut)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return grpcurl.WriteProtoset(f, descSource, symbols...)
 }
