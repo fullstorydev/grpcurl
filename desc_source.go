@@ -277,7 +277,7 @@ func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string
 	expandedFiles := make(map[string]struct{}, len(fds))
 	allFilesSlice := make([]*descpb.FileDescriptorProto, 0, len(fds))
 	for _, filename := range filenames {
-		addFilesToSet(expandedFiles, &allFilesSlice, fds[filename])
+		allFilesSlice = addFilesToSet(allFilesSlice, expandedFiles, fds[filename])
 	}
 	// now we can serialize to file
 	b, err := proto.Marshal(&descpb.FileDescriptorSet{File: allFilesSlice})
@@ -290,15 +290,15 @@ func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string
 	return nil
 }
 
-func addFilesToSet(seen map[string]struct{}, fds *[]*descpb.FileDescriptorProto, fd *desc.FileDescriptor) {
-	if _, ok := seen[fd.GetName()]; ok {
+func addFilesToSet(allFiles []*descpb.FileDescriptorProto, expanded map[string]struct{}, fd *desc.FileDescriptor) []*descpb.FileDescriptorProto {
+	if _, ok := expanded[fd.GetName()]; ok {
 		// already seen this one
-		return
+		return allFiles
 	}
-	seen[fd.GetName()] = struct{}{}
+	expanded[fd.GetName()] = struct{}{}
 	// add all dependencies first
 	for _, dep := range fd.GetDependencies() {
-		addFilesToSet(seen, fds, dep)
+		allFiles = addFilesToSet(allFiles, expanded, dep)
 	}
-	*fds = append(*fds, fd.AsFileDescriptorProto())
+	return append(allFiles, fd.AsFileDescriptorProto())
 }

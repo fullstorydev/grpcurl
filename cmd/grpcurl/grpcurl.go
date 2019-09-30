@@ -105,10 +105,10 @@ var (
 	protosetOut = flags.String("protoset-out", "", prettify(`
 		The name of a file to be written that will contain a FileDescriptorSet
 		proto. With the list and describe verbs, the listed or described
-		elements, and their transitive dependencies, will be written to the
-		named file if this option is given. When invoking an RPC and this option
-		is given, the method being invoked and its transitive dependencies will
-		be included in the output file.`))
+		elements and their transitive dependencies will be written to the named
+		file if this option is given. When invoking an RPC and this option is
+		given, the method being invoked and its transitive dependencies will be
+		included in the output file.`))
 	msgTemplate = flags.Bool("msg-template", false, prettify(`
 		When describing messages, show a template of input data.`))
 	verbose = flags.Bool("v", false, prettify(`
