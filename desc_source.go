@@ -3,6 +3,7 @@ package grpcurl
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"sync"
 
@@ -250,4 +251,54 @@ func reflectionSupport(err error) error {
 		return ErrReflectionNotSupported
 	}
 	return err
+}
+
+// WriteProtoset will use the given descriptor source to resolve all of the given
+// symbols and write a proto file descriptor set with their definitions to the
+// given output. The output will include descriptors for all files in which the
+// symbols are defined as well as their transitive dependencies.
+func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string) error {
+	// compute set of file descriptors
+	filenames := make([]string, 0, len(symbols))
+	fds := make(map[string]*desc.FileDescriptor, len(symbols))
+	for _, sym := range symbols {
+		d, err := descSource.FindSymbol(sym)
+		if err != nil {
+			return fmt.Errorf("failed to find descriptor for %q: %v", sym, err)
+		}
+		fd := d.GetFile()
+		if _, ok := fds[fd.GetName()]; !ok {
+			fds[fd.GetName()] = fd
+			filenames = append(filenames, fd.GetName())
+		}
+	}
+	// now expand that to include transitive dependencies in topologically sorted
+	// order (such that file always appears after its dependencies)
+	expandedFiles := make(map[string]struct{}, len(fds))
+	allFilesSlice := make([]*descpb.FileDescriptorProto, 0, len(fds))
+	for _, filename := range filenames {
+		allFilesSlice = addFilesToSet(allFilesSlice, expandedFiles, fds[filename])
+	}
+	// now we can serialize to file
+	b, err := proto.Marshal(&descpb.FileDescriptorSet{File: allFilesSlice})
+	if err != nil {
+		return fmt.Errorf("failed to serialize file descriptor set: %v", err)
+	}
+	if _, err := out.Write(b); err != nil {
+		return fmt.Errorf("failed to write file descriptor set: %v", err)
+	}
+	return nil
+}
+
+func addFilesToSet(allFiles []*descpb.FileDescriptorProto, expanded map[string]struct{}, fd *desc.FileDescriptor) []*descpb.FileDescriptorProto {
+	if _, ok := expanded[fd.GetName()]; ok {
+		// already seen this one
+		return allFiles
+	}
+	expanded[fd.GetName()] = struct{}{}
+	// add all dependencies first
+	for _, dep := range fd.GetDependencies() {
+		allFiles = addFilesToSet(allFiles, expanded, dep)
+	}
+	return append(allFiles, fd.AsFileDescriptorProto())
 }
