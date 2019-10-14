@@ -72,7 +72,8 @@ var (
 		requests. It defaults to the given address.`))
 	data = flags.String("d", "", prettify(`
 		Data for request contents. If the value is '@' then the request contents
-		are read from stdin. For calls that accept a stream of requests, the
+		are read from stdin. Note that '@' cannot be used for both -data and -protoset
+		in the same invocation. For calls that accept a stream of requests, the
 		contents should include all such request messages concatenated together
 		(possibly delimited; see -format).`))
 	format = flags.String("format", "json", prettify(`
@@ -139,7 +140,9 @@ func init() {
 		those exposed by the remote server), and the 'describe' action describes
 		symbols found in the given descriptors. May specify more than one via
 		multiple -protoset flags. It is an error to use both -protoset and
-		-proto flags.`))
+		-proto flags. If the value is '@' then the protoset is read from stdin.
+		Note that '@' cannot be used for both -data and -protoset in the same
+		invocation.`))
 	flags.Var(&protoFiles, "proto", prettify(`
 		The name of a proto source file. Source files given will be used to
 		determine the RPC schema instead of querying for it from the remote
@@ -276,6 +279,14 @@ func main() {
 	}
 	if len(importPaths) > 0 && len(protoFiles) == 0 {
 		warn("The -import-path argument is not used unless -proto files are used.")
+	}
+
+	if *data == "@" && len(protoset) > 0 {
+		for _, fileName := range protoset {
+			if fileName == "@" {
+				fail(nil, "Cannot use '@' for both -data and -protoset.")
+			}
+		}
 	}
 
 	ctx := context.Background()

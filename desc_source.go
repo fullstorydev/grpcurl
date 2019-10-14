@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -38,10 +39,23 @@ type DescriptorSource interface {
 
 // DescriptorSourceFromProtoSets creates a DescriptorSource that is backed by the named files, whose contents
 // are encoded FileDescriptorSet protos.
+//
+// The special fileName "@" denotes to read from os.Stdin. Multiple "@" values will result
+// in only one read from stdin.
 func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error) {
+	stdinProcessed := false
 	files := &descpb.FileDescriptorSet{}
 	for _, fileName := range fileNames {
-		b, err := ioutil.ReadFile(fileName)
+		var b []byte
+		var err error
+		if fileName == "@" {
+			if !stdinProcessed {
+				stdinProcessed = true
+				b, err = ioutil.ReadAll(os.Stdin)
+			}
+		} else {
+			b, err = ioutil.ReadFile(fileName)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("could not load protoset file %q: %v", fileName, err)
 		}
