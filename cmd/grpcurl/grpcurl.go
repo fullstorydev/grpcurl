@@ -23,6 +23,9 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+
+	// Register gzip compressor so compressed responses will work:
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 var version = "dev build <no version set>"
