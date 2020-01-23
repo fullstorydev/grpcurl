@@ -71,8 +71,11 @@ var (
 		performed. This can be used to supply credentials/secrets without having
 		to put them in command-line arguments.`))
 	authority = flags.String("authority", "", prettify(`
-		Value of :authority pseudo-header to be use with underlying HTTP/2
-		requests. It defaults to the given address.`))
+		The authoritative name of the remote server. This value is passed as the
+		value of the ":authority" pseudo-header in the HTTP/2 protocol. When TLS
+		is used, this will also be used as the server name when verifying the
+		server's certificate. It defaults to the address that is provided in the
+		positional arguments.`))
 	data = flags.String("d", "", prettify(`
 		Data for request contents. If the value is '@' then the request contents
 		are read from stdin. For calls that accept a stream of requests, the
@@ -117,7 +120,12 @@ var (
 	verbose = flags.Bool("v", false, prettify(`
 		Enable verbose output.`))
 	serverName = flags.String("servername", "", prettify(`
-		Override server name when validating TLS certificate.`))
+		Override server name when validating TLS certificate. This flag is
+		ignored if -plaintext or -insecure is used.
+		NOTE: Prefer -authority. This flag may be removed in the future. It is
+		an error to use both -authority and -servername (though this will be
+		permitted if they are both set to the same value, to increase backwards
+		compatibility with earlier releases that allowed both to be set).`))
 )
 
 func init() {
@@ -305,9 +313,6 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
-		if *authority != "" {
-			opts = append(opts, grpc.WithAuthority(*authority))
-		}
 		var creds credentials.TransportCredentials
 		if !*plaintext {
 			var err error
@@ -315,11 +320,27 @@ func main() {
 			if err != nil {
 				fail(err, "Failed to configure transport credentials")
 			}
-			if *serverName != "" {
-				if err := creds.OverrideServerName(*serverName); err != nil {
-					fail(err, "Failed to override server name as %q", *serverName)
+
+			// can use either -servername or -authority; but not both
+			if *serverName != "" && *authority != "" {
+				if *serverName == *authority {
+					warn("Both -servername and -authority are present; prefer only -authority.")
+				} else {
+					fail(nil, "Cannot specify different values for -servername and -authority.")
 				}
 			}
+			overrideName := *serverName
+			if overrideName == "" {
+				overrideName = *authority
+			}
+
+			if overrideName != "" {
+				if err := creds.OverrideServerName(overrideName); err != nil {
+					fail(err, "Failed to override server name as %q", overrideName)
+				}
+			}
+		} else if *authority != "" {
+			opts = append(opts, grpc.WithAuthority(*authority))
 		}
 		network := "tcp"
 		if isUnixSocket != nil && isUnixSocket() {
