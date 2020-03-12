@@ -1,4 +1,4 @@
-FROM golang:1.13.8-alpine as builder
+FROM golang:1.11.10-alpine as builder
 MAINTAINER FullStory Engineering
 
 # currently, a module build requires gcc (so Go tool can build
@@ -17,6 +17,7 @@ COPY cmd /tmp/fullstorydev/grpcurl/cmd
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
+ENV GO111MODULE=on
 RUN go build -o /grpcurl \
     -ldflags "-w -extldflags \"-static\" -X \"main.version=$(cat VERSION)\"" \
     ./cmd/grpcurl
