@@ -3,8 +3,7 @@ sudo: false
 
 matrix:
   include:
-    - go: 1.9.x
-    - go: 1.10.x
+    # TODO: update the version used to vet to Go 1.13
     - go: 1.11.x
       env:
       - GO111MODULE=off
@@ -15,7 +14,18 @@ matrix:
       env: GO111MODULE=off
     - go: 1.12.x
       env: GO111MODULE=on
+    - go: 1.13.x
+      env:
+      - GO111MODULE=on
+      - GOPROXY=direct
+    - go: 1.14.x
+      env:
+      - GO111MODULE=on
+      - GOPROXY=direct
     - go: tip
+      env:
+      - GO111MODULE=on
+      - GOPROXY=direct
 
 script:
   - if [[ "$VET" = 1 ]]; then make ci; else make deps test; fi
