@@ -1,5 +1,7 @@
 module github.com/fullstorydev/grpcurl
 
+go 1.14
+
 require (
 	github.com/golang/protobuf v1.3.5
 	github.com/jhump/protoreflect v1.5.0

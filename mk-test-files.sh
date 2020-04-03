@@ -15,6 +15,9 @@ protoc testing/example.proto \
 	--include_imports \
 	--descriptor_set_out=testing/example.protoset
 
+protoc testing/jsonpb_test_proto/test_objects.proto \
+	--go_out=paths=source_relative:.
+
 echo "Creating certs for TLS testing..."
 if ! hash certstrap 2>/dev/null; then
   # certstrap not found: try to install it
