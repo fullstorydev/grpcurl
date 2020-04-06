@@ -100,6 +100,10 @@ var (
 		ASCII character: 0x1E. The stream should not end in a record separator.
 		If it does, it will be interpreted as a final, blank message after the
 		separator.`))
+	allowUnknownFields = flags.Bool("allow-unknown-fields", false, prettify(`
+		When true, the request contents, if 'json' format is used, allows
+		unkown fields to be present. They will be ignored when parsing
+		the request.`))
 	connectTimeout = flags.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
@@ -615,7 +619,8 @@ func main() {
 				// for messages, also show a template in JSON, to make it easier to
 				// create a request to invoke an RPC
 				tmpl := grpcurl.MakeTemplate(dsc)
-				_, formatter, err := grpcurl.RequestParserAndFormatterFor(grpcurl.Format(*format), descSource, true, false, nil)
+				options := grpcurl.FormatOptions{EmitJSONDefaultFields: true}
+				_, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format(*format), descSource, nil, options)
 				if err != nil {
 					fail(err, "Failed to construct formatter for %q", *format)
 				}
@@ -647,7 +652,12 @@ func main() {
 		// between each message, so output could potentially be piped
 		// to another grpcurl process
 		includeSeparators := !*verbose
-		rf, formatter, err := grpcurl.RequestParserAndFormatterFor(grpcurl.Format(*format), descSource, *emitDefaults, includeSeparators, in)
+		options := grpcurl.FormatOptions{
+			EmitJSONDefaultFields: *emitDefaults,
+			IncludeTextSeparator:  includeSeparators,
+			AllowUnknownFields:    *allowUnknownFields,
+		}
+		rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format(*format), descSource, in, options)
 		if err != nil {
 			fail(err, "Failed to construct request parser and formatter for %q", *format)
 		}

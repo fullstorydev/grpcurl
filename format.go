@@ -55,6 +55,15 @@ func NewJSONRequestParser(in io.Reader, resolver jsonpb.AnyResolver) RequestPars
 	}
 }
 
+// NewJSONRequestParserWithUnmarshaler is like NewJSONRequestParser but
+// accepts a protobuf jsonpb.Unmarshaler instead of jsonpb.AnyResolver.
+func NewJSONRequestParserWithUnmarshaler(in io.Reader, unmarshaler jsonpb.Unmarshaler) RequestParser {
+	return &jsonRequestParser{
+		dec:         json.NewDecoder(in),
+		unmarshaler: unmarshaler,
+	}
+}
+
 func (f *jsonRequestParser) Next(m proto.Message) error {
 	var msg json.RawMessage
 	if err := f.dec.Decode(&msg); err != nil {
@@ -342,21 +351,58 @@ func (a *unknownAny) ProtoMessage() {
 
 var _ proto.Message = (*unknownAny)(nil)
 
+// FormatOptions is a set of flags that are passed to a JSON or text formatter.
+type FormatOptions struct {
+	// EmitJSONDefaultFields flag, when true, includes empty/default values in the output.
+	// FormatJSON only flag.
+	EmitJSONDefaultFields bool
+
+	// AllowUnknownFields is an option for the parser. When true,
+	// it accepts input which includes unknown fields. These unknown fields
+	// are skipped instead of returning an error.
+	// FormatJSON only flag.
+	AllowUnknownFields bool
+
+	// IncludeTextSeparator is true then, when invoked to format multiple messages,
+	// all messages after the first one will be prefixed with the
+	// ASCII 'Record Separator' character (0x1E).
+	// It might be useful when the output is piped to another grpcurl process.
+	// FormatText only flag.
+	IncludeTextSeparator bool
+}
+
+// RequestParserAndFormatter returns a request parser and formatter for the
+// given format. The given descriptor source may be used for parsing message
+// data (if needed by the format).
+// It accepts a set of options. The field EmitJSONDefaultFields and IncludeTextSeparator
+// are options for JSON and protobuf text formats, respectively. The AllowUnknownFields field
+// is a JSON-only format flag.
+// Requests will be parsed from the given in.
+func RequestParserAndFormatter(format Format, descSource DescriptorSource, in io.Reader, opts FormatOptions) (RequestParser, Formatter, error) {
+	switch format {
+	case FormatJSON:
+		resolver := AnyResolverFromDescriptorSource(descSource)
+		unmarshaler := jsonpb.Unmarshaler{AnyResolver: resolver, AllowUnknownFields: opts.AllowUnknownFields}
+		return NewJSONRequestParserWithUnmarshaler(in, unmarshaler), NewJSONFormatter(opts.EmitJSONDefaultFields, anyResolverWithFallback{AnyResolver: resolver}), nil
+	case FormatText:
+		return NewTextRequestParser(in), NewTextFormatter(opts.IncludeTextSeparator), nil
+	default:
+		return nil, nil, fmt.Errorf("unknown format: %s", format)
+	}
+}
+
 // RequestParserAndFormatterFor returns a request parser and formatter for the
 // given format. The given descriptor source may be used for parsing message
 // data (if needed by the format). The flags emitJSONDefaultFields and
 // includeTextSeparator are options for JSON and protobuf text formats,
 // respectively. Requests will be parsed from the given in.
+// This function is deprecated. Please use RequestParserAndFormatter instead.
+// DEPRECATED
 func RequestParserAndFormatterFor(format Format, descSource DescriptorSource, emitJSONDefaultFields, includeTextSeparator bool, in io.Reader) (RequestParser, Formatter, error) {
-	switch format {
-	case FormatJSON:
-		resolver := AnyResolverFromDescriptorSource(descSource)
-		return NewJSONRequestParser(in, resolver), NewJSONFormatter(emitJSONDefaultFields, anyResolverWithFallback{AnyResolver: resolver}), nil
-	case FormatText:
-		return NewTextRequestParser(in), NewTextFormatter(includeTextSeparator), nil
-	default:
-		return nil, nil, fmt.Errorf("unknown format: %s", format)
-	}
+	return RequestParserAndFormatter(format, descSource, in, FormatOptions{
+		EmitJSONDefaultFields: emitJSONDefaultFields,
+		IncludeTextSeparator:  includeTextSeparator,
+	})
 }
 
 // DefaultEventHandler logs events to a writer. This is not thread-safe, but is

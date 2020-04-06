@@ -69,7 +69,7 @@ func TestRequestParser(t *testing.T) {
 
 	for i, tc := range testCases {
 		name := fmt.Sprintf("#%d, %s, %d message(s)", i+1, tc.format, len(tc.expectedOutput))
-		rf, _, err := RequestParserAndFormatterFor(tc.format, source, false, false, strings.NewReader(tc.input))
+		rf, _, err := RequestParserAndFormatter(tc.format, source, strings.NewReader(tc.input), FormatOptions{})
 		if err != nil {
 			t.Errorf("Failed to create parser and formatter: %v", err)
 			continue
@@ -126,7 +126,7 @@ func TestHandler(t *testing.T) {
 					name += ", verbose"
 				}
 
-				_, formatter, err := RequestParserAndFormatterFor(format, source, false, !verbose, nil)
+				_, formatter, err := RequestParserAndFormatter(format, source, nil, FormatOptions{IncludeTextSeparator: !verbose})
 				if err != nil {
 					t.Errorf("Failed to create parser and formatter: %v", err)
 					continue
