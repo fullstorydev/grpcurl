@@ -179,7 +179,7 @@ func (tf *textFormatter) format(m proto.Message) (string, error) {
 
 	// no trailing newline needed
 	str := buf.String()
-	if str[len(str)-1] == '\n' {
+	if len(str) > 0 && str[len(str)-1] == '\n' {
 		str = str[:len(str)-1]
 	}
 
