@@ -95,6 +95,8 @@ var (
 	connectTimeout = flags.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
+	jsonError = flags.Bool("json-error", false, prettify(`
+		Emit error response as JSON.`))
 	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
@@ -109,8 +111,6 @@ var (
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
 	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
-	jsonError = flags.Bool("json-error", false, prettify(`
-		Emit error response as JSON.`))
 	protosetOut = flags.String("protoset-out", "", prettify(`
 		The name of a file to be written that will contain a FileDescriptorSet
 		proto. With the list and describe verbs, the listed or described
