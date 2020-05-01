@@ -11,7 +11,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/struct"
 	"github.com/jhump/protoreflect/desc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestRequestParser(t *testing.T) {
@@ -173,6 +175,25 @@ func TestHandler(t *testing.T) {
 	}
 }
 
+func TestPrintJSONStatus(t *testing.T) {
+	testCases := []struct {
+		input          *status.Status
+		expectedOutput string
+	}{{
+		input:          status.New(codes.InvalidArgument, "Missing Argument"),
+		expectedOutput: statusAsJSON,
+	}}
+
+	for _, tc := range testCases {
+		var b bytes.Buffer
+		PrintJSONStatus(&b, tc.input)
+		got := b.String()
+		if !compare(tc.expectedOutput, got) {
+			t.Errorf("Incorrect output. Expected:\n%s\nGot:\n%s", tc.expectedOutput, got)
+		}
+	}
+}
+
 // compare checks that actual and expected are equal, returning true if so.
 // A simple equality check (==) does not suffice because jsonpb formats
 // structpb.Value strangely. So if that formatting gets fixed, we don't
@@ -244,6 +265,7 @@ Response contents:
   "null": null
 }
 `
+	statusAsJSON  = `{"code":3,"message":"Missing Argument"} `
 	messageAsText = `struct_value: <
   fields: <
     key: "bar"

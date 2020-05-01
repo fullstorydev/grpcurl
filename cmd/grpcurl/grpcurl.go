@@ -109,6 +109,8 @@ var (
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
 	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
+	jsonError = flags.Bool("json-error", false, prettify(`
+		Emit error response as JSON.`))
 	protosetOut = flags.String("protoset-out", "", prettify(`
 		The name of a file to be written that will contain a FileDescriptorSet
 		proto. With the list and describe verbs, the listed or described
@@ -652,7 +654,11 @@ func main() {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
 		if h.Status.Code() != codes.OK {
-			grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
+			if *jsonError {
+				grpcurl.PrintJSONStatus(os.Stderr, h.Status)
+			} else {
+				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
+			}
 			exit(1)
 		}
 	}

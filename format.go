@@ -467,3 +467,12 @@ func PrintStatus(w io.Writer, stat *status.Status, formatter Formatter) {
 		}
 	}
 }
+
+// PrintJSONStatus returns the grpc status response as a JSON object
+func PrintJSONStatus(w io.Writer, stat *status.Status) {
+	jsonStatus, err := (&jsonpb.Marshaler{}).MarshalToString(stat.Proto())
+	if err != nil {
+		fmt.Fprintf(w, "ERROR: %v", err.Error())
+	}
+	fmt.Fprint(w, jsonStatus)
+}
