@@ -429,6 +429,21 @@ func (h *DefaultEventHandler) OnReceiveTrailers(stat *status.Status, md metadata
 	}
 }
 
+// HandleFormatAndPrintStatus passes the writer, status object, and formatter (if applicable)
+// to the appropriate status printing function
+func HandleFormatAndPrintStatus(format Format, w io.Writer, stat *status.Status, formatter Formatter) {
+
+	switch format {
+	case FormatJSON:
+		marshaler := jsonpb.Marshaler{Indent: "  "}
+		PrintFormattedStatus(w, stat, marshaler.MarshalToString)
+	case FormatText:
+		PrintStatus(w, stat, formatter)
+	default:
+		fmt.Errorf("unknown format: %s", format)
+	}
+}
+
 // PrintStatus prints details about the given status to the given writer. The given
 // formatter is used to print any detail messages that may be included in the status.
 // If the given status has a code of OK, "OK" is printed and that is all. Otherwise,
@@ -468,9 +483,10 @@ func PrintStatus(w io.Writer, stat *status.Status, formatter Formatter) {
 	}
 }
 
-// PrintJSONStatus returns the grpc status response as a JSON object
-func PrintJSONStatus(w io.Writer, stat *status.Status) {
-	jsonStatus, err := (&jsonpb.Marshaler{}).MarshalToString(stat.Proto())
+// PrintFormattedStatus writes the gRPC status response in its entirety given the
+// provided Formatter
+func PrintFormattedStatus(w io.Writer, stat *status.Status, formatter Formatter) {
+	jsonStatus, err := formatter(stat.Proto())
 	if err != nil {
 		fmt.Fprintf(w, "ERROR: %v", err.Error())
 	}

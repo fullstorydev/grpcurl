@@ -175,7 +175,7 @@ func TestHandler(t *testing.T) {
 	}
 }
 
-func TestPrintJSONStatus(t *testing.T) {
+func TestPrintFormattedStatus(t *testing.T) {
 	testCases := []struct {
 		input          *status.Status
 		expectedOutput string
@@ -186,7 +186,7 @@ func TestPrintJSONStatus(t *testing.T) {
 
 	for _, tc := range testCases {
 		var b bytes.Buffer
-		PrintJSONStatus(&b, tc.input)
+		HandleFormatAndPrintStatus(FormatJSON, &b, tc.input, nil)
 		got := b.String()
 		if !compare(tc.expectedOutput, got) {
 			t.Errorf("Incorrect output. Expected:\n%s\nGot:\n%s", tc.expectedOutput, got)
@@ -265,7 +265,10 @@ Response contents:
   "null": null
 }
 `
-	statusAsJSON  = `{"code":3,"message":"Missing Argument"} `
+	statusAsJSON = `{
+  "code": 3,
+  "message": "Missing Argument"
+}`
 	messageAsText = `struct_value: <
   fields: <
     key: "bar"

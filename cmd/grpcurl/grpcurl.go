@@ -95,8 +95,8 @@ var (
 	connectTimeout = flags.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
-	jsonError = flags.Bool("json-error", false, prettify(`
-		Emit error response as JSON.`))
+	errorFormat = flags.String("error-format", "text", prettify(`
+		The format of request data. The allowed values are 'json' or 'text'.`))
 	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
@@ -272,7 +272,10 @@ func main() {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 	if *format != "json" && *format != "text" {
-		fail(nil, "The -format option must be 'json' or 'text.")
+		fail(nil, "The -format option must be 'json' or 'text'.")
+	}
+	if *errorFormat != "json" && *errorFormat != "text" {
+		fail(nil, "The -error-format option must be 'json' or 'text'.")
 	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
@@ -654,11 +657,7 @@ func main() {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
 		if h.Status.Code() != codes.OK {
-			if *jsonError {
-				grpcurl.PrintJSONStatus(os.Stderr, h.Status)
-			} else {
-				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
-			}
+			grpcurl.HandleFormatAndPrintStatus(grpcurl.Format(*errorFormat), os.Stderr, h.Status, formatter)
 			exit(1)
 		}
 	}
