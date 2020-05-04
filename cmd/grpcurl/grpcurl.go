@@ -96,7 +96,7 @@ var (
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
 	errorFormat = flags.String("error-format", "text", prettify(`
-		The format of request data. The allowed values are 'json' or 'text'.`))
+		The format of a non-zero status response. The allowed values are 'json' or 'text'.`))
 	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
