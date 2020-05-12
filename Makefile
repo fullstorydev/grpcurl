@@ -6,7 +6,17 @@ dev_build_version=$(shell git describe --tags --always --dirty)
 # they are just too noisy to be a requirement for a CI -- we don't even *want*
 # to fix some of the things they consider to be violations.
 .PHONY: ci
-ci: deps checkgofmt vet staticcheck ineffassign predeclared test
+ci: backup_gomod deps checkgofmt vet staticcheck ineffassign predeclared restore_gomod test
+
+.PHONY: backup_gomod
+backup_gomod:
+	cp go.mod go.mod.bk
+
+.PHONY: restore_gomod
+restore_gomod:
+	if [ -f go.mod.bk ]; then \
+	    mv go.mod.bk go.mod \
+	fi
 
 .PHONY: deps
 deps:
