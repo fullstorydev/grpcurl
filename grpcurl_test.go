@@ -245,7 +245,11 @@ func TestGetAllFiles(t *testing.T) {
 	expectedFiles := []string{"testing/test.proto"}
 	// server reflection picks up filename from linked in Go package,
 	// which indicates "grpc_testing/test.proto", not our local copy.
-	expectedFilesWithReflection := []string{"grpc_reflection_v1alpha/reflection.proto", "grpc_testing/test.proto"}
+	expectedFilesWithReflection := [][]string{
+		{"grpc_reflection_v1alpha/reflection.proto", "grpc_testing/test.proto"},
+		// depending on the version of grpc, the filenames could be prefixed with "interop/" and "reflection/"
+		{"interop/grpc_testing/test.proto", "reflection/grpc_reflection_v1alpha/reflection.proto"},
+	}
 
 	for _, ds := range descSources {
 		t.Run(ds.name, func(t *testing.T) {
@@ -254,11 +258,21 @@ func TestGetAllFiles(t *testing.T) {
 				t.Fatalf("failed to get all files: %v", err)
 			}
 			names := fileNames(files)
-			expected := expectedFiles
+			match := false
+			var expected []string
 			if ds.includeRefl {
-				expected = expectedFilesWithReflection
+				for _, expectedNames := range expectedFilesWithReflection {
+					expected = expectedNames
+					if reflect.DeepEqual(expected, names) {
+						match = true
+						break
+					}
+				}
+			} else {
+				expected = expectedFiles
+				match = reflect.DeepEqual(expected, names)
 			}
-			if !reflect.DeepEqual(expected, names) {
+			if !match {
 				t.Errorf("GetAllFiles returned wrong results: wanted %v, got %v", expected, names)
 			}
 		})
