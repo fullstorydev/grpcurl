@@ -247,8 +247,8 @@ func TestGetAllFiles(t *testing.T) {
 	// which indicates "grpc_testing/test.proto", not our local copy.
 	expectedFilesWithReflection := [][]string{
 		{"grpc_reflection_v1alpha/reflection.proto", "grpc_testing/test.proto"},
-		// depending on the version of grpc, the filename could be prefixed with "interop/"
-		{"grpc_reflection_v1alpha/reflection.proto", "interop/grpc_testing/test.proto"},
+		// depending on the version of grpc, the filenames could be prefixed with "interop/" and "reflection/"
+		{"interop/grpc_testing/test.proto", "reflection/grpc_reflection_v1alpha/reflection.proto"},
 	}
 
 	for _, ds := range descSources {
