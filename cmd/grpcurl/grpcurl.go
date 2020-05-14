@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/grpc/status"
 
 	// Register gzip compressor so compressed responses will work:
 	_ "google.golang.org/grpc/encoding/gzip"
@@ -414,6 +415,13 @@ func main() {
 		}
 		return cc
 	}
+	printFormattedStatus := func(w io.Writer, stat *status.Status, formatter grpcurl.Formatter) {
+		formattedStatus, err := formatter(stat.Proto())
+		if err != nil {
+			fmt.Fprintf(w, "ERROR: %v", err.Error())
+		}
+		fmt.Fprint(w, formattedStatus)
+	}
 
 	if *expandHeaders {
 		var err error
@@ -656,7 +664,7 @@ func main() {
 		}
 		if h.Status.Code() != codes.OK {
 			if *formatError {
-				grpcurl.PrintFormattedStatus(os.Stderr, h.Status, formatter)
+				printFormattedStatus(os.Stderr, h.Status, formatter)
 			} else {
 				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
 			}

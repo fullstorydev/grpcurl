@@ -467,13 +467,3 @@ func PrintStatus(w io.Writer, stat *status.Status, formatter Formatter) {
 		}
 	}
 }
-
-// PrintFormattedStatus writes the gRPC status response in its entirety given the
-// provided Formatter
-func PrintFormattedStatus(w io.Writer, stat *status.Status, formatter Formatter) {
-	formattedStatus, err := formatter(stat.Proto())
-	if err != nil {
-		fmt.Fprintf(w, "ERROR: %v", err.Error())
-	}
-	fmt.Fprint(w, formattedStatus)
-}
