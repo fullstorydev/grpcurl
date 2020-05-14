@@ -69,7 +69,7 @@ func (f *jsonRequestParser) NumRequests() int {
 }
 
 const (
-	textSeparatorChar = 0x1e
+	textSeparatorChar = '\x1e'
 )
 
 type textRequestParser struct {
