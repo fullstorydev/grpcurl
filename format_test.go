@@ -176,26 +176,30 @@ func TestHandler(t *testing.T) {
 }
 
 func TestPrintFormattedStatus(t *testing.T) {
+	jsonFormatter := NewJSONFormatter(
+		true,
+		anyResolverWithFallback{AnyResolver: jsonpb.Marshaler{Indent: "  "}.AnyResolver})
+	textFormatter := NewTextFormatter(true)
 	testCases := []struct {
 		input          *status.Status
-		format         Format
+		formatter      Formatter
 		expectedOutput string
 	}{
 		{
 			input:          status.New(codes.InvalidArgument, "Missing Argument"),
-			format:         FormatJSON,
+			formatter:      jsonFormatter,
 			expectedOutput: statusAsJSON,
 		},
 		{
 			input:          status.New(codes.InvalidArgument, "Missing Argument"),
-			format:         FormatText,
+			formatter:      textFormatter,
 			expectedOutput: statusAsText,
 		},
 	}
 
 	for _, tc := range testCases {
 		var b bytes.Buffer
-		HandleFormatAndPrintStatus(tc.format, &b, tc.input, false, true)
+		PrintFormattedStatus(&b, tc.input, tc.formatter)
 		got := b.String()
 		if !compare(tc.expectedOutput, got) {
 			t.Errorf("Incorrect output. Expected:\n%s\nGot:\n%s", tc.expectedOutput, got)
@@ -276,7 +280,9 @@ Response contents:
 `
 	statusAsJSON = `{
   "code": 3,
-  "message": "Missing Argument"
+  "message": "Missing Argument",
+  "details": [
+  ]
 }`
 	statusAsText = `code: 3
 message: "Missing Argument"`

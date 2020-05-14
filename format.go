@@ -429,24 +429,6 @@ func (h *DefaultEventHandler) OnReceiveTrailers(stat *status.Status, md metadata
 	}
 }
 
-// HandleFormatAndPrintStatus passes the writer, status object, and formatter (if applicable)
-// to the appropriate status printing function
-func HandleFormatAndPrintStatus(format Format, w io.Writer, stat *status.Status, emitJSONDefaultFields, includeTextSeparator bool) {
-	var formatter Formatter
-	switch format {
-	case FormatJSON:
-		formatter = NewJSONFormatter(
-			emitJSONDefaultFields,
-			anyResolverWithFallback{AnyResolver: jsonpb.Marshaler{Indent: "  "}.AnyResolver})
-	case FormatText:
-		formatter = NewTextFormatter(includeTextSeparator)
-	default:
-		fmt.Errorf("unknown format: %s", format)
-		return
-	}
-	PrintFormattedStatus(w, stat, formatter)
-}
-
 // PrintStatus prints details about the given status to the given writer. The given
 // formatter is used to print any detail messages that may be included in the status.
 // If the given status has a code of OK, "OK" is printed and that is all. Otherwise,

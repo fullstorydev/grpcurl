@@ -656,7 +656,7 @@ func main() {
 		}
 		if h.Status.Code() != codes.OK {
 			if *formatError {
-				grpcurl.HandleFormatAndPrintStatus(grpcurl.Format(*format), os.Stderr, h.Status, *emitDefaults, includeSeparators)
+				grpcurl.PrintFormattedStatus(os.Stderr, h.Status, formatter)
 			} else {
 				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
 			}
