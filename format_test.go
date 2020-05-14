@@ -178,15 +178,24 @@ func TestHandler(t *testing.T) {
 func TestPrintFormattedStatus(t *testing.T) {
 	testCases := []struct {
 		input          *status.Status
+		format         Format
 		expectedOutput string
-	}{{
-		input:          status.New(codes.InvalidArgument, "Missing Argument"),
-		expectedOutput: statusAsJSON,
-	}}
+	}{
+		{
+			input:          status.New(codes.InvalidArgument, "Missing Argument"),
+			format:         FormatJSON,
+			expectedOutput: statusAsJSON,
+		},
+		{
+			input:          status.New(codes.InvalidArgument, "Missing Argument"),
+			format:         FormatText,
+			expectedOutput: statusAsText,
+		},
+	}
 
 	for _, tc := range testCases {
 		var b bytes.Buffer
-		HandleFormatAndPrintStatus(FormatJSON, &b, tc.input, nil)
+		HandleFormatAndPrintStatus(tc.format, &b, tc.input, false, true)
 		got := b.String()
 		if !compare(tc.expectedOutput, got) {
 			t.Errorf("Incorrect output. Expected:\n%s\nGot:\n%s", tc.expectedOutput, got)
@@ -269,6 +278,8 @@ Response contents:
   "code": 3,
   "message": "Missing Argument"
 }`
+	statusAsText = `code: 3
+message: "Missing Argument"`
 	messageAsText = `struct_value: <
   fields: <
     key: "bar"
