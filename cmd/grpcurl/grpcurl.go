@@ -30,6 +30,11 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 )
 
+// To avoid confusion between program error codes and the gRPC resonse
+// status codes 'Cancelled' and 'Unknown', 1 and 2 respectively,
+// the response status codes emitted use an offest of 64
+const statusCodeOffset = 64
+
 var version = "dev build <no version set>"
 
 var (
@@ -668,7 +673,7 @@ func main() {
 			} else {
 				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
 			}
-			exit(1)
+			exit(statusCodeOffset + int(h.Status.Code()))
 		}
 	}
 }
