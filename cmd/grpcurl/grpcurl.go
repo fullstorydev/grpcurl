@@ -24,10 +24,16 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/grpc/status"
 
 	// Register gzip compressor so compressed responses will work:
 	_ "google.golang.org/grpc/encoding/gzip"
 )
+
+// To avoid confusion between program error codes and the gRPC resonse
+// status codes 'Cancelled' and 'Unknown', 1 and 2 respectively,
+// the response status codes emitted use an offest of 64
+const statusCodeOffset = 64
 
 var version = "dev build <no version set>"
 
@@ -95,6 +101,9 @@ var (
 	connectTimeout = flags.Float64("connect-timeout", 0, prettify(`
 		The maximum time, in seconds, to wait for connection to be established.
 		Defaults to 10 seconds.`))
+	formatError = flags.Bool("format-error", false, prettify(`
+		When a non-zero status is returned, format the response using the
+		value set by the -format flag .`))
 	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
 		If present, the maximum idle time in seconds, after which a keepalive
 		probe is sent. If the connection remains idle and no keepalive response
@@ -270,7 +279,7 @@ func main() {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 	if *format != "json" && *format != "text" {
-		fail(nil, "The -format option must be 'json' or 'text.")
+		fail(nil, "The -format option must be 'json' or 'text'.")
 	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
@@ -410,6 +419,13 @@ func main() {
 			fail(err, "Failed to dial target host %q", target)
 		}
 		return cc
+	}
+	printFormattedStatus := func(w io.Writer, stat *status.Status, formatter grpcurl.Formatter) {
+		formattedStatus, err := formatter(stat.Proto())
+		if err != nil {
+			fmt.Fprintf(w, "ERROR: %v", err.Error())
+		}
+		fmt.Fprint(w, formattedStatus)
 	}
 
 	if *expandHeaders {
@@ -652,8 +668,12 @@ func main() {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
 		if h.Status.Code() != codes.OK {
-			grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
-			exit(1)
+			if *formatError {
+				printFormattedStatus(os.Stderr, h.Status, formatter)
+			} else {
+				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
+			}
+			exit(statusCodeOffset + int(h.Status.Code()))
 		}
 	}
 }
