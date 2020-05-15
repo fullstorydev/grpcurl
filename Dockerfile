@@ -1,4 +1,4 @@
-FROM golang:1.11.10-alpine as builder
+FROM golang:1.13.10-alpine3.11 as builder
 MAINTAINER FullStory Engineering
 
 # currently, a module build requires gcc (so Go tool can build
