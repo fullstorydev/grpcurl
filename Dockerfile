@@ -1,10 +1,6 @@
-FROM golang:1.11.10-alpine as builder
+FROM golang:1.13.10-alpine3.11 as builder
 MAINTAINER FullStory Engineering
 
-# currently, a module build requires gcc (so Go tool can build
-# module-aware versions of std library; it ships only w/ the
-# non-module versions)
-RUN apk update && apk add --no-cache ca-certificates git gcc g++ libc-dev
 # create non-privileged group and user
 RUN addgroup -S grpcurl && adduser -S grpcurl -G grpcurl
 
