@@ -22,7 +22,7 @@ install:
 
 .PHONY: release
 release:
-	@GO111MODULE=off go get github.com/goreleaser/goreleaser
+	@go get github.com/goreleaser/goreleaser
 	goreleaser --rm-dist
 
 .PHONY: docker
