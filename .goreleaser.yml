@@ -11,14 +11,14 @@ builds:
     ldflags:
       - -s -w -X main.version=v{{.Version}}
 
-archive:
-  format: tar.gz
-  format_overrides:
-    - goos: windows
-      format: zip
-  replacements:
-    amd64: x86_64
-    386: x86_32
-    darwin: osx
-  files:
-    - LICENSE
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      amd64: x86_64
+      386: x86_32
+      darwin: osx
+    files:
+      - LICENSE
