@@ -32,7 +32,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-	_ "google.golang.org/grpc/xds/experimental"
+	_ "google.golang.org/grpc/xds"
 )
 
 // ListServices uses the given descriptor source to return a sorted list of fully-qualified
