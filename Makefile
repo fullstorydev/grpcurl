@@ -22,7 +22,7 @@ install:
 
 .PHONY: release
 release:
-	@go get github.com/goreleaser/goreleaser
+	@GO111MODULE=on go install github.com/goreleaser/goreleaser
 	goreleaser --rm-dist
 
 .PHONY: docker
@@ -46,29 +46,29 @@ vet:
 # CI is just getting latest master for dependencies like grpc.
 .PHONY: staticcheck
 staticcheck:
-	@go get honnef.co/go/tools/cmd/staticcheck
+	@GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck
 	staticcheck ./...
 
 .PHONY: ineffassign
 ineffassign:
-	@go get github.com/gordonklaus/ineffassign
+	@GO111MODULE=on go install github.com/gordonklaus/ineffassign
 	ineffassign .
 
 .PHONY: predeclared
 predeclared:
-	@go get github.com/nishanths/predeclared
+	@GO111MODULE=on go install github.com/nishanths/predeclared
 	predeclared .
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
 .PHONY: golint
 golint:
-	@go get golang.org/x/lint/golint
+	@GO111MODULE=on go install golang.org/x/lint/golint
 	golint -min_confidence 0.9 -set_exit_status ./...
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
 .PHONY: errcheck
 errcheck:
-	@go get github.com/kisielk/errcheck
+	@GO111MODULE=on go install github.com/kisielk/errcheck
 	errcheck ./...
 
 .PHONY: test

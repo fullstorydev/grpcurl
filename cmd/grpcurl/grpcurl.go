@@ -26,8 +26,10 @@ import (
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 
-	// Register gzip compressor so compressed responses will work:
+	// Register gzip compressor so compressed responses will work
 	_ "google.golang.org/grpc/encoding/gzip"
+	// Register xds so xds and xds-experimental resolver schemes work
+	_ "google.golang.org/grpc/xds"
 )
 
 // To avoid confusion between program error codes and the gRPC resonse
