@@ -35,7 +35,7 @@ See also the [`grpcurl` talk at GopherCon 2018](https://www.youtube.com/watch?v=
 operate bi-directional streaming methods interactively by running `grpcurl` from an
 interactive terminal and using stdin as the request body!
 
-`grpcurl` supports both plain-text and TLS servers and has numerous options for TLS
+`grpcurl` supports both plain-text(i.e., no TLS) and TLS servers and has numerous options for TLS
 configuration. It also supports mutual TLS, where the client is required to present a
 client certificate.
 
@@ -91,6 +91,9 @@ that requires no client certs and supports server reflection is the simplest thi
 do with `grpcurl`. This minimal invocation sends an empty request body:
 ```shell
 grpcurl grpc.server.com:443 my.custom.server.Service/Method
+
+# no TLS
+grpcurl -plaintext grpc.server.com:80 my.custom.server.Service/Method
 ```
 
 To send a non-empty request, use the `-d` argument. Note that all arguments must come
