@@ -459,6 +459,7 @@ func (h *DefaultEventHandler) OnReceiveHeaders(md metadata.MD) {
 func (h *DefaultEventHandler) OnReceiveResponse(resp proto.Message) {
 	h.NumResponses++
 	if h.verbose {
+		fmt.Fprintf(h.out, "\nResponse size (bytes): %d\n", proto.Size(resp))
 		fmt.Fprint(h.out, "\nResponse contents:\n")
 	}
 	if respStr, err := h.formatter(resp); err != nil {
