@@ -412,7 +412,10 @@ type DefaultEventHandler struct {
 	out        io.Writer
 	descSource DescriptorSource
 	formatter  func(proto.Message) (string, error)
-	verbose    bool
+	// 0 = default
+	// 1 = verbose
+	// 2 = very verbose
+	verbosityLevel int
 
 	// NumResponses is the number of responses that have been received.
 	NumResponses int
@@ -424,19 +427,19 @@ type DefaultEventHandler struct {
 // NewDefaultEventHandler returns an InvocationEventHandler that logs events to
 // the given output. If verbose is true, all events are logged. Otherwise, only
 // response messages are logged.
-func NewDefaultEventHandler(out io.Writer, descSource DescriptorSource, formatter Formatter, verbose bool) *DefaultEventHandler {
+func NewDefaultEventHandler(out io.Writer, descSource DescriptorSource, formatter Formatter, verbosityLevel int) *DefaultEventHandler {
 	return &DefaultEventHandler{
-		out:        out,
-		descSource: descSource,
-		formatter:  formatter,
-		verbose:    verbose,
+		out:            out,
+		descSource:     descSource,
+		formatter:      formatter,
+		verbosityLevel: verbosityLevel,
 	}
 }
 
 var _ InvocationEventHandler = (*DefaultEventHandler)(nil)
 
 func (h *DefaultEventHandler) OnResolveMethod(md *desc.MethodDescriptor) {
-	if h.verbose {
+	if h.verbosityLevel > 0 {
 		txt, err := GetDescriptorText(md, h.descSource)
 		if err == nil {
 			fmt.Fprintf(h.out, "\nResolved method descriptor:\n%s\n", txt)
@@ -445,21 +448,23 @@ func (h *DefaultEventHandler) OnResolveMethod(md *desc.MethodDescriptor) {
 }
 
 func (h *DefaultEventHandler) OnSendHeaders(md metadata.MD) {
-	if h.verbose {
+	if h.verbosityLevel > 0 {
 		fmt.Fprintf(h.out, "\nRequest metadata to send:\n%s\n", MetadataToString(md))
 	}
 }
 
 func (h *DefaultEventHandler) OnReceiveHeaders(md metadata.MD) {
-	if h.verbose {
+	if h.verbosityLevel > 0 {
 		fmt.Fprintf(h.out, "\nResponse headers received:\n%s\n", MetadataToString(md))
 	}
 }
 
 func (h *DefaultEventHandler) OnReceiveResponse(resp proto.Message) {
 	h.NumResponses++
-	if h.verbose {
-		fmt.Fprintf(h.out, "\nResponse size (bytes): %d\n", proto.Size(resp))
+	if h.verbosityLevel > 1 {
+		fmt.Fprintf(h.out, "\nEstimated response size: %d bytes\n", proto.Size(resp))
+	}
+	if h.verbosityLevel > 0 {
 		fmt.Fprint(h.out, "\nResponse contents:\n")
 	}
 	if respStr, err := h.formatter(resp); err != nil {
@@ -471,7 +476,7 @@ func (h *DefaultEventHandler) OnReceiveResponse(resp proto.Message) {
 
 func (h *DefaultEventHandler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	h.Status = stat
-	if h.verbose {
+	if h.verbosityLevel > 0 {
 		fmt.Fprintf(h.out, "\nResponse trailers received:\n%s\n", MetadataToString(md))
 	}
 }

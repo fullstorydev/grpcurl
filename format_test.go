@@ -120,11 +120,13 @@ func TestHandler(t *testing.T) {
 
 	for _, format := range []Format{FormatJSON, FormatText} {
 		for _, numMessages := range []int{1, 3} {
-			for _, verbose := range []bool{true, false} {
+			for verbosityLevel := 0; verbosityLevel <= 2; verbosityLevel++ {
 				name := fmt.Sprintf("%s, %d message(s)", format, numMessages)
-				if verbose {
-					name += ", verbose"
+				if verbosityLevel > 0 {
+					name += fmt.Sprintf(", verbosityLevel=%d", verbosityLevel)
 				}
+
+				verbose := verbosityLevel > 0
 
 				_, formatter, err := RequestParserAndFormatter(format, source, nil, FormatOptions{IncludeTextSeparator: !verbose})
 				if err != nil {
@@ -133,7 +135,7 @@ func TestHandler(t *testing.T) {
 				}
 
 				var buf bytes.Buffer
-				h := NewDefaultEventHandler(&buf, source, formatter, verbose)
+				h := NewDefaultEventHandler(&buf, source, formatter, verbosityLevel)
 
 				h.OnResolveMethod(md)
 				h.OnSendHeaders(reqHeaders)
@@ -148,6 +150,9 @@ func TestHandler(t *testing.T) {
 					expectedOutput += verbosePrefix
 				}
 				for i := 0; i < numMessages; i++ {
+					if verbosityLevel > 1 {
+						expectedOutput += verboseResponseSize
+					}
 					if verbose {
 						expectedOutput += verboseResponseHeader
 					}
@@ -226,6 +231,9 @@ Response trailers received:
 a: 1
 b: 2
 c: 3
+`
+	verboseResponseSize = `
+Estimated response size: 100 bytes
 `
 	verboseResponseHeader = `
 Response contents:
