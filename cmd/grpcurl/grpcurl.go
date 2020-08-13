@@ -671,7 +671,12 @@ func main() {
 		if err != nil {
 			fail(err, "Failed to construct request parser and formatter for %q", *format)
 		}
-		h := grpcurl.NewDefaultEventHandler(os.Stdout, descSource, formatter, verbosityLevel)
+		h := &grpcurl.DefaultEventHandler{
+			Out:            os.Stdout,
+			DescSource:     descSource,
+			Formatter:      formatter,
+			VerbosityLevel: verbosityLevel,
+		}
 
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {

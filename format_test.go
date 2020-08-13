@@ -135,7 +135,12 @@ func TestHandler(t *testing.T) {
 				}
 
 				var buf bytes.Buffer
-				h := NewDefaultEventHandler(&buf, source, formatter, verbosityLevel)
+				h := &DefaultEventHandler{
+					Out:            &buf,
+					DescSource:     source,
+					Formatter:      formatter,
+					VerbosityLevel: verbosityLevel,
+				}
 
 				h.OnResolveMethod(md)
 				h.OnSendHeaders(reqHeaders)
