@@ -137,7 +137,6 @@ func TestHandler(t *testing.T) {
 				var buf bytes.Buffer
 				h := &DefaultEventHandler{
 					Out:            &buf,
-					DescSource:     source,
 					Formatter:      formatter,
 					VerbosityLevel: verbosityLevel,
 				}

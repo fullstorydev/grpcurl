@@ -409,9 +409,8 @@ func RequestParserAndFormatterFor(format Format, descSource DescriptorSource, em
 // safe for use with InvokeRPC as long as NumResponses and Status are not read
 // until the call to InvokeRPC completes.
 type DefaultEventHandler struct {
-	Out        io.Writer
-	DescSource DescriptorSource
-	Formatter  func(proto.Message) (string, error)
+	Out       io.Writer
+	Formatter Formatter
 	// 0 = default
 	// 1 = verbose
 	// 2 = very verbose
@@ -439,7 +438,6 @@ func NewDefaultEventHandler(out io.Writer, descSource DescriptorSource, formatte
 	}
 	return &DefaultEventHandler{
 		Out:            out,
-		DescSource:     descSource,
 		Formatter:      formatter,
 		VerbosityLevel: verbosityLevel,
 	}
@@ -449,7 +447,7 @@ var _ InvocationEventHandler = (*DefaultEventHandler)(nil)
 
 func (h *DefaultEventHandler) OnResolveMethod(md *desc.MethodDescriptor) {
 	if h.VerbosityLevel > 0 {
-		txt, err := GetDescriptorText(md, h.DescSource)
+		txt, err := GetDescriptorText(md, nil)
 		if err == nil {
 			fmt.Fprintf(h.Out, "\nResolved method descriptor:\n%s\n", txt)
 		}

@@ -673,7 +673,6 @@ func main() {
 		}
 		h := &grpcurl.DefaultEventHandler{
 			Out:            os.Stdout,
-			DescSource:     descSource,
 			Formatter:      formatter,
 			VerbosityLevel: verbosityLevel,
 		}
