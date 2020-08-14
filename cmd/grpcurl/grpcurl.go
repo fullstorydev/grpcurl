@@ -135,6 +135,8 @@ var (
 		When describing messages, show a template of input data.`))
 	verbose = flags.Bool("v", false, prettify(`
 		Enable verbose output.`))
+	veryVerbose = flags.Bool("vv", false, prettify(`
+		Enable very verbose output.`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate. This flag is
 		ignored if -plaintext or -insecure is used.
@@ -314,6 +316,14 @@ func main() {
 		args = args[1:]
 	} else {
 		invoke = true
+	}
+
+	verbosityLevel := 0
+	if *verbose {
+		verbosityLevel = 1
+	}
+	if *veryVerbose {
+		verbosityLevel = 2
 	}
 
 	var symbol string
@@ -651,7 +661,7 @@ func main() {
 		// if not verbose output, then also include record delimiters
 		// between each message, so output could potentially be piped
 		// to another grpcurl process
-		includeSeparators := !*verbose
+		includeSeparators := verbosityLevel == 0
 		options := grpcurl.FormatOptions{
 			EmitJSONDefaultFields: *emitDefaults,
 			IncludeTextSeparator:  includeSeparators,
@@ -661,7 +671,11 @@ func main() {
 		if err != nil {
 			fail(err, "Failed to construct request parser and formatter for %q", *format)
 		}
-		h := grpcurl.NewDefaultEventHandler(os.Stdout, descSource, formatter, *verbose)
+		h := &grpcurl.DefaultEventHandler{
+			Out:            os.Stdout,
+			Formatter:      formatter,
+			VerbosityLevel: verbosityLevel,
+		}
 
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {
@@ -676,7 +690,7 @@ func main() {
 		if h.NumResponses != 1 {
 			respSuffix = "s"
 		}
-		if *verbose {
+		if verbosityLevel > 0 {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
 		if h.Status.Code() != codes.OK {
