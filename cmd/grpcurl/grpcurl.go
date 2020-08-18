@@ -37,7 +37,9 @@ import (
 // the response status codes emitted use an offest of 64
 const statusCodeOffset = 64
 
-var version = "dev build <no version set>"
+const no_version = "dev build <no version set>"
+
+var version = no_version
 
 var (
 	exit = os.Exit
@@ -85,6 +87,10 @@ var (
 		is used, this will also be used as the server name when verifying the
 		server's certificate. It defaults to the address that is provided in the
 		positional arguments.`))
+	userAgent = flags.String("user-agent", "", prettify(`
+		If set, the specified value will be added to the User-Agent header set
+		by the grpc-go library.
+		`))
 	data = flags.String("d", "", prettify(`
 		Data for request contents. If the value is '@' then the request contents
 		are read from stdin. For calls that accept a stream of requests, the
@@ -426,6 +432,16 @@ func main() {
 		} else if *authority != "" {
 			opts = append(opts, grpc.WithAuthority(*authority))
 		}
+
+		grpcurlUA := "grpcurl/" + version
+		if version == no_version {
+			grpcurlUA = "grpcurl/dev-build (no version set)"
+		}
+		if *userAgent != "" {
+			grpcurlUA = *userAgent + " " + grpcurlUA
+		}
+		opts = append(opts, grpc.WithUserAgent(grpcurlUA))
+
 		network := "tcp"
 		if isUnixSocket != nil && isUnixSocket() {
 			network = "unix"
