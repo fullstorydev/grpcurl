@@ -35,9 +35,9 @@ See also the [`grpcurl` talk at GopherCon 2018](https://www.youtube.com/watch?v=
 operate bi-directional streaming methods interactively by running `grpcurl` from an
 interactive terminal and using stdin as the request body!
 
-`grpcurl` supports both secure/TLS server _and_ plain-text (i.e. no TLS) and has
-numerous options for TLS configuration. It also supports mutual TLS, where the client
-is required to present a client certificate.
+`grpcurl` supports both secure/TLS servers _and_ plain-text servers (i.e. no TLS) and has
+numerous options for TLS configuration. It also supports mutual TLS, where the client is
+required to present a client certificate.
 
 As mentioned above, `grpcurl` works seamlessly if the server supports the reflection
 service. If not, you can supply the `.proto` source files or you can supply protoset
