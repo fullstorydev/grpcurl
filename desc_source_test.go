@@ -10,11 +10,11 @@ import (
 )
 
 func TestWriteProtoset(t *testing.T) {
-	exampleProtoset, err := loadProtoset("./testing/example.protoset")
+	exampleProtoset, err := loadProtoset("./internal/testing/example.protoset")
 	if err != nil {
 		t.Fatalf("failed to load example.protoset: %v", err)
 	}
-	testProtoset, err := loadProtoset("./testing/test.protoset")
+	testProtoset, err := loadProtoset("./internal/testing/test.protoset")
 	if err != nil {
 		t.Fatalf("failed to load test.protoset: %v", err)
 	}
@@ -29,8 +29,8 @@ func TestWriteProtoset(t *testing.T) {
 	}
 
 	checkWriteProtoset(t, descSrc, exampleProtoset, "TestService")
-	checkWriteProtoset(t, descSrc, testProtoset, "grpc.testing.TestService")
-	checkWriteProtoset(t, descSrc, mergedProtoset, "TestService", "grpc.testing.TestService")
+	checkWriteProtoset(t, descSrc, testProtoset, "testing.TestService")
+	checkWriteProtoset(t, descSrc, mergedProtoset, "TestService", "testing.TestService")
 }
 
 func loadProtoset(path string) (*descriptor.FileDescriptorSet, error) {

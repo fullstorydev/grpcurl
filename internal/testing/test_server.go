@@ -1,5 +1,9 @@
 package testing
 
+//go:generate protoc --go_out=plugins=grpc:./ test.proto
+//go:generate protoc --descriptor_set_out=./test.protoset test.proto
+//go:generate protoc --descriptor_set_out=./example.protoset --include_imports example.proto
+
 import (
 	"io"
 	"strconv"
@@ -8,7 +12,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/interop/grpc_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
@@ -19,7 +22,7 @@ import (
 type TestServer struct{}
 
 // EmptyCall accepts one empty request and issues one empty response.
-func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc_testing.Empty, error) {
+func (TestServer) EmptyCall(ctx context.Context, req *Empty) (*Empty, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
 	grpc.SetHeader(ctx, headers)
 	grpc.SetTrailer(ctx, trailers)
@@ -35,7 +38,7 @@ func (TestServer) EmptyCall(ctx context.Context, req *grpc_testing.Empty) (*grpc
 
 // UnaryCall accepts one request and issues one response. The response includes
 // the client's payload as-is.
-func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest) (*grpc_testing.SimpleResponse, error) {
+func (TestServer) UnaryCall(ctx context.Context, req *SimpleRequest) (*SimpleResponse, error) {
 	headers, trailers, failEarly, failLate := processMetadata(ctx)
 	grpc.SetHeader(ctx, headers)
 	grpc.SetTrailer(ctx, trailers)
@@ -46,7 +49,7 @@ func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest
 		return nil, status.Error(failLate, "fail")
 	}
 
-	return &grpc_testing.SimpleResponse{
+	return &SimpleResponse{
 		Payload: req.Payload,
 	}, nil
 }
@@ -54,7 +57,7 @@ func (TestServer) UnaryCall(ctx context.Context, req *grpc_testing.SimpleRequest
 // StreamingOutputCall accepts one request and issues a sequence of responses
 // (streamed download). The server returns the payload with client desired type
 // and sizes as specified in the request's ResponseParameters.
-func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallRequest, str grpc_testing.TestService_StreamingOutputCallServer) error {
+func (TestServer) StreamingOutputCall(req *StreamingOutputCallRequest, str TestService_StreamingOutputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
 	str.SetTrailer(trailers)
@@ -62,7 +65,7 @@ func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallReque
 		return status.Error(failEarly, "fail")
 	}
 
-	rsp := &grpc_testing.StreamingOutputCallResponse{Payload: &grpc_testing.Payload{}}
+	rsp := &StreamingOutputCallResponse{Payload: &Payload{}}
 	for _, param := range req.ResponseParameters {
 		if str.Context().Err() != nil {
 			return str.Context().Err()
@@ -92,7 +95,7 @@ func (TestServer) StreamingOutputCall(req *grpc_testing.StreamingOutputCallReque
 // StreamingInputCall accepts a sequence of requests and issues one response
 // (streamed upload). The server returns the aggregated size of client payloads
 // as the result.
-func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInputCallServer) error {
+func (TestServer) StreamingInputCall(str TestService_StreamingInputCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
 	str.SetTrailer(trailers)
@@ -114,7 +117,7 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 			sz += len(req.Payload.Body)
 		}
 	}
-	if err := str.SendAndClose(&grpc_testing.StreamingInputCallResponse{AggregatedPayloadSize: int32(sz)}); err != nil {
+	if err := str.SendAndClose(&StreamingInputCallResponse{AggregatedPayloadSize: int32(sz)}); err != nil {
 		return err
 	}
 
@@ -127,7 +130,7 @@ func (TestServer) StreamingInputCall(str grpc_testing.TestService_StreamingInput
 // FullDuplexCall accepts a sequence of requests with each request served by the
 // server immediately. As one request could lead to multiple responses, this
 // interface demonstrates the idea of full duplexing.
-func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServer) error {
+func (TestServer) FullDuplexCall(str TestService_FullDuplexCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
 	str.SetTrailer(trailers)
@@ -135,7 +138,7 @@ func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServ
 		return status.Error(failEarly, "fail")
 	}
 
-	rsp := &grpc_testing.StreamingOutputCallResponse{Payload: &grpc_testing.Payload{}}
+	rsp := &StreamingOutputCallResponse{Payload: &Payload{}}
 	for {
 		if str.Context().Err() != nil {
 			return str.Context().Err()
@@ -170,7 +173,7 @@ func (TestServer) FullDuplexCall(str grpc_testing.TestService_FullDuplexCallServ
 // responses. The server buffers all the client requests and then serves them
 // in order. A stream of responses is returned to the client once the client
 // half-closes the stream.
-func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServer) error {
+func (TestServer) HalfDuplexCall(str TestService_HalfDuplexCallServer) error {
 	headers, trailers, failEarly, failLate := processMetadata(str.Context())
 	str.SetHeader(headers)
 	str.SetTrailer(trailers)
@@ -178,7 +181,7 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 		return status.Error(failEarly, "fail")
 	}
 
-	var reqs []*grpc_testing.StreamingOutputCallRequest
+	var reqs []*StreamingOutputCallRequest
 	for {
 		if str.Context().Err() != nil {
 			return str.Context().Err()
@@ -192,7 +195,7 @@ func (TestServer) HalfDuplexCall(str grpc_testing.TestService_HalfDuplexCallServ
 			reqs = append(reqs, req)
 		}
 	}
-	rsp := &grpc_testing.StreamingOutputCallResponse{}
+	rsp := &StreamingOutputCallResponse{}
 	for _, req := range reqs {
 		rsp.Payload = req.Payload
 		if err := str.Send(rsp); err != nil {
@@ -251,4 +254,4 @@ func toCode(vals []string) codes.Code {
 	return codes.Code(i)
 }
 
-var _ grpc_testing.TestServiceServer = TestServer{}
+var _ TestServiceServer = TestServer{}

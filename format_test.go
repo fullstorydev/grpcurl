@@ -15,7 +15,7 @@ import (
 )
 
 func TestRequestParser(t *testing.T) {
-	source, err := DescriptorSourceFromProtoSets("testing/example.protoset")
+	source, err := DescriptorSourceFromProtoSets("internal/testing/example.protoset")
 	if err != nil {
 		t.Fatalf("failed to create descriptor source: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestRequestParser(t *testing.T) {
 // Handler prints response data (and headers/trailers in verbose mode).
 // This verifies that we get the right output in both JSON and proto text modes.
 func TestHandler(t *testing.T) {
-	source, err := DescriptorSourceFromProtoSets("testing/example.protoset")
+	source, err := DescriptorSourceFromProtoSets("internal/testing/example.protoset")
 	if err != nil {
 		t.Fatalf("failed to create descriptor source: %v", err)
 	}

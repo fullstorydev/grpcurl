@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "testing/example2.proto";
+import "example2.proto";
 
 message TestRequest {
 	repeated string file_names = 1;
