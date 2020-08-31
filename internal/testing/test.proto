@@ -18,7 +18,7 @@
 // of unary/streaming requests/responses.
 syntax = "proto3";
 
-package grpc.testing;
+package testing;
 
 message Empty {}
 
@@ -172,5 +172,5 @@ service TestService {
 // that case.
 service UnimplementedService {
   // A call that no server should implement
-  rpc UnimplementedCall(grpc.testing.Empty) returns (grpc.testing.Empty);
+  rpc UnimplementedCall(Empty) returns (Empty);
 }

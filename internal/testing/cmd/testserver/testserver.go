@@ -13,13 +13,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/interop/grpc_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	"github.com/fullstorydev/grpcurl"
-	grpcurl_testing "github.com/fullstorydev/grpcurl/testing"
+	grpcurl_testing "github.com/fullstorydev/grpcurl/internal/testing"
 )
 
 var (
@@ -96,7 +95,7 @@ func main() {
 
 	svr := grpc.NewServer(opts...)
 
-	grpc_testing.RegisterTestServiceServer(svr, grpcurl_testing.TestServer{})
+	grpcurl_testing.RegisterTestServiceServer(svr, grpcurl_testing.TestServer{})
 	if !*noreflect {
 		reflection.Register(svr)
 	}

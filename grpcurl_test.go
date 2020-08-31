@@ -18,15 +18,14 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/interop/grpc_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 
 	. "github.com/fullstorydev/grpcurl"
-	grpcurl_testing "github.com/fullstorydev/grpcurl/testing"
-	jsonpbtest "github.com/fullstorydev/grpcurl/testing/jsonpb_test_proto"
+	grpcurl_testing "github.com/fullstorydev/grpcurl/internal/testing"
+	jsonpbtest "github.com/fullstorydev/grpcurl/internal/testing/jsonpb_test_proto"
 )
 
 var (
@@ -52,18 +51,18 @@ type descSourceCase struct {
 
 func TestMain(m *testing.M) {
 	var err error
-	sourceProtoset, err = DescriptorSourceFromProtoSets("testing/test.protoset")
+	sourceProtoset, err = DescriptorSourceFromProtoSets("internal/testing/test.protoset")
 	if err != nil {
 		panic(err)
 	}
-	sourceProtoFiles, err = DescriptorSourceFromProtoFiles(nil, "testing/test.proto")
+	sourceProtoFiles, err = DescriptorSourceFromProtoFiles([]string{"internal/testing"}, "test.proto")
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a server that includes the reflection service
 	svrReflect := grpc.NewServer()
-	grpc_testing.RegisterTestServiceServer(svrReflect, grpcurl_testing.TestServer{})
+	grpcurl_testing.RegisterTestServiceServer(svrReflect, grpcurl_testing.TestServer{})
 	reflection.Register(svrReflect)
 	var portReflect int
 	if l, err := net.Listen("tcp", "127.0.0.1:0"); err != nil {
@@ -89,7 +88,7 @@ func TestMain(m *testing.M) {
 
 	// Also create a server that does *not* include the reflection service
 	svrProtoset := grpc.NewServer()
-	grpc_testing.RegisterTestServiceServer(svrProtoset, grpcurl_testing.TestServer{})
+	grpcurl_testing.RegisterTestServiceServer(svrProtoset, grpcurl_testing.TestServer{})
 	var portProtoset int
 	if l, err := net.Listen("tcp", "127.0.0.1:0"); err != nil {
 		panic(err)
@@ -141,7 +140,7 @@ func TestServerDoesNotSupportReflection(t *testing.T) {
 }
 
 func TestProtosetWithImports(t *testing.T) {
-	sourceProtoset, err := DescriptorSourceFromProtoSets("testing/example.protoset")
+	sourceProtoset, err := DescriptorSourceFromProtoSets("internal/testing/example.protoset")
 	if err != nil {
 		t.Fatalf("failed to load protoset: %v", err)
 	}
@@ -178,11 +177,11 @@ func doTestListServices(t *testing.T, source DescriptorSource, includeReflection
 	var expected []string
 	if includeReflection {
 		// when using server reflection, we see the TestService as well as the ServerReflection service
-		expected = []string{"grpc.reflection.v1alpha.ServerReflection", "grpc.testing.TestService"}
+		expected = []string{"grpc.reflection.v1alpha.ServerReflection", "testing.TestService"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
-		expected = []string{"grpc.testing.TestService", "grpc.testing.UnimplementedService"}
+		expected = []string{"testing.TestService", "testing.UnimplementedService"}
 	}
 	if !reflect.DeepEqual(expected, names) {
 		t.Errorf("ListServices returned wrong results: wanted %v, got %v", expected, names)
@@ -198,17 +197,17 @@ func TestListMethods(t *testing.T) {
 }
 
 func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection bool) {
-	names, err := ListMethods(source, "grpc.testing.TestService")
+	names, err := ListMethods(source, "testing.TestService")
 	if err != nil {
 		t.Fatalf("failed to list methods for TestService: %v", err)
 	}
 	expected := []string{
-		"grpc.testing.TestService.EmptyCall",
-		"grpc.testing.TestService.FullDuplexCall",
-		"grpc.testing.TestService.HalfDuplexCall",
-		"grpc.testing.TestService.StreamingInputCall",
-		"grpc.testing.TestService.StreamingOutputCall",
-		"grpc.testing.TestService.UnaryCall",
+		"testing.TestService.EmptyCall",
+		"testing.TestService.FullDuplexCall",
+		"testing.TestService.HalfDuplexCall",
+		"testing.TestService.StreamingInputCall",
+		"testing.TestService.StreamingOutputCall",
+		"testing.TestService.UnaryCall",
 	}
 	if !reflect.DeepEqual(expected, names) {
 		t.Errorf("ListMethods returned wrong results: wanted %v, got %v", expected, names)
@@ -224,11 +223,11 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
-		names, err = ListMethods(source, "grpc.testing.UnimplementedService")
+		names, err = ListMethods(source, "testing.UnimplementedService")
 		if err != nil {
 			t.Fatalf("failed to list methods for ServerReflection: %v", err)
 		}
-		expected = []string{"grpc.testing.UnimplementedService.UnimplementedCall"}
+		expected = []string{"testing.UnimplementedService.UnimplementedCall"}
 	}
 	if !reflect.DeepEqual(expected, names) {
 		t.Errorf("ListMethods returned wrong results: wanted %v, got %v", expected, names)
@@ -242,13 +241,13 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 }
 
 func TestGetAllFiles(t *testing.T) {
-	expectedFiles := []string{"testing/test.proto"}
+	expectedFiles := []string{"test.proto"}
 	// server reflection picks up filename from linked in Go package,
 	// which indicates "grpc_testing/test.proto", not our local copy.
 	expectedFilesWithReflection := [][]string{
-		{"grpc_reflection_v1alpha/reflection.proto", "grpc_testing/test.proto"},
+		{"grpc_reflection_v1alpha/reflection.proto", "test.proto"},
 		// depending on the version of grpc, the filenames could be prefixed with "interop/" and "reflection/"
-		{"interop/grpc_testing/test.proto", "reflection/grpc_reflection_v1alpha/reflection.proto"},
+		{"reflection/grpc_reflection_v1alpha/reflection.proto", "test.proto"},
 	}
 
 	for _, ds := range descSources {
@@ -279,11 +278,11 @@ func TestGetAllFiles(t *testing.T) {
 	}
 
 	// try cases with more complicated set of files
-	otherSourceProtoset, err := DescriptorSourceFromProtoSets("testing/test.protoset", "testing/example.protoset")
+	otherSourceProtoset, err := DescriptorSourceFromProtoSets("internal/testing/test.protoset", "internal/testing/example.protoset")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	otherSourceProtoFiles, err := DescriptorSourceFromProtoFiles(nil, "testing/test.proto", "testing/example.proto")
+	otherSourceProtoFiles, err := DescriptorSourceFromProtoFiles([]string{"internal/testing"}, "test.proto", "example.proto")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -292,13 +291,13 @@ func TestGetAllFiles(t *testing.T) {
 		{"proto[b]", otherSourceProtoFiles, false},
 	}
 	expectedFiles = []string{
+		"example.proto",
+		"example2.proto",
 		"google/protobuf/any.proto",
 		"google/protobuf/descriptor.proto",
 		"google/protobuf/empty.proto",
 		"google/protobuf/timestamp.proto",
-		"testing/example.proto",
-		"testing/example2.proto",
-		"testing/test.proto",
+		"test.proto",
 	}
 	for _, ds := range otherDescSources {
 		t.Run(ds.name, func(t *testing.T) {
@@ -403,7 +402,7 @@ func TestDescribe(t *testing.T) {
 }
 
 func doTestDescribe(t *testing.T, source DescriptorSource) {
-	sym := "grpc.testing.TestService.EmptyCall"
+	sym := "testing.TestService.EmptyCall"
 	dsc, err := source.FindSymbol(sym)
 	if err != nil {
 		t.Fatalf("failed to get descriptor for %q: %v", sym, err)
@@ -414,14 +413,14 @@ func doTestDescribe(t *testing.T, source DescriptorSource) {
 	txt := proto.MarshalTextString(dsc.AsProto())
 	expected :=
 		`name: "EmptyCall"
-input_type: ".grpc.testing.Empty"
-output_type: ".grpc.testing.Empty"
+input_type: ".testing.Empty"
+output_type: ".testing.Empty"
 `
 	if expected != txt {
 		t.Errorf("descriptor mismatch: expected %s, got %s", expected, txt)
 	}
 
-	sym = "grpc.testing.StreamingOutputCallResponse"
+	sym = "testing.StreamingOutputCallResponse"
 	dsc, err = source.FindSymbol(sym)
 	if err != nil {
 		t.Fatalf("failed to get descriptor for %q: %v", sym, err)
@@ -437,7 +436,7 @@ field: <
   number: 1
   label: LABEL_OPTIONAL
   type: TYPE_MESSAGE
-  type_name: ".grpc.testing.Payload"
+  type_name: ".testing.Payload"
   json_name: "payload"
 >
 `
@@ -493,12 +492,12 @@ func TestUnary(t *testing.T) {
 func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	// Success
 	h := &handler{reqMessages: []string{payload1}}
-	err := InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/UnaryCall", makeHeaders(codes.OK), h, h.getRequestData)
+	err := InvokeRpc(context.Background(), source, cc, "testing.TestService/UnaryCall", makeHeaders(codes.OK), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	if h.check(t, "grpc.testing.TestService.UnaryCall", codes.OK, 1, 1) {
+	if h.check(t, "testing.TestService.UnaryCall", codes.OK, 1, 1) {
 		if h.respMessages[0] != payload1 {
 			t.Errorf("unexpected response from RPC: expecting %s; got %s", payload1, h.respMessages[0])
 		}
@@ -506,12 +505,12 @@ func doTestUnary(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 
 	// Failure
 	h = &handler{reqMessages: []string{payload1}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/UnaryCall", makeHeaders(codes.NotFound), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/UnaryCall", makeHeaders(codes.NotFound), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.UnaryCall", codes.NotFound, 1, 0)
+	h.check(t, "testing.TestService.UnaryCall", codes.NotFound, 1, 0)
 }
 
 func TestClientStream(t *testing.T) {
@@ -525,12 +524,12 @@ func TestClientStream(t *testing.T) {
 func doTestClientStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	// Success
 	h := &handler{reqMessages: []string{payload1, payload2, payload3}}
-	err := InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingInputCall", makeHeaders(codes.OK), h, h.getRequestData)
+	err := InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingInputCall", makeHeaders(codes.OK), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	if h.check(t, "grpc.testing.TestService.StreamingInputCall", codes.OK, 3, 1) {
+	if h.check(t, "testing.TestService.StreamingInputCall", codes.OK, 3, 1) {
 		expected :=
 			`{
   "aggregatedPayloadSize": 61
@@ -542,21 +541,21 @@ func doTestClientStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSour
 
 	// Fail fast (server rejects as soon as possible)
 	h = &handler{reqMessages: []string{payload1, payload2, payload3}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingInputCall", makeHeaders(codes.InvalidArgument), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingInputCall", makeHeaders(codes.InvalidArgument), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.StreamingInputCall", codes.InvalidArgument, -3, 0)
+	h.check(t, "testing.TestService.StreamingInputCall", codes.InvalidArgument, -3, 0)
 
 	// Fail late (server waits until stream is complete to reject)
 	h = &handler{reqMessages: []string{payload1, payload2, payload3}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingInputCall", makeHeaders(codes.Internal, true), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingInputCall", makeHeaders(codes.Internal, true), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.StreamingInputCall", codes.Internal, 3, 0)
+	h.check(t, "testing.TestService.StreamingInputCall", codes.Internal, 3, 0)
 }
 
 func TestServerStream(t *testing.T) {
@@ -568,9 +567,9 @@ func TestServerStream(t *testing.T) {
 }
 
 func doTestServerStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
-	req := &grpc_testing.StreamingOutputCallRequest{
-		ResponseType: grpc_testing.PayloadType_COMPRESSABLE,
-		ResponseParameters: []*grpc_testing.ResponseParameters{
+	req := &grpcurl_testing.StreamingOutputCallRequest{
+		ResponseType: grpcurl_testing.PayloadType_COMPRESSABLE,
+		ResponseParameters: []*grpcurl_testing.ResponseParameters{
 			{Size: 10}, {Size: 20}, {Size: 30}, {Size: 40}, {Size: 50},
 		},
 	}
@@ -581,19 +580,19 @@ func doTestServerStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSour
 
 	// Success
 	h := &handler{reqMessages: []string{payload}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingOutputCall", makeHeaders(codes.OK), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingOutputCall", makeHeaders(codes.OK), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	if h.check(t, "grpc.testing.TestService.StreamingOutputCall", codes.OK, 1, 5) {
-		resp := &grpc_testing.StreamingOutputCallResponse{}
+	if h.check(t, "testing.TestService.StreamingOutputCall", codes.OK, 1, 5) {
+		resp := &grpcurl_testing.StreamingOutputCallResponse{}
 		for i, msg := range h.respMessages {
 			if err := jsonpb.UnmarshalString(msg, resp); err != nil {
 				t.Errorf("failed to parse response %d: %v", i+1, err)
 			}
-			if resp.Payload.GetType() != grpc_testing.PayloadType_COMPRESSABLE {
-				t.Errorf("response %d has wrong payload type; expecting %v, got %v", i, grpc_testing.PayloadType_COMPRESSABLE, resp.Payload.Type)
+			if resp.Payload.GetType() != grpcurl_testing.PayloadType_COMPRESSABLE {
+				t.Errorf("response %d has wrong payload type; expecting %v, got %v", i, grpcurl_testing.PayloadType_COMPRESSABLE, resp.Payload.Type)
 			}
 			if len(resp.Payload.Body) != (i+1)*10 {
 				t.Errorf("response %d has wrong payload size; expecting %d, got %d", i, (i+1)*10, len(resp.Payload.Body))
@@ -604,21 +603,21 @@ func doTestServerStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSour
 
 	// Fail fast (server rejects as soon as possible)
 	h = &handler{reqMessages: []string{payload}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingOutputCall", makeHeaders(codes.Aborted), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingOutputCall", makeHeaders(codes.Aborted), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.StreamingOutputCall", codes.Aborted, 1, 0)
+	h.check(t, "testing.TestService.StreamingOutputCall", codes.Aborted, 1, 0)
 
 	// Fail late (server waits until stream is complete to reject)
 	h = &handler{reqMessages: []string{payload}}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/StreamingOutputCall", makeHeaders(codes.AlreadyExists, true), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/StreamingOutputCall", makeHeaders(codes.AlreadyExists, true), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.StreamingOutputCall", codes.AlreadyExists, 1, 5)
+	h.check(t, "testing.TestService.StreamingOutputCall", codes.AlreadyExists, 1, 5)
 }
 
 func TestHalfDuplexStream(t *testing.T) {
@@ -634,12 +633,12 @@ func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	// Success
 	h := &handler{reqMessages: reqs}
-	err := InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/HalfDuplexCall", makeHeaders(codes.OK), h, h.getRequestData)
+	err := InvokeRpc(context.Background(), source, cc, "testing.TestService/HalfDuplexCall", makeHeaders(codes.OK), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	if h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.OK, 3, 3) {
+	if h.check(t, "testing.TestService.HalfDuplexCall", codes.OK, 3, 3) {
 		for i, resp := range h.respMessages {
 			if resp != reqs[i] {
 				t.Errorf("unexpected response %d from RPC:\nexpecting %q\ngot %q", i, reqs[i], resp)
@@ -649,21 +648,21 @@ func doTestHalfDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	// Fail fast (server rejects as soon as possible)
 	h = &handler{reqMessages: reqs}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/HalfDuplexCall", makeHeaders(codes.Canceled), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/HalfDuplexCall", makeHeaders(codes.Canceled), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.Canceled, -3, 0)
+	h.check(t, "testing.TestService.HalfDuplexCall", codes.Canceled, -3, 0)
 
 	// Fail late (server waits until stream is complete to reject)
 	h = &handler{reqMessages: reqs}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/HalfDuplexCall", makeHeaders(codes.DataLoss, true), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/HalfDuplexCall", makeHeaders(codes.DataLoss, true), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.HalfDuplexCall", codes.DataLoss, 3, 3)
+	h.check(t, "testing.TestService.HalfDuplexCall", codes.DataLoss, 3, 3)
 }
 
 func TestFullDuplexStream(t *testing.T) {
@@ -676,11 +675,11 @@ func TestFullDuplexStream(t *testing.T) {
 
 func doTestFullDuplexStream(t *testing.T, cc *grpc.ClientConn, source DescriptorSource) {
 	reqs := make([]string, 3)
-	req := &grpc_testing.StreamingOutputCallRequest{
-		ResponseType: grpc_testing.PayloadType_RANDOM,
+	req := &grpcurl_testing.StreamingOutputCallRequest{
+		ResponseType: grpcurl_testing.PayloadType_RANDOM,
 	}
 	for i := range reqs {
-		req.ResponseParameters = append(req.ResponseParameters, &grpc_testing.ResponseParameters{Size: int32((i + 1) * 10)})
+		req.ResponseParameters = append(req.ResponseParameters, &grpcurl_testing.ResponseParameters{Size: int32((i + 1) * 10)})
 		payload, err := (&jsonpb.Marshaler{}).MarshalToString(req)
 		if err != nil {
 			t.Fatalf("failed to construct request %d: %v", i, err)
@@ -690,13 +689,13 @@ func doTestFullDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	// Success
 	h := &handler{reqMessages: reqs}
-	err := InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/FullDuplexCall", makeHeaders(codes.OK), h, h.getRequestData)
+	err := InvokeRpc(context.Background(), source, cc, "testing.TestService/FullDuplexCall", makeHeaders(codes.OK), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	if h.check(t, "grpc.testing.TestService.FullDuplexCall", codes.OK, 3, 6) {
-		resp := &grpc_testing.StreamingOutputCallResponse{}
+	if h.check(t, "testing.TestService.FullDuplexCall", codes.OK, 3, 6) {
+		resp := &grpcurl_testing.StreamingOutputCallResponse{}
 		i := 0
 		for j := 1; j < 3; j++ {
 			// three requests
@@ -706,8 +705,8 @@ func doTestFullDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 				if err := jsonpb.UnmarshalString(msg, resp); err != nil {
 					t.Errorf("failed to parse response %d: %v", i+1, err)
 				}
-				if resp.Payload.GetType() != grpc_testing.PayloadType_RANDOM {
-					t.Errorf("response %d has wrong payload type; expecting %v, got %v", i, grpc_testing.PayloadType_RANDOM, resp.Payload.Type)
+				if resp.Payload.GetType() != grpcurl_testing.PayloadType_RANDOM {
+					t.Errorf("response %d has wrong payload type; expecting %v, got %v", i, grpcurl_testing.PayloadType_RANDOM, resp.Payload.Type)
 				}
 				if len(resp.Payload.Body) != (k+1)*10 {
 					t.Errorf("response %d has wrong payload size; expecting %d, got %d", i, (k+1)*10, len(resp.Payload.Body))
@@ -721,21 +720,21 @@ func doTestFullDuplexStream(t *testing.T, cc *grpc.ClientConn, source Descriptor
 
 	// Fail fast (server rejects as soon as possible)
 	h = &handler{reqMessages: reqs}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/FullDuplexCall", makeHeaders(codes.PermissionDenied), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/FullDuplexCall", makeHeaders(codes.PermissionDenied), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.FullDuplexCall", codes.PermissionDenied, -3, 0)
+	h.check(t, "testing.TestService.FullDuplexCall", codes.PermissionDenied, -3, 0)
 
 	// Fail late (server waits until stream is complete to reject)
 	h = &handler{reqMessages: reqs}
-	err = InvokeRpc(context.Background(), source, cc, "grpc.testing.TestService/FullDuplexCall", makeHeaders(codes.ResourceExhausted, true), h, h.getRequestData)
+	err = InvokeRpc(context.Background(), source, cc, "testing.TestService/FullDuplexCall", makeHeaders(codes.ResourceExhausted, true), h, h.getRequestData)
 	if err != nil {
 		t.Fatalf("unexpected error during RPC: %v", err)
 	}
 
-	h.check(t, "grpc.testing.TestService.FullDuplexCall", codes.ResourceExhausted, 3, 6)
+	h.check(t, "testing.TestService.FullDuplexCall", codes.ResourceExhausted, 3, 6)
 }
 
 type handler struct {
