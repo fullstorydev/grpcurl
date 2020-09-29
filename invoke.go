@@ -101,7 +101,7 @@ func InvokeRPC(ctx context.Context, source DescriptorSource, ch grpcdynamic.Chan
 		}
 		// return the error unstringified if it is a gRPC status error
 		if statusErr, ok := status.FromError(err); ok {
-			return status.Errorf(statusErr.Code(), "failed to query for service descriptor %q: %v", svc, err)
+			return status.Errorf(statusErr.Code(), "failed to query for service descriptor %q: %s", svc, statusErr.Message())
 		}
 		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 	}
