@@ -93,10 +93,15 @@ func InvokeRPC(ctx context.Context, source DescriptorSource, ch grpcdynamic.Chan
 	if svc == "" || mth == "" {
 		return fmt.Errorf("given method name %q is not in expected format: 'service/method' or 'service.method'", methodName)
 	}
+
 	dsc, err := source.FindSymbol(svc)
 	if err != nil {
 		if isNotFoundError(err) {
 			return fmt.Errorf("target server does not expose service %q", svc)
+		}
+		// return the error unstringified if it is a gRPC status.Status error
+		if _, ok := status.FromError(err); ok {
+			return err
 		}
 		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 	}
