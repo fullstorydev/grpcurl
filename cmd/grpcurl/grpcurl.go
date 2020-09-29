@@ -695,7 +695,7 @@ func main() {
 
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {
-			if errStatus, ok := status.FromError(err); ok {
+			if errStatus, ok := status.FromError(err); ok && *formatError {
 				h.Status = errStatus
 			} else {
 				fail(err, "Error invoking method %q", symbol)
