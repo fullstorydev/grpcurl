@@ -96,12 +96,15 @@ func InvokeRPC(ctx context.Context, source DescriptorSource, ch grpcdynamic.Chan
 
 	dsc, err := source.FindSymbol(svc)
 	if err != nil {
-		if isNotFoundError(err) {
-			return fmt.Errorf("target server does not expose service %q", svc)
-		}
-		// return the error unstringified if it is a gRPC status error
-		if errStatus, ok := status.FromError(err); ok {
+		// return a gRPC status error if hasStatus is true
+		errStatus, hasStatus := status.FromError(err)
+		switch {
+		case hasStatus && isNotFoundError(err):
+			return status.Errorf(errStatus.Code(), "target server does not expose service %q: %s", svc, errStatus.Message())
+		case hasStatus:
 			return status.Errorf(errStatus.Code(), "failed to query for service descriptor %q: %s", svc, errStatus.Message())
+		case isNotFoundError(err):
+			return fmt.Errorf("target server does not expose service %q", svc)
 		}
 		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
 	}
