@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fullstorydev/grpcurl"
 	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
+	"github.com/kai5263499/grpcurl"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

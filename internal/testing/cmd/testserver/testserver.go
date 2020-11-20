@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
-	"github.com/fullstorydev/grpcurl"
-	grpcurl_testing "github.com/fullstorydev/grpcurl/internal/testing"
+	"github.com/kai5263499/grpcurl"
+	grpcurl_testing "github.com/kai5263499/grpcurl/internal/testing"
 )
 
 var (
