@@ -10,6 +10,6 @@ require (
 	github.com/nishanths/predeclared v0.0.0-20200524104333-86fad755b4d3 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	google.golang.org/api v0.29.0 // indirect
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.33.1
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )
