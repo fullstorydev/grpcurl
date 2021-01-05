@@ -8,6 +8,9 @@ builds:
     goarch:
       - amd64
       - 386
+    ignore:
+      - goos: freebsd
+        goarch: arm64
     ldflags:
       - -s -w -X main.version=v{{.Version}}
 
