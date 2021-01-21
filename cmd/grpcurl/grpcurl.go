@@ -125,8 +125,14 @@ var (
 		The maximum total time the operation can take, in seconds. This is
 		useful for preventing batch jobs that use grpcurl from hanging due to
 		slow or bad network links or due to incorrect stream method usage.`))
-	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
+	maxReqSz = flags.Int("max-req-sz", 0, prettify(`
+		The maximum encoded size of a request message, in bytes, that grpcurl
+		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
+	maxResSz = flags.Int("max-res-sz", 0, prettify(`
 		The maximum encoded size of a response message, in bytes, that grpcurl
+		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
+	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
+		The maximum encoded size of a request and response message, in bytes, that grpcurl
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
 	emitDefaults = flags.Bool("emit-defaults", false, prettify(`
 		Emit default values for JSON-encoded responses.`))
@@ -277,6 +283,12 @@ func main() {
 	if *maxTime < 0 {
 		fail(nil, "The -max-time argument must not be negative.")
 	}
+	if *maxReqSz < 0 {
+		fail(nil, "The -max-req-sz argument must not be negative.")
+	}
+	if *maxResSz < 0 {
+		fail(nil, "The -max-res-sz argument must not be negative.")
+	}
 	if *maxMsgSz < 0 {
 		fail(nil, "The -max-msg-sz argument must not be negative.")
 	}
@@ -297,6 +309,17 @@ func main() {
 	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
+	}
+
+	// apply max-msg-sz -> both max-req-sz & max-res-sz
+	// on the condition they do not have their own values
+	if *maxMsgSz != 0 {
+		if *maxReqSz == 0 {
+			maxReqSz = maxMsgSz
+		}
+		if *maxResSz == 0 {
+			maxResSz = maxMsgSz
+		}
 	}
 
 	args := flags.Args()
@@ -400,8 +423,11 @@ func main() {
 				Timeout: timeout,
 			}))
 		}
-		if *maxMsgSz > 0 {
-			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
+		if *maxReqSz > 0 {
+			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(*maxReqSz)))
+		}
+		if *maxResSz > 0 {
+			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxResSz)))
 		}
 		var creds credentials.TransportCredentials
 		if !*plaintext {
