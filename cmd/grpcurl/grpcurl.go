@@ -157,7 +157,7 @@ func init() {
 	flags.Var(&addlHeaders, "H", prettify(`
 		Additional headers in 'name: value' format. May specify more than one
 		via multiple flags. These headers will also be included in reflection
-		requests requests to a server.`))
+		requests to a server.`))
 	flags.Var(&rpcHeaders, "rpc-header", prettify(`
 		Additional RPC headers in 'name: value' format. May specify more than
 		one via multiple flags. These headers will *only* be used when invoking
