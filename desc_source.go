@@ -1,21 +1,21 @@
 package grpcurl
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
-	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // ErrReflectionNotSupported is returned by DescriptorSource operations that
@@ -39,13 +39,13 @@ type DescriptorSource interface {
 // DescriptorSourceFromProtoSets creates a DescriptorSource that is backed by the named files, whose contents
 // are encoded FileDescriptorSet protos.
 func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error) {
-	files := &descpb.FileDescriptorSet{}
+	files := &descriptorpb.FileDescriptorSet{}
 	for _, fileName := range fileNames {
 		b, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("could not load protoset file %q: %v", fileName, err)
 		}
-		var fs descpb.FileDescriptorSet
+		var fs descriptorpb.FileDescriptorSet
 		err = proto.Unmarshal(b, &fs)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse contents of protoset file %q: %v", fileName, err)
@@ -76,8 +76,8 @@ func DescriptorSourceFromProtoFiles(importPaths []string, fileNames ...string) (
 }
 
 // DescriptorSourceFromFileDescriptorSet creates a DescriptorSource that is backed by the FileDescriptorSet.
-func DescriptorSourceFromFileDescriptorSet(files *descpb.FileDescriptorSet) (DescriptorSource, error) {
-	unresolved := map[string]*descpb.FileDescriptorProto{}
+func DescriptorSourceFromFileDescriptorSet(files *descriptorpb.FileDescriptorSet) (DescriptorSource, error) {
+	unresolved := map[string]*descriptorpb.FileDescriptorProto{}
 	for _, fd := range files.File {
 		unresolved[fd.GetName()] = fd
 	}
@@ -91,7 +91,7 @@ func DescriptorSourceFromFileDescriptorSet(files *descpb.FileDescriptorSet) (Des
 	return &fileSource{files: resolved}, nil
 }
 
-func resolveFileDescriptor(unresolved map[string]*descpb.FileDescriptorProto, resolved map[string]*desc.FileDescriptor, filename string) (*desc.FileDescriptor, error) {
+func resolveFileDescriptor(unresolved map[string]*descriptorpb.FileDescriptorProto, resolved map[string]*desc.FileDescriptor, filename string) (*desc.FileDescriptor, error) {
 	if r, ok := resolved[filename]; ok {
 		return r, nil
 	}
@@ -275,12 +275,12 @@ func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string
 	// now expand that to include transitive dependencies in topologically sorted
 	// order (such that file always appears after its dependencies)
 	expandedFiles := make(map[string]struct{}, len(fds))
-	allFilesSlice := make([]*descpb.FileDescriptorProto, 0, len(fds))
+	allFilesSlice := make([]*descriptorpb.FileDescriptorProto, 0, len(fds))
 	for _, filename := range filenames {
 		allFilesSlice = addFilesToSet(allFilesSlice, expandedFiles, fds[filename])
 	}
 	// now we can serialize to file
-	b, err := proto.Marshal(&descpb.FileDescriptorSet{File: allFilesSlice})
+	b, err := proto.Marshal(&descriptorpb.FileDescriptorSet{File: allFilesSlice})
 	if err != nil {
 		return fmt.Errorf("failed to serialize file descriptor set: %v", err)
 	}
@@ -290,7 +290,7 @@ func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string
 	return nil
 }
 
-func addFilesToSet(allFiles []*descpb.FileDescriptorProto, expanded map[string]struct{}, fd *desc.FileDescriptor) []*descpb.FileDescriptorProto {
+func addFilesToSet(allFiles []*descriptorpb.FileDescriptorProto, expanded map[string]struct{}, fd *desc.FileDescriptor) []*descriptorpb.FileDescriptorProto {
 	if _, ok := expanded[fd.GetName()]; ok {
 		// already seen this one
 		return allFiles
