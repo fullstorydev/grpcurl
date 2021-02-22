@@ -8,6 +8,7 @@ package grpcurl
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -20,18 +21,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
-	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	protov2 "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // ListServices uses the given descriptor source to return a sorted list of fully-qualified
@@ -405,8 +406,9 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	case "google.protobuf.Any":
 		// empty type URL is not allowed by JSON representation
 		// so we must give it a dummy type
-		msg, _ := ptypes.MarshalAny(&empty.Empty{})
-		return msg
+		var any anypb.Any
+		_ = anypb.MarshalFrom(&any, &emptypb.Empty{}, protov2.MarshalOptions{})
+		return &any
 	case "google.protobuf.Value":
 		// unset kind is not allowed by JSON representation
 		// so we must give it something
@@ -461,42 +463,42 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	for _, fd := range dm.GetMessageDescriptor().GetFields() {
 		if fd.IsRepeated() {
 			switch fd.GetType() {
-			case descpb.FieldDescriptorProto_TYPE_FIXED32,
-				descpb.FieldDescriptorProto_TYPE_UINT32:
+			case descriptorpb.FieldDescriptorProto_TYPE_FIXED32,
+				descriptorpb.FieldDescriptorProto_TYPE_UINT32:
 				dm.AddRepeatedField(fd, uint32(0))
 
-			case descpb.FieldDescriptorProto_TYPE_SFIXED32,
-				descpb.FieldDescriptorProto_TYPE_SINT32,
-				descpb.FieldDescriptorProto_TYPE_INT32,
-				descpb.FieldDescriptorProto_TYPE_ENUM:
+			case descriptorpb.FieldDescriptorProto_TYPE_SFIXED32,
+				descriptorpb.FieldDescriptorProto_TYPE_SINT32,
+				descriptorpb.FieldDescriptorProto_TYPE_INT32,
+				descriptorpb.FieldDescriptorProto_TYPE_ENUM:
 				dm.AddRepeatedField(fd, int32(0))
 
-			case descpb.FieldDescriptorProto_TYPE_FIXED64,
-				descpb.FieldDescriptorProto_TYPE_UINT64:
+			case descriptorpb.FieldDescriptorProto_TYPE_FIXED64,
+				descriptorpb.FieldDescriptorProto_TYPE_UINT64:
 				dm.AddRepeatedField(fd, uint64(0))
 
-			case descpb.FieldDescriptorProto_TYPE_SFIXED64,
-				descpb.FieldDescriptorProto_TYPE_SINT64,
-				descpb.FieldDescriptorProto_TYPE_INT64:
+			case descriptorpb.FieldDescriptorProto_TYPE_SFIXED64,
+				descriptorpb.FieldDescriptorProto_TYPE_SINT64,
+				descriptorpb.FieldDescriptorProto_TYPE_INT64:
 				dm.AddRepeatedField(fd, int64(0))
 
-			case descpb.FieldDescriptorProto_TYPE_STRING:
+			case descriptorpb.FieldDescriptorProto_TYPE_STRING:
 				dm.AddRepeatedField(fd, "")
 
-			case descpb.FieldDescriptorProto_TYPE_BYTES:
+			case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
 				dm.AddRepeatedField(fd, []byte{})
 
-			case descpb.FieldDescriptorProto_TYPE_BOOL:
+			case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
 				dm.AddRepeatedField(fd, false)
 
-			case descpb.FieldDescriptorProto_TYPE_FLOAT:
+			case descriptorpb.FieldDescriptorProto_TYPE_FLOAT:
 				dm.AddRepeatedField(fd, float32(0))
 
-			case descpb.FieldDescriptorProto_TYPE_DOUBLE:
+			case descriptorpb.FieldDescriptorProto_TYPE_DOUBLE:
 				dm.AddRepeatedField(fd, float64(0))
 
-			case descpb.FieldDescriptorProto_TYPE_MESSAGE,
-				descpb.FieldDescriptorProto_TYPE_GROUP:
+			case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
+				descriptorpb.FieldDescriptorProto_TYPE_GROUP:
 				dm.AddRepeatedField(fd, makeTemplate(fd.GetMessageType(), path))
 			}
 		} else if fd.GetMessageType() != nil {

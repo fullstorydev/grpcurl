@@ -1,6 +1,7 @@
 package grpcurl_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,11 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/jsonpb" //lint:ignore SA1019 we have to import this because it appears in exported API
+	"github.com/golang/protobuf/proto"  //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

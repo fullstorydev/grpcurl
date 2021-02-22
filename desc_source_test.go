@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 func TestWriteProtoset(t *testing.T) {
@@ -19,7 +19,7 @@ func TestWriteProtoset(t *testing.T) {
 		t.Fatalf("failed to load test.protoset: %v", err)
 	}
 
-	mergedProtoset := &descriptor.FileDescriptorSet{
+	mergedProtoset := &descriptorpb.FileDescriptorSet{
 		File: append(exampleProtoset.File, testProtoset.File...),
 	}
 
@@ -33,25 +33,25 @@ func TestWriteProtoset(t *testing.T) {
 	checkWriteProtoset(t, descSrc, mergedProtoset, "TestService", "testing.TestService")
 }
 
-func loadProtoset(path string) (*descriptor.FileDescriptorSet, error) {
+func loadProtoset(path string) (*descriptorpb.FileDescriptorSet, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var protoset descriptor.FileDescriptorSet
+	var protoset descriptorpb.FileDescriptorSet
 	if err := proto.Unmarshal(b, &protoset); err != nil {
 		return nil, err
 	}
 	return &protoset, nil
 }
 
-func checkWriteProtoset(t *testing.T, descSrc DescriptorSource, protoset *descriptor.FileDescriptorSet, symbols ...string) {
+func checkWriteProtoset(t *testing.T, descSrc DescriptorSource, protoset *descriptorpb.FileDescriptorSet, symbols ...string) {
 	var buf bytes.Buffer
 	if err := WriteProtoset(&buf, descSrc, symbols...); err != nil {
 		t.Fatalf("failed to write protoset: %v", err)
 	}
 
-	var result descriptor.FileDescriptorSet
+	var result descriptorpb.FileDescriptorSet
 	if err := proto.Unmarshal(buf.Bytes(), &result); err != nil {
 		t.Fatalf("failed to unmarshal written protoset: %v", err)
 	}

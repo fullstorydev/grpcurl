@@ -1,14 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sync"
 
-	"github.com/golang/protobuf/ptypes"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // chatServer implements the Support gRPC service, for providing
@@ -134,7 +134,7 @@ func (s *chatServer) ChatCustomer(stream Support_ChatCustomerServer) error {
 			}
 
 			entry := &ChatEntry{
-				Date: ptypes.TimestampNow(),
+				Date: timestamppb.Now(),
 				Entry: &ChatEntry_CustomerMsg{
 					CustomerMsg: req.Msg,
 				},
@@ -279,7 +279,7 @@ func (s *chatServer) ChatAgent(stream Support_ChatAgentServer) error {
 			}
 
 			entry := &ChatEntry{
-				Date: ptypes.TimestampNow(),
+				Date: timestamppb.Now(),
 				Entry: &ChatEntry_AgentMsg{
 					AgentMsg: &AgentMessage{
 						AgentName: agent,

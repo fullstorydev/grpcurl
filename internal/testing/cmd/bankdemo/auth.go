@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"strings"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 )
 

@@ -3,6 +3,7 @@ package main
 //go:generate protoc --go_out=plugins=grpc:./ bank.proto support.proto
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"

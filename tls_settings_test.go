@@ -1,13 +1,13 @@
 package grpcurl_test
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

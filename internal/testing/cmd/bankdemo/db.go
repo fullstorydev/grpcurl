@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // In-memory database that is periodically saved to a JSON file.
@@ -43,7 +42,7 @@ func (a *accounts) openAccount(customer string, accountType Account_Type, initia
 	acct.Transactions = append(acct.Transactions, &Transaction{
 		AccountNumber: num,
 		SeqNumber:     1,
-		Date:          ptypes.TimestampNow(),
+		Date:          timestamppb.Now(),
 		AmountCents:   initialBalanceCents,
 		Desc:          "initial deposit",
 	})
@@ -130,7 +129,7 @@ func (a *account) newTransaction(amountCents int32, desc string) (newBalance int
 	a.BalanceCents = bal
 	a.Transactions = append(a.Transactions, &Transaction{
 		AccountNumber: a.AccountNumber,
-		Date:          ptypes.TimestampNow(),
+		Date:          timestamppb.Now(),
 		AmountCents:   amountCents,
 		SeqNumber:     uint64(len(a.Transactions) + 1),
 		Desc:          desc,
@@ -139,16 +138,11 @@ func (a *account) newTransaction(amountCents int32, desc string) (newBalance int
 }
 
 func (t *Transaction) MarshalJSON() ([]byte, error) {
-	var jsm jsonpb.Marshaler
-	var buf bytes.Buffer
-	if err := jsm.Marshal(&buf, t); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return protojson.Marshal(t)
 }
 
 func (t *Transaction) UnmarshalJSON(b []byte) error {
-	return jsonpb.Unmarshal(bytes.NewReader(b), t)
+	return protojson.Unmarshal(b, t)
 }
 
 func (a *accounts) clone() *accounts {

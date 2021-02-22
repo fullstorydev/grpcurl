@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/jsonpb" //lint:ignore SA1019 we have to import this because it appears in exported API
+	"github.com/golang/protobuf/proto"  //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc/codes"
@@ -305,6 +305,7 @@ func (r anyResolverWithFallback) Resolve(typeUrl string) (proto.Message, error) 
 	if slash := strings.LastIndex(mname, "/"); slash >= 0 {
 		mname = mname[slash+1:]
 	}
+	//lint:ignore SA1019 new non-deprecated API requires other code changes; deferring...
 	mt := proto.MessageType(mname)
 	if mt != nil {
 		return reflect.New(mt.Elem()).Interface().(proto.Message), nil

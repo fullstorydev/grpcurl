@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -13,11 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fullstorydev/grpcurl"
-	descpb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -25,11 +23,14 @@ import (
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/descriptorpb"
 
 	// Register gzip compressor so compressed responses will work
 	_ "google.golang.org/grpc/encoding/gzip"
 	// Register xds so xds and xds-experimental resolver schemes work
 	_ "google.golang.org/grpc/xds"
+
+	"github.com/fullstorydev/grpcurl"
 )
 
 // To avoid confusion between program error codes and the gRPC resonse
@@ -382,7 +383,9 @@ func main() {
 	ctx := context.Background()
 	if *maxTime > 0 {
 		timeout := time.Duration(*maxTime * float64(time.Second))
-		ctx, _ = context.WithTimeout(ctx, timeout)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
 	}
 
 	dial := func() *grpc.ClientConn {
@@ -603,7 +606,7 @@ func main() {
 					} else {
 						// see if it's a group
 						for _, f := range parent.GetFields() {
-							if f.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP && f.GetMessageType() == d {
+							if f.GetType() == descriptorpb.FieldDescriptorProto_TYPE_GROUP && f.GetMessageType() == d {
 								// found it: describe the map field instead
 								elementType = "the type of a group field"
 								dsc = f
@@ -614,7 +617,7 @@ func main() {
 				}
 			case *desc.FieldDescriptor:
 				elementType = "a field"
-				if d.GetType() == descpb.FieldDescriptorProto_TYPE_GROUP {
+				if d.GetType() == descriptorpb.FieldDescriptorProto_TYPE_GROUP {
 					elementType = "a group field"
 				} else if d.IsExtension() {
 					elementType = "an extension"

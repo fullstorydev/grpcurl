@@ -20,6 +20,8 @@ syntax = "proto3";
 
 package testing;
 
+option go_package = ".;testing";
+
 message Empty {}
 
 // The type of payload that should be returned.
