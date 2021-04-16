@@ -54,6 +54,11 @@ On macOS, `grpcurl` is available via Homebrew:
 brew install grpcurl
 ```
 
+On windows `grpcurl` ins available via Scoop:
+```shell
+scoop install grpcurl
+```
+
 ### From Source
 You can use the `go` tool to install `grpcurl`:
 ```shell
