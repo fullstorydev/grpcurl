@@ -49,32 +49,54 @@ files (containing compiled descriptors, produced by `protoc`) to `grpcurl`.
 
 Download the binary from the [releases](https://github.com/fullstorydev/grpcurl/releases) page.
 
+### Homebrew (macOS)
+
 On macOS, `grpcurl` is available via Homebrew:
 ```shell
 brew install grpcurl
 ```
 
+### Docker
+
+For platforms that support Docker, you can download an image that lets you run `grpcurl`:
+```shell
+# Download image
+docker pull fullstorydev/grpcurl:latest
+# Run the tool
+docker run fullstorydev/grpcurl api.grpc.me:443 list
+```
+
+### Other Packages
+
+There are numerous other ways to install `grpcurl`, thanks to support from third parties that
+have created recipes/packages for it. These include other ways to install `grpcurl` on a variety
+of environments, including Windows and myriad Linux distributions.
+
+You can see more details and the full list of other packages for `grpcurl` at _repology.org_:
+https://repology.org/project/grpcurl/information
+
 ### From Source
-You can use the `go` tool to install `grpcurl`:
+If you already have the [Go SDK](https://golang.org/doc/install) installed, you can use the `go`
+tool to install `grpcurl`:
 ```shell
 go get github.com/fullstorydev/grpcurl/...
 go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 ```
 
 This installs the command into the `bin` sub-folder of wherever your `$GOPATH`
-environment variable points. If this directory is already in your `$PATH`, then
-you should be good to go.
+environment variable points. (If you have no `GOPATH` environment variable set,
+the default install location is `$HOME/go/bin`). If this directory is already in
+your `$PATH`, then you should be good to go.
 
 If you have already pulled down this repo to a location that is not in your
 `$GOPATH` and want to build from the sources, you can `cd` into the repo and then
 run `make install`.
 
-If you encounter compile errors, you could have out-dated versions of `grpcurl`'s
-dependencies. You can update the dependencies by running `make updatedeps`. You can
-also use [`vgo`](https://github.com/golang/vgo) to install, which will use the right
-versions of dependencies. Or, if you are using Go 1.11, you can add `GO111MODULE=on`
-as a prefix to the commands above, which will also build using the right versions of
-dependencies (vs. whatever you may already in your `GOPATH`).
+If you encounter compile errors and are using a version of the Go SDK older than 1.13,
+you could have out-dated versions of `grpcurl`'s dependencies. You can update the
+dependencies by running `make updatedeps`. Or, if you are using Go 1.11 or 1.12, you
+can add `GO111MODULE=on` as a prefix to the commands above, which will also build using
+the right versions of dependencies (vs. whatever you may already have in your `GOPATH`).
 
 ## Usage
 The usage doc for the tool explains the numerous options:
