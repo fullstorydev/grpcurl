@@ -635,11 +635,13 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	// know when we're done. So we run it in a goroutine and then use result
 	// channel to either get the connection or fail-fast.
 	go func() {
-		opts = append(opts,
-			grpc.WithBlock(),
-			grpc.FailOnNonTempDialError(true),
-			grpc.WithContextDialer(dialer),
-		)
+		// We put grpc.FailOnNonTempDialError *before* the explicitly provided
+		// options so that it could be overridden.
+		opts = append([]grpc.DialOption{grpc.FailOnNonTempDialError(true)}, opts...)
+		// But we don't want caller to be able to override these two, so we put
+		// them *after* the explicitly provided options.
+		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer))
+
 		if creds == nil {
 			opts = append(opts, grpc.WithInsecure())
 		} else {
