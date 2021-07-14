@@ -17,8 +17,6 @@ matrix:
       env: GO111MODULE=on
     - go: 1.15.x
       env: GO111MODULE=on
-    - go: 1.16.x
-      env: GO111MODULE=on
     - go: tip
       env: GO111MODULE=on
 
