@@ -122,6 +122,9 @@ var (
 		probe is sent. If the connection remains idle and no keepalive response
 		is received for this same period then the connection is closed and the
 		operation fails.`))
+	disableHalfClose = flags.Bool("disable-half-close", false, prettify(`
+		If true, the client will not call CloseSend() on the stream after all
+		request messages have been sent.`))
 	maxTime = flags.Float64("max-time", 0, prettify(`
 		The maximum total time the operation can take, in seconds. This is
 		useful for preventing batch jobs that use grpcurl from hanging due to
@@ -696,7 +699,7 @@ func main() {
 			VerbosityLevel: verbosityLevel,
 		}
 
-		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
+		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next, !(*disableHalfClose))
 		if err != nil {
 			if errStatus, ok := status.FromError(err); ok && *formatError {
 				h.Status = errStatus
