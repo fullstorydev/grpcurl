@@ -126,6 +126,9 @@ var (
 		The maximum total time the operation can take, in seconds. This is
 		useful for preventing batch jobs that use grpcurl from hanging due to
 		slow or bad network links or due to incorrect stream method usage.`))
+	cancelAfter = flags.Float64("cancel-after", 0, prettify(`
+		Time after which the context (and hence request) will be canceled.
+		This is useful for testing request cancellation.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
 		The maximum encoded size of a response message, in bytes, that grpcurl
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
@@ -278,6 +281,9 @@ func main() {
 	if *maxTime < 0 {
 		fail(nil, "The -max-time argument must not be negative.")
 	}
+	if *cancelAfter < 0 {
+		fail(nil, "The -cancel-after argument must not be negative.")
+	}
 	if *maxMsgSz < 0 {
 		fail(nil, "The -max-msg-sz argument must not be negative.")
 	}
@@ -386,6 +392,17 @@ func main() {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
+	}
+
+	if *cancelAfter > 0 {
+		timeout := time.Duration(*cancelAfter * float64(time.Second))
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		defer cancel()
+		go func() {
+			time.Sleep(timeout)
+			cancel()
+		}()
 	}
 
 	dial := func() *grpc.ClientConn {
