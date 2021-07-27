@@ -542,6 +542,14 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 		tlsConf.RootCAs = certPool
 	}
 
+	if os.Getenv("SSLKEYLOGFILE") != "" {
+		w, err := os.OpenFile(os.Getenv("SSLKEYLOGFILE"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil {
+			return nil, fmt.Errorf("could not open SSLKEYLOGFILE: %v", err)
+		}
+		tlsConf.KeyLogWriter = w
+	}
+
 	return credentials.NewTLS(&tlsConf), nil
 }
 
