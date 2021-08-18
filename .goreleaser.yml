@@ -9,11 +9,16 @@ builds:
       - amd64
       - 386
       - arm64
+      - s390x
     ignore:
       - goos: darwin
         goarch: 386
       - goos: windows
         goarch: arm64
+      - goos: darwin
+        goarch: s390x
+      - goos: windows
+        goarch: s390x
     ldflags:
       - -s -w -X main.version=v{{.Version}}
 
