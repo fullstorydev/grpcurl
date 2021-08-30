@@ -40,12 +40,15 @@ $PREFIX git checkout go.mod go.sum
 # if there are no valid current credentials.
 $PREFIX docker login
 echo "$VERSION" > VERSION
-$PREFIX docker build -t "fullstorydev/grpcurl:${VERSION}" .
-rm VERSION
+
+# Enable qemu and binfmt support
+$PREFIX docker run --privileged --rm tonistiigi/binfmt:qemu-v6.1.0 --install all
+# Create a new builder instance
+export DOCKER_CLI_EXPERIMENTAL=enabled
+$PREFIX docker buildx create --use --name multiarch-builder
 # push to docker hub, both the given version as a tag and for "latest" tag
-$PREFIX docker push "fullstorydev/grpcurl:${VERSION}"
-$PREFIX docker tag "fullstorydev/grpcurl:${VERSION}" fullstorydev/grpcurl:latest
-$PREFIX docker push fullstorydev/grpcurl:latest
+$PREFIX docker buildx build --platform linux/amd64,linux/s390x --tag fullstorydev/grpcurl:${VERSION} --tag fullstorydev/grpcurl:latest --push --progress plain --no-cache .
+rm VERSION
 
 # Homebrew release
 
