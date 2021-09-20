@@ -408,11 +408,21 @@ func main() {
 		}
 		var creds credentials.TransportCredentials
 		if !*plaintext {
-			var err error
-			creds, err = grpcurl.ClientTransportCredentials(*insecure, *cacert, *cert, *key)
+			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
-				fail(err, "Failed to configure transport credentials")
+				fail(err, "Failed to create TLS config")
 			}
+
+			sslKeylogFile := os.Getenv("SSLKEYLOGFILE")
+			if sslKeylogFile != "" {
+				w, err := os.OpenFile(sslKeylogFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+				if err != nil {
+					fail(err, "Could not open SSLKEYLOGFILE %s", sslKeylogFile)
+				}
+				tlsConf.KeyLogWriter = w
+			}
+
+			creds := credentials.NewTLS(tlsConf)
 
 			// can use either -servername or -authority; but not both
 			if *serverName != "" && *authority != "" {
