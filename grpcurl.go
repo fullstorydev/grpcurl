@@ -508,9 +508,11 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	return dm
 }
 
-// ClientTransportCredentials is a thin wrapper around ClientTLSConfig, kept for BC.
-// ClientTLSConfig offers more flexibility, as the caller can customize the tls.Config
-// struct.
+// ClientTransportCredentials is a helper function that constructs a TLS config with
+// the given properties (see ClientTLSConfig) and then constructs and returns gRPC
+// transport credentials using that config.
+//
+// Deprecated: Use grpcurl.ClientTLSConfig and credentials.NewTLS instead.
 func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string) (credentials.TransportCredentials, error) {
 	tlsConf, err := ClientTLSConfig(insecureSkipVerify, cacertFile, clientCertFile, clientKeyFile)
 	if err != nil {
@@ -520,7 +522,7 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 	return credentials.NewTLS(tlsConf), nil
 }
 
-// ClientTLSConfig builds transport credentials for a gRPC client using the
+// ClientTLSConfig builds transport-layer config for a gRPC client using the
 // given properties. If cacertFile is blank, only standard trusted certs are used to
 // verify the server certs. If clientCertFile is blank, the client will not use a client
 // certificate. If clientCertFile is not blank then clientKeyFile must not be blank.

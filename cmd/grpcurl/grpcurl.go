@@ -410,13 +410,14 @@ func main() {
 		if !*plaintext {
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
-				fail(err, "Failed to configure TLS config")
+				fail(err, "Failed to create TLS config")
 			}
 
-			if os.Getenv("SSLKEYLOGFILE") != "" {
-				w, err := os.OpenFile(os.Getenv("SSLKEYLOGFILE"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+			sslKeylogFile := os.Getenv("SSLKEYLOGFILE")
+			if sslKeylogFile != "" {
+				w, err := os.OpenFile(sslKeylogFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 				if err != nil {
-					fail(err, "Could not open SSLKEYLOGFILE: %v")
+					fail(err, "Could not open SSLKEYLOGFILE %s", sslKeylogFile)
 				}
 				tlsConf.KeyLogWriter = w
 			}
