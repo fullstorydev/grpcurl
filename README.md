@@ -79,8 +79,7 @@ https://repology.org/project/grpcurl/information
 If you already have the [Go SDK](https://golang.org/doc/install) installed, you can use the `go`
 tool to install `grpcurl`:
 ```shell
-go get github.com/fullstorydev/grpcurl/...
-go install github.com/fullstorydev/grpcurl/cmd/grpcurl
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 ```
 
 This installs the command into the `bin` sub-folder of wherever your `$GOPATH`
