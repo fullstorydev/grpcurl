@@ -40,12 +40,17 @@ $PREFIX git checkout go.mod go.sum
 # if there are no valid current credentials.
 $PREFIX docker login
 echo "$VERSION" > VERSION
-$PREFIX docker build -t "fullstorydev/grpcurl:${VERSION}" .
-rm VERSION
+
+# Docker Buildx support is included in Docker 19.03
+# Below step installs emulators for different architectures on the host
+# This enables running and building containers for below architectures mentioned using --platforms
+$PREFIX docker run --privileged --rm tonistiigi/binfmt:qemu-v6.1.0 --install all
+# Create a new builder instance
+export DOCKER_CLI_EXPERIMENTAL=enabled
+$PREFIX docker buildx create --use --name multiarch-builder
 # push to docker hub, both the given version as a tag and for "latest" tag
-$PREFIX docker push "fullstorydev/grpcurl:${VERSION}"
-$PREFIX docker tag "fullstorydev/grpcurl:${VERSION}" fullstorydev/grpcurl:latest
-$PREFIX docker push fullstorydev/grpcurl:latest
+$PREFIX docker buildx build --platform linux/amd64,linux/s390x,linux/arm64 --tag fullstorydev/grpcurl:${VERSION} --tag fullstorydev/grpcurl:latest --push --progress plain --no-cache .
+rm VERSION
 
 # Homebrew release
 

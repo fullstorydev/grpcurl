@@ -11,8 +11,6 @@ COPY cmd /tmp/fullstorydev/grpcurl/cmd
 # and build a completely static binary (so we can use
 # scratch as basis for the final image)
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
 ENV GO111MODULE=on
 RUN go build -o /grpcurl \
     -ldflags "-w -extldflags \"-static\" -X \"main.version=$(cat VERSION)\"" \
