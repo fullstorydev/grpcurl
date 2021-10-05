@@ -65,6 +65,7 @@ docker pull fullstorydev/grpcurl:latest
 # Run the tool
 docker run fullstorydev/grpcurl api.grpc.me:443 list
 ```
+Note that for debugging services running locally on your host instead of online servers, you need to connect the container to your host network. Otherwise you will get `connect: connection refused` errors. [This SO answer](https://stackoverflow.com/a/24326540) helps.
 
 ### Other Packages
 
