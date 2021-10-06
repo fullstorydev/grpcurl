@@ -66,9 +66,9 @@ docker pull fullstorydev/grpcurl:latest
 docker run fullstorydev/grpcurl api.grpc.me:443 list
 ```
 Note that there are some pitfalls when using docker:
-- make sure the container can talk to your localhost if you do local debugging (e.g. with `-network="host"` [or other options](https://stackoverflow.com/a/24326540))
-- if you need to provide proto files, you need to mount your proto folder as a volume und adjust the import path to container paths (e.g. `-v $(pwd):/workdir`)
-- if you want to pipe in a local file using the `-d @` option, you need to use the -i flag on the docker command (e.g. `docker run -i [...] fullstorydev/grpcurl [...] < message.json`
+- If you need to interact with a server listening on the host's loopback network, you must specify the host as `host.docker.internal` instead of `localhost` (for Mac or Windows) _OR_ have the container use the host network with `-network="host"` (Linux only).
+- If you need to provide proto source files or descriptor sets, you must mount the folder containing the files as a volume (`-v $(pwd):/protos`) and adjust the import paths to container paths accordingly.
+- If you want to provide the request message via stdin, using the `-d @` option, you need to use the `-i` flag on the docker command.
 
 ### Other Packages
 
