@@ -65,6 +65,10 @@ docker pull fullstorydev/grpcurl:latest
 # Run the tool
 docker run fullstorydev/grpcurl api.grpc.me:443 list
 ```
+Note that there are some pitfalls when using docker:
+- If you need to interact with a server listening on the host's loopback network, you must specify the host as `host.docker.internal` instead of `localhost` (for Mac or Windows) _OR_ have the container use the host network with `-network="host"` (Linux only).
+- If you need to provide proto source files or descriptor sets, you must mount the folder containing the files as a volume (`-v $(pwd):/protos`) and adjust the import paths to container paths accordingly.
+- If you want to provide the request message via stdin, using the `-d @` option, you need to use the `-i` flag on the docker command.
 
 ### Other Packages
 
