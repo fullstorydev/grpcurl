@@ -65,7 +65,10 @@ docker pull fullstorydev/grpcurl:latest
 # Run the tool
 docker run fullstorydev/grpcurl api.grpc.me:443 list
 ```
-Note that for debugging services running locally on your host instead of online servers, you need to connect the container to your host network. Otherwise you will get `connect: connection refused` errors. [This SO answer](https://stackoverflow.com/a/24326540) helps.
+Note that there are some pitfalls when using docker:
+- make sure the container can talk to your localhost if you do local debugging (e.g. with `-network="host"` [or other options](https://stackoverflow.com/a/24326540))
+- if you need to provide proto files, you need to mount your proto folder as a volume und adjust the import path to container paths (e.g. `-v $(pwd):/workdir`)
+- if you want to pipe in a local file using the `-d @` option, you need to use the -i flag on the docker command (e.g. `docker run -i [...] fullstorydev/grpcurl [...] < message.json`
 
 ### Other Packages
 
