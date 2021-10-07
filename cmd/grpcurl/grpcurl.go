@@ -422,7 +422,7 @@ func main() {
 				tlsConf.KeyLogWriter = w
 			}
 
-			creds := credentials.NewTLS(tlsConf)
+			creds = credentials.NewTLS(tlsConf)
 
 			// can use either -servername or -authority; but not both
 			if *serverName != "" && *authority != "" {
