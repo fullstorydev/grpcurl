@@ -726,12 +726,16 @@ func main() {
 		if verbosityLevel > 0 {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
+		out := os.Stderr
+		if h.Status.Code() == codes.OK {
+			out = os.Stdout
+		}
+		if *formatError {
+			printFormattedStatus(out, h.Status, formatter)
+		} else {
+			grpcurl.PrintStatus(out, h.Status, formatter)
+		}
 		if h.Status.Code() != codes.OK {
-			if *formatError {
-				printFormattedStatus(os.Stderr, h.Status, formatter)
-			} else {
-				grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
-			}
 			exit(statusCodeOffset + int(h.Status.Code()))
 		}
 	}
