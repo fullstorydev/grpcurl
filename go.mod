@@ -1,6 +1,6 @@
 module github.com/fullstorydev/grpcurl
 
-go 1.15
+go 1.17
 
 require (
 	cloud.google.com/go v0.56.0 // indirect
