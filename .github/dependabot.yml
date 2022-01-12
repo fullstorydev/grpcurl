@@ -2,6 +2,6 @@ version: 2
 updates:
   - package-ecosystem: "gomod"
     directory: "/"
-    # Check for updates once a day
+    # Check for updates once a week
     schedule:
-      interval: "daily"
+      interval: "weekly"
