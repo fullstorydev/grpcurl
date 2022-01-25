@@ -146,6 +146,12 @@ grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<EOM
 EOM
 ```
 
+Sometimes it might be necessary to read the payload from a file. This worked for some users:
+
+```shell
+grpcurl -d "$(cat my.json)" grpc.server.com:443 my.custom.server.Service/Method
+```
+
 ### Listing Services
 To list all services exposed by a server, use the "list" verb. When using `.proto` source
 or protoset files instead of server reflection, this lists all services defined in the
