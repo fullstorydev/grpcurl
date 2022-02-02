@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.56.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/jhump/protoreflect v1.10.1
+	github.com/jhump/protoreflect v1.10.2-0.20220118170122-d02a936ebfc6
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.25.1-0.20200805231151-a709e31e5d12
