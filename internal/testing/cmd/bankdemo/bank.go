@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -72,26 +71,29 @@ func (s *bankServer) GetTransactions(req *GetTransactionsRequest, stream Bank_Ge
 
 	var start, end time.Time
 	if req.Start != nil {
-		start, err = ptypes.Timestamp(req.Start)
+		err := req.Start.CheckValid()
 		if err != nil {
 			return err
 		}
+		start = req.Start.AsTime()
 	}
 	if req.End != nil {
-		end, err = ptypes.Timestamp(req.End)
+		err := req.End.CheckValid()
 		if err != nil {
 			return err
 		}
+		end = req.End.AsTime()
 	} else {
 		end = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.Local)
 	}
 
 	txns := acct.getTransactions()
 	for _, txn := range txns {
-		t, err := ptypes.Timestamp(txn.Date)
+		err := txn.Date.CheckValid()
 		if err != nil {
 			return err
 		}
+		t := txn.Date.AsTime()
 		if (t.After(start) || t.Equal(start)) &&
 			(t.Before(end) || t.Equal(end)) {
 
