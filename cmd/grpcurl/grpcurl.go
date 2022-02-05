@@ -438,9 +438,7 @@ func main() {
 			}
 
 			if overrideName != "" {
-				if err := creds.OverrideServerName(overrideName); err != nil {
-					fail(err, "Failed to override server name as %q", overrideName)
-				}
+				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
 		} else if *authority != "" {
 			opts = append(opts, grpc.WithAuthority(*authority))
