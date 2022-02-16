@@ -22,8 +22,8 @@ install:
 
 .PHONY: release
 release:
-	@go install github.com/goreleaser/goreleaser@v0.134.0
-	goreleaser --rm-dist
+	@go install github.com/goreleaser/goreleaser@v1.5.0
+	goreleaser release --rm-dist
 
 .PHONY: docker
 docker:
