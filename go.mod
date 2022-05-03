@@ -7,6 +7,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/jhump/protoreflect v1.10.3
+	github.com/mwitkow/go-http-dialer v0.0.0-20161116154839-378f744fb2b8 // indirect
+	golang.org/x/net v0.0.0-20200822124328-c89045814202
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1

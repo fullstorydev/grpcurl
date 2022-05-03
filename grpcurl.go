@@ -14,8 +14,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	http_dialer "github.com/mwitkow/go-http-dialer"
+	"golang.org/x/net/proxy"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -638,7 +641,23 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		// handshake). And that would mean that the library would send the
 		// wrong ":scheme" metaheader to servers: it would send "http" instead
 		// of "https" because it is unaware that TLS is actually in use.
-		conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
+
+		// Use HTTPS_PROXY if it's set up:
+		if os.Getenv("HTTPS_PROXY") != "" {
+			proxyUrl, err := url.Parse(os.Getenv("HTTPS_PROXY"))
+			if err != nil {
+				panic("Invalid HTTPS_PROXY environment variable")
+			}
+
+			httpTunnel := http_dialer.New(proxyUrl)
+			conn, err := httpTunnel.Dial(network, address)
+			if err != nil {
+				writeResult(err)
+			}
+			return conn, err
+		}
+
+		conn, err := proxy.Dial(ctx, network, address)
 		if err != nil {
 			writeResult(err)
 		}
