@@ -119,18 +119,7 @@ func InvokeRPC(ctx context.Context, source DescriptorSource, ch grpcdynamic.Chan
 
 	handler.OnResolveMethod(mtd)
 
-	// we also download any applicable extensions so we can provide full support for parsing user-provided data
-	var ext dynamic.ExtensionRegistry
-	alreadyFetched := map[string]bool{}
-	if err = fetchAllExtensions(source, &ext, mtd.GetInputType(), alreadyFetched); err != nil {
-		return fmt.Errorf("error resolving server extensions for message %s: %v", mtd.GetInputType().GetFullyQualifiedName(), err)
-	}
-	if err = fetchAllExtensions(source, &ext, mtd.GetOutputType(), alreadyFetched); err != nil {
-		return fmt.Errorf("error resolving server extensions for message %s: %v", mtd.GetOutputType().GetFullyQualifiedName(), err)
-	}
-
-	msgFactory := dynamic.NewMessageFactoryWithExtensionRegistry(&ext)
-	req := msgFactory.NewMessage(mtd.GetInputType())
+	req, msgFactory, err:= getExtensions(source, mtd.GetInputType())
 
 	handler.OnSendHeaders(md)
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -402,4 +391,49 @@ func parseSymbol(svcAndMethod string) (string, string) {
 		}
 	}
 	return svcAndMethod[:pos], svcAndMethod[pos+1:]
+}
+
+func ConvertMessage(source DescriptorSource, messageFullName string, requestData RequestSupplier) ([]byte, error) {
+	dsc, err := source.FindSymbol(messageFullName)
+	if err != nil {
+		return nil, err
+	}
+	md, ok := dsc.(*desc.MessageDescriptor)
+	if ! ok {
+		return nil, fmt.Errorf("%q should point to a message descriptor instead of %d:", messageFullName, md)
+	}
+	
+	req, _, err:= getExtensions(source, md)
+	if err != nil {
+		return nil, err
+	}
+	
+	err = requestData(req)
+	if err != nil {
+		return nil, err
+	}
+	
+	re, err:= proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	
+	return re, nil
+}
+
+func getExtensions(source DescriptorSource, md *desc.MessageDescriptor) (req proto.Message, msgFactory *dynamic.MessageFactory, err error) {
+	// we also download any applicable extensions so we can provide full support for parsing user-provided data
+	var ext dynamic.ExtensionRegistry
+	alreadyFetched := map[string]bool{}
+	if err = fetchAllExtensions(source, &ext, md, alreadyFetched); err != nil {
+		return nil, nil, fmt.Errorf("error resolving server extensions for message %s: %v", md.GetFullyQualifiedName(), err)
+	}
+	if err = fetchAllExtensions(source, &ext, md, alreadyFetched); err != nil {
+		return nil, nil, fmt.Errorf("error resolving server extensions for message %s: %v", md.GetFullyQualifiedName(), err)
+	}
+
+	msgFactory = dynamic.NewMessageFactoryWithExtensionRegistry(&ext)
+	req = msgFactory.NewMessage(md)
+	
+	return req, msgFactory, nil
 }
