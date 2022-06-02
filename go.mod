@@ -9,6 +9,6 @@ require (
 	github.com/jhump/protoreflect v1.10.3
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/grpc v1.46.2
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.28.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
