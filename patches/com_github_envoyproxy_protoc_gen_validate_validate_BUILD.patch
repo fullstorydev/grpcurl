@@ -1,0 +1,12 @@
+--- validate/BUILD.orig	2021-02-12 10:02:41.000000000 +0100
++++ validate/BUILD	2021-02-12 09:56:57.000000000 +0100
+@@ -48,3 +48,9 @@
+     visibility = ["//visibility:public"],
+     deps = [":validate_proto"],
+ )
++
++alias(
++    name = "validate",
++    actual = ":go_default_library",
++    visibility = ["//visibility:public"],
++)
