@@ -10,6 +10,7 @@ builds:
       - 386
       - arm64
       - s390x
+      - ppc64le
     ignore:
       - goos: darwin
         goarch: 386
@@ -19,6 +20,10 @@ builds:
         goarch: s390x
       - goos: windows
         goarch: s390x
+      - goos: darwin
+        goarch: ppc64le
+      - goos: windows
+        goarch: ppc64le
     ldflags:
       - -s -w -X main.version=v{{.Version}}
 
