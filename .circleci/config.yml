@@ -13,13 +13,13 @@ jobs:
   build-1-15:
     working_directory: ~/repo
     docker:
-      - image: circleci/golang:1.15
+      - image: cimg/go:1.15
     steps: *simple_job_steps
 
   build-1-16:
     working_directory: ~/repo
     docker:
-      - image: circleci/golang:1.16
+      - image: cimg/go:1.16
     steps:
       - checkout
       - restore_cache:
@@ -44,13 +44,13 @@ jobs:
   build-1-17:
     working_directory: ~/repo
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.17
     steps: *simple_job_steps
 
   build-1-18:
     working_directory: ~/repo
     docker:
-      - image: circleci/golang:1.18
+      - image: cimg/go:1.18
     steps: *simple_job_steps
 
 workflows:
