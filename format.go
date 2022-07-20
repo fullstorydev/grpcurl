@@ -428,7 +428,7 @@ type DefaultEventHandler struct {
 // the given output. If verbose is true, all events are logged. Otherwise, only
 // response messages are logged.
 //
-// Deprecated: NewDefaultEventHandler exists for compatability.
+// Deprecated: NewDefaultEventHandler exists for compatibility.
 // It doesn't allow fine control over the `VerbosityLevel`
 // and provides only 0 and 1 options (which corresponds to the `verbose` argument).
 // Use DefaultEventHandler{} initializer directly.
