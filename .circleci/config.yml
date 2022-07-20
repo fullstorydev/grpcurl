@@ -47,9 +47,16 @@ jobs:
       - image: circleci/golang:1.17
     steps: *simple_job_steps
 
+  build-1-18:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/golang:1.18
+    steps: *simple_job_steps
+
 workflows:
   pr-build-test:
     jobs:
       - build-1-15
       - build-1-16
       - build-1-17
+      - build-1-18
