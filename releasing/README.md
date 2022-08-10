@@ -53,22 +53,7 @@ This will create the release in GitHub with provisional release notes that just 
 
 ### Docker Hub Releases
 
-To re-run only the Docker Hub release steps, we need to build an image with the right tag and then push to Docker Hub.
-
-```sh
-# from the root of the repo
-echo v2.3.4 > VERSION
-docker build -t fullstorydev/grpcurl:v2.3.4 .
-docker build -t fullstorydev/grpcurl:v2.3.4-alpine --target alpine .
-# now that we have it built, push to Docker Hub
-docker push fullstorydev/grpcurl:v2.3.4
-docker push fullstorydev/grpcurl:v2.3.4-alpine
-# push "latest" tag, too
-docker tag fullstorydev/grpcurl:v2.3.4 fullstorydev/grpcurl:latest
-docker tag fullstorydev/grpcurl:v2.3.4-alpine fullstorydev/grpcurl:latest-alpine
-docker push fullstorydev/grpcurl:latest
-docker push fullstorydev/grpcurl:latest-alpine
-```
+To re-run only the Docker Hub release steps, you can manually run through each step in the "Docker" section of `do_release.sh`.
 
 If the `docker push ...` steps fail, you may need to run `docker login`, enter your Docker Hub login credentials, and then try to push again.
 
