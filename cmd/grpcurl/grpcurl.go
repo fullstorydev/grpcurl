@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/alts"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
@@ -55,6 +56,8 @@ var (
 		Print version.`))
 	plaintext = flags.Bool("plaintext", false, prettify(`
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
+	usealts = flags.Bool("alts", false, prettify(`
+		Use Application Layer Transport Security (ALTS) when connecting to server.`))
 	insecure = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
@@ -281,6 +284,9 @@ func main() {
 	if *maxMsgSz < 0 {
 		fail(nil, "The -max-msg-sz argument must not be negative.")
 	}
+	if *plaintext && *usealts {
+		fail(nil, "The -plaintext and -alts arguments are mutually exclusive.")
+	}
 	if *plaintext && *insecure {
 		fail(nil, "The -plaintext and -insecure arguments are mutually exclusive.")
 	}
@@ -289,6 +295,15 @@ func main() {
 	}
 	if *plaintext && *key != "" {
 		fail(nil, "The -plaintext and -key arguments are mutually exclusive.")
+	}
+	if *usealts && *insecure {
+		fail(nil, "The -alts and -insecure arguments are mutually exclusive.")
+	}
+	if *usealts && *cert != "" {
+		fail(nil, "The -alts and -cert arguments are mutually exclusive.")
+	}
+	if *usealts && *key != "" {
+		fail(nil, "The -alts and -key arguments are mutually exclusive.")
 	}
 	if (*key == "") != (*cert == "") {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
@@ -407,7 +422,14 @@ func main() {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
 		var creds credentials.TransportCredentials
-		if !*plaintext {
+		if *plaintext {
+			if *authority != "" {
+				opts = append(opts, grpc.WithAuthority(*authority))
+			}
+		} else if *usealts {
+			creds = alts.NewClientCreds(alts.DefaultClientOptions())
+		} else {
+			// Use TLS
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -440,8 +462,6 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
-		} else if *authority != "" {
-			opts = append(opts, grpc.WithAuthority(*authority))
 		}
 
 		grpcurlUA := "grpcurl/" + version
