@@ -58,7 +58,9 @@ var (
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
 	usealts = flags.Bool("alts", false, prettify(`
 		Use Application Layer Transport Security (ALTS) when connecting to server.`))
-	insecure = flags.Bool("insecure", false, prettify(`
+	altsHandshakerServiceAddress = flags.String("alts-handshaker-service", "", prettify(`If set, this server will be used to do the ATLS handshaking.`))
+	altsTargetServiceAccounts    multiString
+	insecure                     = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
 	cacert = flags.String("cacert", "", prettify(`
@@ -203,6 +205,12 @@ func init() {
 		-use-reflection is used in combination with a -proto or -protoset flag,
 		the provided descriptor sources will be used in addition to server
 		reflection to resolve messages and extensions.`))
+	flags.Var(&altsTargetServiceAccounts, "alts-target-service-account", prettify(`
+	    A list of expected target service accounts. If the service is running as
+		any of the provided service account the connection and request will be
+		made else the connection will fail to connect. If not target service
+		accounts are provided, no client side authorization will be done and any
+		connection will be allowed.`))
 }
 
 type multiString []string
@@ -304,6 +312,12 @@ func main() {
 	}
 	if *usealts && *key != "" {
 		fail(nil, "The -alts and -key arguments are mutually exclusive.")
+	}
+	if *altsHandshakerServiceAddress != "" && !*usealts {
+		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")
+	}
+	if len(altsTargetServiceAccounts) > 0 && !*usealts {
+		fail(nil, "The -alts-target-service-account argument must be used with the -alts argument.")
 	}
 	if (*key == "") != (*cert == "") {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
@@ -427,7 +441,14 @@ func main() {
 				opts = append(opts, grpc.WithAuthority(*authority))
 			}
 		} else if *usealts {
-			creds = alts.NewClientCreds(alts.DefaultClientOptions())
+			clientOptions := alts.DefaultClientOptions()
+			if len(altsTargetServiceAccounts) > 0 {
+				clientOptions.TargetServiceAccounts = altsTargetServiceAccounts
+			}
+			if *altsHandshakerServiceAddress != "" {
+				clientOptions.HandshakerServiceAddress = *altsHandshakerServiceAddress
+			}
+			creds = alts.NewClientCreds(clientOptions)
 		} else {
 			// Use TLS
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
