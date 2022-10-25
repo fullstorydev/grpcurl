@@ -206,11 +206,13 @@ func init() {
 		the provided descriptor sources will be used in addition to server
 		reflection to resolve messages and extensions.`))
 	flags.Var(&altsTargetServiceAccounts, "alts-target-service-account", prettify(`
-	    A list of expected target service accounts. If the service is running as
-		any of the provided service account the connection and request will be
-		made else the connection will fail to connect. If not target service
-		accounts are provided, no client side authorization will be done and any
-		connection will be allowed.`))
+		The full email address of the service account that the server is
+		expected to be using when ALTS is used. You can specify this option
+		multiple times to indicate multiple allowed service accounts. If the
+		server authenticates with a service account that is not one of the
+		expected accounts, the RPC will not be issued. If no such arguments are
+		provided, no check will be performed, and the RPC will be issued
+		regardless of the server's service account.`))
 }
 
 type multiString []string
