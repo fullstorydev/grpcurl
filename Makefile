@@ -42,11 +42,9 @@ checkgofmt:
 vet:
 	go vet ./...
 
-# This all works fine with Go modules, but without modules,
-# CI is just getting latest master for dependencies like grpc.
 .PHONY: staticcheck
 staticcheck:
-	@go install honnef.co/go/tools/cmd/staticcheck@v0.0.1-2020.1.4
+	@go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
 	staticcheck ./...
 
 .PHONY: ineffassign
@@ -56,21 +54,19 @@ ineffassign:
 
 .PHONY: predeclared
 predeclared:
-	@go install github.com/nishanths/predeclared@86fad755b4d3
-	predeclared .
+	@go install github.com/nishanths/predeclared@5f2f810c9ae6
+	predeclared ./...
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
 .PHONY: golint
 golint:
-	# TODO: pin version
-	@go install golang.org/x/lint/golint@latest
+	@go install golang.org/x/lint/golint@v0.0.0-20210508222113-6edffad5e616
 	golint -min_confidence 0.9 -set_exit_status ./...
 
 # Intentionally omitted from CI, but target here for ad-hoc reports.
 .PHONY: errcheck
 errcheck:
-	# TODO: pin version
-	@go install github.com/kisielk/errcheck@latest
+	@go install github.com/kisielk/errcheck@v1.2.0
 	errcheck ./...
 
 .PHONY: test

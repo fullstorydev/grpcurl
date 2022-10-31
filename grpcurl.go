@@ -407,9 +407,9 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	case "google.protobuf.Any":
 		// empty type URL is not allowed by JSON representation
 		// so we must give it a dummy type
-		var any anypb.Any
-		_ = anypb.MarshalFrom(&any, &emptypb.Empty{}, protov2.MarshalOptions{})
-		return &any
+		var anyVal anypb.Any
+		_ = anypb.MarshalFrom(&anyVal, &emptypb.Empty{}, protov2.MarshalOptions{})
+		return &anyVal
 	case "google.protobuf.Value":
 		// unset kind is not allowed by JSON representation
 		// so we must give it something

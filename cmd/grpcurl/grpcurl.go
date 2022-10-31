@@ -38,9 +38,9 @@ import (
 // the response status codes emitted use an offest of 64
 const statusCodeOffset = 64
 
-const no_version = "dev build <no version set>"
+const noVersion = "dev build <no version set>"
 
-var version = no_version
+var version = noVersion
 
 var (
 	exit = os.Exit
@@ -445,7 +445,7 @@ func main() {
 		}
 
 		grpcurlUA := "grpcurl/" + version
-		if version == no_version {
+		if version == noVersion {
 			grpcurlUA = "grpcurl/dev-build (no version set)"
 		}
 		if *userAgent != "" {
@@ -508,7 +508,7 @@ func main() {
 		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
 		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
-		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
+		refClient = grpcreflect.NewClientV1Alpha(refCtx, reflectpb.NewServerReflectionClient(cc))
 		reflSource := grpcurl.DescriptorSourceFromServer(ctx, refClient)
 		if fileSource != nil {
 			descSource = compositeSource{reflSource, fileSource}
