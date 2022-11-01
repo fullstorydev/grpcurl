@@ -197,10 +197,20 @@ func (tf *textFormatter) format(m proto.Message) (string, error) {
 	return str, nil
 }
 
+// Format of request data. The allowed values are 'json' or 'text'.
 type Format string
 
 const (
+	// FormatJSON specifies input data in JSON format. Multiple request values
+	// may be concatenated (messages with a JSON representation other than
+	// object must be separated by whitespace, such as a newline)
 	FormatJSON = Format("json")
+
+	// FormatText specifies input data must be in the protobuf text format.
+	// Multiple request values must be separated by the "record separator"
+	// ASCII character: 0x1E. The stream should not end in a record separator.
+	// If it does, it will be interpreted as a final, blank message after the
+	// separator.
 	FormatText = Format("text")
 )
 

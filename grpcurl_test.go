@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	defer ccReflect.Close()
-	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccReflect))
+	refClient := grpcreflect.NewClientV1Alpha(context.Background(), reflectpb.NewServerReflectionClient(ccReflect))
 	defer refClient.Reset()
 
 	sourceReflect = DescriptorSourceFromServer(context.Background(), refClient)
@@ -118,7 +118,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestServerDoesNotSupportReflection(t *testing.T) {
-	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccNoReflect))
+	refClient := grpcreflect.NewClientV1Alpha(context.Background(), reflectpb.NewServerReflectionClient(ccNoReflect))
 	defer refClient.Reset()
 
 	refSource := DescriptorSourceFromServer(context.Background(), refClient)
