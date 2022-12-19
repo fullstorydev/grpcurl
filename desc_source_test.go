@@ -2,7 +2,7 @@ package grpcurl
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
@@ -34,7 +34,7 @@ func TestWriteProtoset(t *testing.T) {
 }
 
 func loadProtoset(path string) (*descriptorpb.FileDescriptorSet, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
