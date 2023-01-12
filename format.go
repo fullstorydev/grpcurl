@@ -133,11 +133,12 @@ type Formatter func(proto.Message) (string, error)
 // include empty/default values (instead of just omitted them) if emitDefaults
 // is true. The given resolver is used to assist with encoding of
 // google.protobuf.Any messages.
-func NewJSONFormatter(emitDefaults bool, resolver jsonpb.AnyResolver) Formatter {
+func NewJSONFormatter(emitDefaults, origName bool, resolver jsonpb.AnyResolver) Formatter {
 	marshaler := jsonpb.Marshaler{
 		EmitDefaults: emitDefaults,
 		Indent:       "  ",
 		AnyResolver:  resolver,
+		OrigName:     origName,
 	}
 	return marshaler.MarshalToString
 }
@@ -380,6 +381,9 @@ type FormatOptions struct {
 	// It might be useful when the output is piped to another grpcurl process.
 	// FormatText only flag.
 	IncludeTextSeparator bool
+
+	// OrigName specifies whether to use the original protobuf name for fields.
+	OrigName bool
 }
 
 // RequestParserAndFormatter returns a request parser and formatter for the
@@ -394,7 +398,7 @@ func RequestParserAndFormatter(format Format, descSource DescriptorSource, in io
 	case FormatJSON:
 		resolver := AnyResolverFromDescriptorSource(descSource)
 		unmarshaler := jsonpb.Unmarshaler{AnyResolver: resolver, AllowUnknownFields: opts.AllowUnknownFields}
-		return NewJSONRequestParserWithUnmarshaler(in, unmarshaler), NewJSONFormatter(opts.EmitJSONDefaultFields, anyResolverWithFallback{AnyResolver: resolver}), nil
+		return NewJSONRequestParserWithUnmarshaler(in, unmarshaler), NewJSONFormatter(opts.EmitJSONDefaultFields, opts.OrigName, anyResolverWithFallback{AnyResolver: resolver}), nil
 	case FormatText:
 		return NewTextRequestParser(in), NewTextFormatter(opts.IncludeTextSeparator), nil
 	default:
