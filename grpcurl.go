@@ -14,7 +14,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"regexp"
@@ -544,7 +543,7 @@ func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, client
 	} else if cacertFile != "" {
 		// Create a certificate pool from the certificate authority
 		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(cacertFile)
+		ca, err := os.ReadFile(cacertFile)
 		if err != nil {
 			return nil, fmt.Errorf("could not read ca certificate: %v", err)
 		}
@@ -581,7 +580,7 @@ func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string
 	if cacertFile != "" {
 		// Create a certificate pool from the certificate authority
 		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(cacertFile)
+		ca, err := os.ReadFile(cacertFile)
 		if err != nil {
 			return nil, fmt.Errorf("could not read ca certificate: %v", err)
 		}

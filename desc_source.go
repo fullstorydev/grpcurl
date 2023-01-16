@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
@@ -41,7 +41,7 @@ type DescriptorSource interface {
 func DescriptorSourceFromProtoSets(fileNames ...string) (DescriptorSource, error) {
 	files := &descriptorpb.FileDescriptorSet{}
 	for _, fileName := range fileNames {
-		b, err := ioutil.ReadFile(fileName)
+		b, err := os.ReadFile(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("could not load protoset file %q: %v", fileName, err)
 		}
