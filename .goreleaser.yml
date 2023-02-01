@@ -38,3 +38,10 @@ archives:
       darwin: osx
     files:
       - LICENSE
+nfpms:
+  - formats:
+      - apk
+      - deb
+      - rpm
+    license: MIT
+    maintainer: FullStory Engineering
