@@ -15,6 +15,7 @@ import (
 // a capability to connect customers and support agents in real-time
 // chat.
 type chatServer struct {
+	UnimplementedSupportServer
 	chatsBySession     map[string]*session
 	chatsAwaitingAgent []string
 	lastSession        int32
