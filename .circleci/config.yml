@@ -32,9 +32,16 @@ jobs:
           command: |
             make ci
 
+  build-1-20:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.20
+    steps: *simple_job_steps
+
 workflows:
   pr-build-test:
     jobs:
       - build-1-17
       - build-1-18
       - build-1-19
+      - build-1-20
