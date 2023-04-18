@@ -12,6 +12,7 @@ import (
 
 // bankServer implements the Bank gRPC service.
 type bankServer struct {
+	UnimplementedBankServer
 	allAccounts *accounts
 }
 

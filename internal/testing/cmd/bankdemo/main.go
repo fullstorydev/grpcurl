@@ -1,6 +1,6 @@
 package main
 
-//go:generate protoc --go_out=plugins=grpc:./ bank.proto support.proto
+//go:generate protoc --go_out=. --go-grpc_out=. bank.proto support.proto
 
 import (
 	"context"

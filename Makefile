@@ -1,12 +1,16 @@
 dev_build_version=$(shell git describe --tags --always --dirty)
 
+export PATH := $(shell pwd)/.tmp/protoc/bin:$(PATH)
+
+export PROTOC_VERSION := 22.0
+
 # TODO: run golint and errcheck, but only to catch *new* violations and
 # decide whether to change code or not (e.g. we need to be able to whitelist
 # violations already in the code). They can be useful to catch errors, but
 # they are just too noisy to be a requirement for a CI -- we don't even *want*
 # to fix some of the things they consider to be violations.
 .PHONY: ci
-ci: deps checkgofmt vet staticcheck ineffassign predeclared test
+ci: deps checkgofmt checkgenerate vet staticcheck ineffassign predeclared test
 
 .PHONY: deps
 deps:
@@ -31,6 +35,19 @@ docker:
 	docker build -t fullstorydev/grpcurl:$(dev_build_version) .
 	@rm VERSION
 
+.PHONY: generate
+generate: .tmp/protoc/bin/protoc
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@a709e31e5d12
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+	go generate ./...
+
+.PHONY: checkgenerate
+checkgenerate: generate
+	git status --porcelain
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		exit 1; \
+	fi
+
 .PHONY: checkgofmt
 checkgofmt:
 	gofmt -s -l .
@@ -44,7 +61,7 @@ vet:
 
 .PHONY: staticcheck
 staticcheck:
-	@go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
+	@go install honnef.co/go/tools/cmd/staticcheck@v0.4.3
 	staticcheck ./...
 
 .PHONY: ineffassign
@@ -72,3 +89,7 @@ errcheck:
 .PHONY: test
 test:
 	go test -race ./...
+
+.tmp/protoc/bin/protoc: ./Makefile ./download_protoc.sh
+	./download_protoc.sh
+
