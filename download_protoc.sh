@@ -4,7 +4,10 @@ set -e
 
 cd $(dirname $0)
 
-PROTOC_VERSION="22.0"
+if [[ -z "$PROTOC_VERSION" ]]; then
+  echo "Set PROTOC_VERSION env var to indicate the version to download" >&2
+  exit 1
+fi
 PROTOC_OS="$(uname -s)"
 PROTOC_ARCH="$(uname -m)"
 case "${PROTOC_OS}" in
@@ -27,6 +30,6 @@ if [[ "$(${PROTOC} --version 2>/dev/null)" != "libprotoc 3.${PROTOC_VERSION}" ]]
   rm -rf ./.tmp/protoc
   mkdir -p .tmp/protoc
   curl -L "https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip" > .tmp/protoc/protoc.zip
-  cd ./.tmp/protoc && unzip protoc.zip && cd ..
+  pushd ./.tmp/protoc && unzip protoc.zip && popd
 fi
 
