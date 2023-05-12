@@ -264,8 +264,10 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 	// Now we can actually invoke the RPC!
 	str, err := stub.InvokeRpcServerStream(ctx, md, req)
 
-	if respHeaders, err := str.Header(); err == nil {
-		handler.OnReceiveHeaders(respHeaders)
+	if str != nil {
+		if respHeaders, err := str.Header(); err == nil {
+			handler.OnReceiveHeaders(respHeaders)
+		}
 	}
 
 	// Download each response message
@@ -288,7 +290,9 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 		return fmt.Errorf("grpc call for %q failed: %v", md.GetFullyQualifiedName(), err)
 	}
 
-	handler.OnReceiveTrailers(stat, str.Trailer())
+	if str != nil {
+		handler.OnReceiveTrailers(stat, str.Trailer())
+	}
 
 	return nil
 }
