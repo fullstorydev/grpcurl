@@ -178,7 +178,7 @@ func doTestListServices(t *testing.T, source DescriptorSource, includeReflection
 	var expected []string
 	if includeReflection {
 		// when using server reflection, we see the TestService as well as the ServerReflection service
-		expected = []string{"grpc.reflection.v1alpha.ServerReflection", "testing.TestService"}
+		expected = []string{"grpc.reflection.v1.ServerReflection", "grpc.reflection.v1alpha.ServerReflection", "testing.TestService"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
@@ -244,7 +244,7 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 func TestGetAllFiles(t *testing.T) {
 	expectedFiles := []string{"test.proto"}
 	expectedFilesWithReflection := []string{
-		"grpc/reflection/v1alpha/reflection.proto", "test.proto",
+		"grpc/reflection/v1/reflection.proto", "grpc/reflection/v1alpha/reflection.proto", "test.proto",
 	}
 
 	for _, ds := range descSources {
