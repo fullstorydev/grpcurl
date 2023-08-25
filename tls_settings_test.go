@@ -213,7 +213,10 @@ func TestBrokenTLS_ClientHasExpiredCert(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "bad certificate") {
+	// Go 1.21 uses "expired certificate" in the error message.
+	// Older Go versions use a simpler "bad certificate".
+	// `runtime.Version()` exists, but we don't want to parse a version String for comparison.
+	if !strings.Contains(err.Error(), "expired certificate") && !strings.Contains(err.Error(), "bad certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }

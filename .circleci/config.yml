@@ -38,6 +38,12 @@ jobs:
       - image: cimg/go:1.20
     steps: *simple_job_steps
 
+  build-1-21:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.21
+    steps: *simple_job_steps
+
 workflows:
   pr-build-test:
     jobs:
@@ -45,3 +51,4 @@ workflows:
       - build-1-18
       - build-1-19
       - build-1-20
+      - build-1-21
