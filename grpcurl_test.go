@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
-	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 
 	. "github.com/fullstorydev/grpcurl"
@@ -82,7 +81,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	defer ccReflect.Close()
-	refClient := grpcreflect.NewClientV1Alpha(context.Background(), reflectpb.NewServerReflectionClient(ccReflect))
+	refClient := grpcreflect.NewClientAuto(context.Background(), ccReflect)
 	defer refClient.Reset()
 
 	sourceReflect = DescriptorSourceFromServer(context.Background(), refClient)
@@ -118,7 +117,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestServerDoesNotSupportReflection(t *testing.T) {
-	refClient := grpcreflect.NewClientV1Alpha(context.Background(), reflectpb.NewServerReflectionClient(ccNoReflect))
+	refClient := grpcreflect.NewClientAuto(context.Background(), ccNoReflect)
 	defer refClient.Reset()
 
 	refSource := DescriptorSourceFromServer(context.Background(), refClient)
@@ -216,11 +215,11 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 
 	if includeReflection {
 		// when using server reflection, we see the TestService as well as the ServerReflection service
-		names, err = ListMethods(source, "grpc.reflection.v1alpha.ServerReflection")
+		names, err = ListMethods(source, "grpc.reflection.v1.ServerReflection")
 		if err != nil {
 			t.Fatalf("failed to list methods for ServerReflection: %v", err)
 		}
-		expected = []string{"grpc.reflection.v1alpha.ServerReflection.ServerReflectionInfo"}
+		expected = []string{"grpc.reflection.v1.ServerReflection.ServerReflectionInfo"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
