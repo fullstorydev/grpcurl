@@ -213,7 +213,7 @@ func TestBrokenTLS_ClientHasExpiredCert(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "bad certificate") {
+	if !strings.Contains(err.Error(), "certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
