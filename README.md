@@ -14,7 +14,7 @@ This program accepts messages using JSON encoding, which is much more friendly f
 humans and scripts.
 
 With this tool you can also browse the schema for gRPC services, either by querying
-a server that supports [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto),
+a server that supports [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1/reflection.proto),
 by reading proto source files, or by loading in compiled "protoset" files (files that contain
 encoded file [descriptor protos](https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto)).
 In fact, the way the tool transforms JSON request data into a binary encoded protobuf
@@ -192,7 +192,7 @@ are needed to use them.
 
 ### Server Reflection
 
-Without any additional command-line flags, `grpcurl` will try to use [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1alpha/reflection.proto).
+Without any additional command-line flags, `grpcurl` will try to use [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1/reflection.proto).
 
 Examples for how to set up server reflection can be found [here](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md#known-implementations).
 
