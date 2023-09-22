@@ -19,18 +19,18 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.19
+    steps: *simple_job_steps
+
+  build-1-20:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.20
     steps:
       - checkout
       - run:
           name: Run tests and linters
           command: |
             make ci
-
-  build-1-20:
-    working_directory: ~/repo
-    docker:
-      - image: cimg/go:1.20
-    steps: *simple_job_steps
 
   build-1-21:
     working_directory: ~/repo
