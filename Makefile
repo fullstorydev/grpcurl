@@ -26,7 +26,7 @@ install:
 
 .PHONY: release
 release:
-	@go install github.com/goreleaser/goreleaser@v1.5.0
+	@go install github.com/goreleaser/goreleaser@v1.10.0
 	goreleaser release --rm-dist
 
 .PHONY: docker
@@ -45,6 +45,7 @@ generate: .tmp/protoc/bin/protoc
 checkgenerate: generate
 	git status --porcelain
 	@if [ -n "$$(git status --porcelain)" ]; then \
+		git diff; \
 		exit 1; \
 	fi
 
