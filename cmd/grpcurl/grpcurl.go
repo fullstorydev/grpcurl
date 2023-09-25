@@ -450,7 +450,7 @@ func main() {
 				clientOptions.HandshakerServiceAddress = *altsHandshakerServiceAddress
 			}
 			creds = alts.NewClientCreds(clientOptions)
-		} else if *usetls {
+		} else if usetls {
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
