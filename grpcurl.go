@@ -329,7 +329,7 @@ func fetchAllExtensions(source DescriptorSource, ext *dynamic.ExtensionRegistry,
 	return nil
 }
 
-// fullConvertToDynamic attempts to convert the given message to a dynamic message as well
+// fullyConvertToDynamic attempts to convert the given message to a dynamic message as well
 // as any nested messages it may contain as field values. If the given message factory has
 // extensions registered that were not known when the given message was parsed, this effectively
 // allows re-parsing to identify those extensions.
@@ -407,9 +407,9 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	case "google.protobuf.Any":
 		// empty type URL is not allowed by JSON representation
 		// so we must give it a dummy type
-		var any anypb.Any
-		_ = anypb.MarshalFrom(&any, &emptypb.Empty{}, protov2.MarshalOptions{})
-		return &any
+		var anyVal anypb.Any
+		_ = anypb.MarshalFrom(&anyVal, &emptypb.Empty{}, protov2.MarshalOptions{})
+		return &anyVal
 	case "google.protobuf.Value":
 		// unset kind is not allowed by JSON representation
 		// so we must give it something

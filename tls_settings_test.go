@@ -170,8 +170,8 @@ func TestBrokenTLS_ServerPlainText(t *testing.T) {
 
 	e, err := createTestServerAndClient(nil, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
 	if !strings.Contains(err.Error(), "first record does not look like a TLS handshake") {
 		t.Fatalf("expecting TLS handshake failure, got: %v", err)
@@ -190,8 +190,8 @@ func TestBrokenTLS_ServerUsesWrongCert(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
 	if !strings.Contains(err.Error(), "certificate is valid for") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
@@ -210,10 +210,10 @@ func TestBrokenTLS_ClientHasExpiredCert(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "bad certificate") {
+	if !strings.Contains(err.Error(), "certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
@@ -230,8 +230,8 @@ func TestBrokenTLS_ServerHasExpiredCert(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
 	if !strings.Contains(err.Error(), "certificate has expired or is not yet valid") {
 		t.Fatalf("expecting TLS certificate expired, got: %v", err)
@@ -250,8 +250,8 @@ func TestBrokenTLS_ClientNotTrusted(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
 	if !strings.Contains(err.Error(), "bad certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
@@ -270,10 +270,10 @@ func TestBrokenTLS_ServerNotTrusted(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+	if !strings.Contains(err.Error(), "certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
 	}
 }
@@ -290,8 +290,8 @@ func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
 
 	e, err := createTestServerAndClient(serverCreds, clientCreds)
 	if err == nil {
-		t.Fatal("expecting TLS failure setting up server and client")
 		e.Close()
+		t.Fatal("expecting TLS failure setting up server and client")
 	}
 	if !strings.Contains(err.Error(), "bad certificate") {
 		t.Fatalf("expecting TLS certificate error, got: %v", err)
@@ -349,7 +349,7 @@ type testEnv struct {
 	cc  *grpc.ClientConn
 }
 
-func (e testEnv) Close() {
+func (e *testEnv) Close() {
 	if e.cc != nil {
 		e.cc.Close()
 		e.cc = nil

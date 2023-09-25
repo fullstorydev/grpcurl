@@ -136,10 +136,25 @@ type Formatter func(proto.Message) (string, error)
 func NewJSONFormatter(emitDefaults bool, resolver jsonpb.AnyResolver) Formatter {
 	marshaler := jsonpb.Marshaler{
 		EmitDefaults: emitDefaults,
-		Indent:       "  ",
 		AnyResolver:  resolver,
 	}
-	return marshaler.MarshalToString
+	// Workaround for indentation issue in jsonpb with Any messages.
+	// Bug was originally fixed in https://github.com/golang/protobuf/pull/834
+	// but later re-introduced before the module was deprecated and frozen.
+	// If jsonpb is ever replaced with google.golang.org/protobuf/encoding/protojson
+	// this workaround will no longer be needed.
+	formatter := func(message proto.Message) (string, error) {
+		output, err := marshaler.MarshalToString(message)
+		if err != nil {
+			return "", err
+		}
+		var buf bytes.Buffer
+		if err := json.Indent(&buf, []byte(output), "", "  "); err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	}
+	return formatter
 }
 
 // NewTextFormatter returns a formatter that returns strings in the protobuf
@@ -197,10 +212,20 @@ func (tf *textFormatter) format(m proto.Message) (string, error) {
 	return str, nil
 }
 
+// Format of request data. The allowed values are 'json' or 'text'.
 type Format string
 
 const (
+	// FormatJSON specifies input data in JSON format. Multiple request values
+	// may be concatenated (messages with a JSON representation other than
+	// object must be separated by whitespace, such as a newline)
 	FormatJSON = Format("json")
+
+	// FormatText specifies input data must be in the protobuf text format.
+	// Multiple request values must be separated by the "record separator"
+	// ASCII character: 0x1E. The stream should not end in a record separator.
+	// If it does, it will be interpreted as a final, blank message after the
+	// separator.
 	FormatText = Format("text")
 )
 
@@ -264,11 +289,11 @@ func (r *anyResolver) Resolve(typeUrl string) (proto.Message, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown message: %s", typeUrl)
 	}
-	// populate any extensions for this message, too
-	if exts, err := r.source.AllExtensionsForType(mname); err != nil {
-		return nil, err
-	} else if err := r.er.AddExtension(exts...); err != nil {
-		return nil, err
+	// populate any extensions for this message, too (if there are any)
+	if exts, err := r.source.AllExtensionsForType(mname); err == nil {
+		if err := r.er.AddExtension(exts...); err != nil {
+			return nil, err
+		}
 	}
 
 	if r.mf == nil {

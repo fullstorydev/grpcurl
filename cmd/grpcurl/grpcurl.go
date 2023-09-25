@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/credentials/alts"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/descriptorpb"
 
@@ -39,9 +38,9 @@ import (
 // the response status codes emitted use an offest of 64
 const statusCodeOffset = 64
 
-const no_version = "dev build <no version set>"
+const noVersion = "dev build <no version set>"
 
-var version = no_version
+var version = noVersion
 
 var (
 	exit = os.Exit
@@ -489,7 +488,7 @@ func main() {
 		}
 
 		grpcurlUA := "grpcurl/" + version
-		if version == no_version {
+		if version == noVersion {
 			grpcurlUA = "grpcurl/dev-build (no version set)"
 		}
 		if *userAgent != "" {
@@ -552,7 +551,7 @@ func main() {
 		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
 		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
-		refClient = grpcreflect.NewClient(refCtx, reflectpb.NewServerReflectionClient(cc))
+		refClient = grpcreflect.NewClientAuto(refCtx, cc)
 		reflSource := grpcurl.DescriptorSourceFromServer(ctx, refClient)
 		if fileSource != nil {
 			descSource = compositeSource{reflSource, fileSource}

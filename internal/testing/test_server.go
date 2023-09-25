@@ -1,6 +1,6 @@
 package testing
 
-//go:generate protoc --go_out=plugins=grpc:./ test.proto
+//go:generate protoc --go_out=. --go-grpc_out=. test.proto
 //go:generate protoc --descriptor_set_out=./test.protoset test.proto
 //go:generate protoc --descriptor_set_out=./example.protoset --include_imports example.proto
 
@@ -19,7 +19,9 @@ import (
 )
 
 // TestServer implements the TestService interface defined in example.proto.
-type TestServer struct{}
+type TestServer struct {
+	UnimplementedTestServiceServer
+}
 
 // EmptyCall accepts one empty request and issues one empty response.
 func (TestServer) EmptyCall(ctx context.Context, req *Empty) (*Empty, error) {

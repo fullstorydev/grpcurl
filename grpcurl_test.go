@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
-	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 
 	. "github.com/fullstorydev/grpcurl"
@@ -82,7 +81,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	defer ccReflect.Close()
-	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccReflect))
+	refClient := grpcreflect.NewClientAuto(context.Background(), ccReflect)
 	defer refClient.Reset()
 
 	sourceReflect = DescriptorSourceFromServer(context.Background(), refClient)
@@ -118,7 +117,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestServerDoesNotSupportReflection(t *testing.T) {
-	refClient := grpcreflect.NewClient(context.Background(), reflectpb.NewServerReflectionClient(ccNoReflect))
+	refClient := grpcreflect.NewClientAuto(context.Background(), ccNoReflect)
 	defer refClient.Reset()
 
 	refSource := DescriptorSourceFromServer(context.Background(), refClient)
@@ -178,7 +177,7 @@ func doTestListServices(t *testing.T, source DescriptorSource, includeReflection
 	var expected []string
 	if includeReflection {
 		// when using server reflection, we see the TestService as well as the ServerReflection service
-		expected = []string{"grpc.reflection.v1alpha.ServerReflection", "testing.TestService"}
+		expected = []string{"grpc.reflection.v1.ServerReflection", "grpc.reflection.v1alpha.ServerReflection", "testing.TestService"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
@@ -216,11 +215,11 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 
 	if includeReflection {
 		// when using server reflection, we see the TestService as well as the ServerReflection service
-		names, err = ListMethods(source, "grpc.reflection.v1alpha.ServerReflection")
+		names, err = ListMethods(source, "grpc.reflection.v1.ServerReflection")
 		if err != nil {
 			t.Fatalf("failed to list methods for ServerReflection: %v", err)
 		}
-		expected = []string{"grpc.reflection.v1alpha.ServerReflection.ServerReflectionInfo"}
+		expected = []string{"grpc.reflection.v1.ServerReflection.ServerReflectionInfo"}
 	} else {
 		// without reflection, we see all services defined in the same test.proto file, which is the
 		// TestService as well as UnimplementedService
@@ -243,12 +242,8 @@ func doTestListMethods(t *testing.T, source DescriptorSource, includeReflection 
 
 func TestGetAllFiles(t *testing.T) {
 	expectedFiles := []string{"test.proto"}
-	// server reflection picks up filename from linked in Go package,
-	// which indicates "grpc_testing/test.proto", not our local copy.
-	expectedFilesWithReflection := [][]string{
-		{"grpc_reflection_v1alpha/reflection.proto", "test.proto"},
-		// depending on the version of grpc, the filenames could be prefixed with "interop/" and "reflection/"
-		{"reflection/grpc_reflection_v1alpha/reflection.proto", "test.proto"},
+	expectedFilesWithReflection := []string{
+		"grpc/reflection/v1/reflection.proto", "grpc/reflection/v1alpha/reflection.proto", "test.proto",
 	}
 
 	for _, ds := range descSources {
@@ -261,17 +256,11 @@ func TestGetAllFiles(t *testing.T) {
 			match := false
 			var expected []string
 			if ds.includeRefl {
-				for _, expectedNames := range expectedFilesWithReflection {
-					expected = expectedNames
-					if reflect.DeepEqual(expected, names) {
-						match = true
-						break
-					}
-				}
+				expected = expectedFilesWithReflection
 			} else {
 				expected = expectedFiles
-				match = reflect.DeepEqual(expected, names)
 			}
+			match = reflect.DeepEqual(expected, names)
 			if !match {
 				t.Errorf("GetAllFiles returned wrong results: wanted %v, got %v", expected, names)
 			}
