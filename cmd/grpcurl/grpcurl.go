@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/alts"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -52,11 +53,14 @@ var (
 		Print usage instructions and exit.`))
 	printVersion = flags.Bool("version", false, prettify(`
 		Print version.`))
+
 	plaintext = flags.Bool("plaintext", false, prettify(`
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
 	insecure = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
+
+	// TLS Options
 	cacert = flags.String("cacert", "", prettify(`
 		File containing trusted root certificates for verifying the server.
 		Ignored if -insecure is specified.`))
@@ -66,6 +70,13 @@ var (
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
+
+	// ALTS Options
+	usealts = flags.Bool("alts", false, prettify(`
+		Use Application Layer Transport Security (ALTS) when connecting to server.`))
+	altsHandshakerServiceAddress = flags.String("alts-handshaker-service", "", prettify(`If set, this server will be used to do the ATLS handshaking.`))
+	altsTargetServiceAccounts    multiString
+
 	protoset      multiString
 	protoFiles    multiString
 	importPaths   multiString
@@ -199,6 +210,14 @@ func init() {
 		-use-reflection is used in combination with a -proto or -protoset flag,
 		the provided descriptor sources will be used in addition to server
 		reflection to resolve messages and extensions.`))
+	flags.Var(&altsTargetServiceAccounts, "alts-target-service-account", prettify(`
+		The full email address of the service account that the server is
+		expected to be using when ALTS is used. You can specify this option
+		multiple times to indicate multiple allowed service accounts. If the
+		server authenticates with a service account that is not one of the
+		expected accounts, the RPC will not be issued. If no such arguments are
+		provided, no check will be performed, and the RPC will be issued
+		regardless of the server's service account.`))
 }
 
 type multiString []string
@@ -267,6 +286,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// default behavior is to use tls
+	usetls := !*plaintext && !*usealts
+
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
 		fail(nil, "The -connect-timeout argument must not be negative.")
@@ -280,17 +302,26 @@ func main() {
 	if *maxMsgSz < 0 {
 		fail(nil, "The -max-msg-sz argument must not be negative.")
 	}
-	if *plaintext && *insecure {
-		fail(nil, "The -plaintext and -insecure arguments are mutually exclusive.")
+	if *plaintext && *usealts {
+		fail(nil, "The -plaintext and -alts arguments are mutually exclusive.")
 	}
-	if *plaintext && *cert != "" {
-		fail(nil, "The -plaintext and -cert arguments are mutually exclusive.")
+	if *insecure && !usetls {
+		fail(nil, "The -insecure argument can only be used with TLS.")
 	}
-	if *plaintext && *key != "" {
-		fail(nil, "The -plaintext and -key arguments are mutually exclusive.")
+	if *cert != "" && !usetls {
+		fail(nil, "The -cert argument can only be used with TLS.")
+	}
+	if *key != "" && !usetls {
+		fail(nil, "The -key argument can only be used with TLS.")
 	}
 	if (*key == "") != (*cert == "") {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
+	}
+	if *altsHandshakerServiceAddress != "" && !*usealts {
+		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")
+	}
+	if len(altsTargetServiceAccounts) > 0 && !*usealts {
+		fail(nil, "The -alts-target-service-account argument must be used with the -alts argument.")
 	}
 	if *format != "json" && *format != "text" {
 		fail(nil, "The -format option must be 'json' or 'text'.")
@@ -406,7 +437,20 @@ func main() {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
 		var creds credentials.TransportCredentials
-		if !*plaintext {
+		if *plaintext {
+			if *authority != "" {
+				opts = append(opts, grpc.WithAuthority(*authority))
+			}
+		} else if *usealts {
+			clientOptions := alts.DefaultClientOptions()
+			if len(altsTargetServiceAccounts) > 0 {
+				clientOptions.TargetServiceAccounts = altsTargetServiceAccounts
+			}
+			if *altsHandshakerServiceAddress != "" {
+				clientOptions.HandshakerServiceAddress = *altsHandshakerServiceAddress
+			}
+			creds = alts.NewClientCreds(clientOptions)
+		} else if usetls {
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -439,8 +483,8 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
-		} else if *authority != "" {
-			opts = append(opts, grpc.WithAuthority(*authority))
+		} else {
+			panic("Should have defaulted to use TLS.")
 		}
 
 		grpcurlUA := "grpcurl/" + version
