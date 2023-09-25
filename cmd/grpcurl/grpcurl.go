@@ -54,15 +54,14 @@ var (
 		Print usage instructions and exit.`))
 	printVersion = flags.Bool("version", false, prettify(`
 		Print version.`))
+
 	plaintext = flags.Bool("plaintext", false, prettify(`
 		Use plain-text HTTP/2 when connecting to server (no TLS).`))
-	usealts = flags.Bool("alts", false, prettify(`
-		Use Application Layer Transport Security (ALTS) when connecting to server.`))
-	altsHandshakerServiceAddress = flags.String("alts-handshaker-service", "", prettify(`If set, this server will be used to do the ATLS handshaking.`))
-	altsTargetServiceAccounts    multiString
-	insecure                     = flags.Bool("insecure", false, prettify(`
+	insecure = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
+
+	// TLS Options
 	cacert = flags.String("cacert", "", prettify(`
 		File containing trusted root certificates for verifying the server.
 		Ignored if -insecure is specified.`))
@@ -72,6 +71,13 @@ var (
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
+
+	// ALTS Options
+	usealts = flags.Bool("alts", false, prettify(`
+		Use Application Layer Transport Security (ALTS) when connecting to server.`))
+	altsHandshakerServiceAddress = flags.String("alts-handshaker-service", "", prettify(`If set, this server will be used to do the ATLS handshaking.`))
+	altsTargetServiceAccounts    multiString
+
 	protoset      multiString
 	protoFiles    multiString
 	importPaths   multiString
@@ -281,6 +287,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// default behavior is to use tls
+	usetls := !*plaintext && !*usealts
+
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
 		fail(nil, "The -connect-timeout argument must not be negative.")
@@ -297,32 +306,23 @@ func main() {
 	if *plaintext && *usealts {
 		fail(nil, "The -plaintext and -alts arguments are mutually exclusive.")
 	}
-	if *plaintext && *insecure {
-		fail(nil, "The -plaintext and -insecure arguments are mutually exclusive.")
+	if *insecure && !usetls {
+		fail(nil, "The -insecure argument can only be used with TLS.")
 	}
-	if *plaintext && *cert != "" {
-		fail(nil, "The -plaintext and -cert arguments are mutually exclusive.")
+	if *cert != "" && !usetls {
+		fail(nil, "The -cert argument can only be used with TLS.")
 	}
-	if *plaintext && *key != "" {
-		fail(nil, "The -plaintext and -key arguments are mutually exclusive.")
+	if *key != "" && !usetls {
+		fail(nil, "The -key argument can only be used with TLS.")
 	}
-	if *usealts && *insecure {
-		fail(nil, "The -alts and -insecure arguments are mutually exclusive.")
-	}
-	if *usealts && *cert != "" {
-		fail(nil, "The -alts and -cert arguments are mutually exclusive.")
-	}
-	if *usealts && *key != "" {
-		fail(nil, "The -alts and -key arguments are mutually exclusive.")
+	if (*key == "") != (*cert == "") {
+		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 	if *altsHandshakerServiceAddress != "" && !*usealts {
 		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")
 	}
 	if len(altsTargetServiceAccounts) > 0 && !*usealts {
 		fail(nil, "The -alts-target-service-account argument must be used with the -alts argument.")
-	}
-	if (*key == "") != (*cert == "") {
-		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 	if *format != "json" && *format != "text" {
 		fail(nil, "The -format option must be 'json' or 'text'.")
@@ -451,8 +451,7 @@ func main() {
 				clientOptions.HandshakerServiceAddress = *altsHandshakerServiceAddress
 			}
 			creds = alts.NewClientCreds(clientOptions)
-		} else {
-			// Use TLS
+		} else if *usetls {
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -485,6 +484,8 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
+		} else {
+			panic("Should have defaulted to use TLS.")
 		}
 
 		grpcurlUA := "grpcurl/" + version
