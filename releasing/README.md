@@ -63,7 +63,7 @@ The last step is to update the Homebrew recipe to use the latest version. First,
 
 ```sh
 # download the source archive from GitHub
-URL=https://github.com/fullstorydev/grpcurl/archive/v2.3.4.tar.gz
+URL=https://github.com/fullstorydev/grpcurl/archive/refs/tags/v2.3.4.tar.gz
 curl -L -o tmp.tgz $URL
 # and compute the SHA
 SHA="$(sha256sum < tmp.tgz | awk '{ print $1 }')"
