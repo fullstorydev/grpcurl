@@ -92,7 +92,8 @@ errcheck:
 
 .PHONY: test
 test:
-	go test -race ./...
+	# The race detector requires CGO: https://github.com/golang/go/issues/6508
+	CGO_ENABLED=1 go test -race ./...
 
 .tmp/protoc/bin/protoc: ./Makefile ./download_protoc.sh
 	./download_protoc.sh
