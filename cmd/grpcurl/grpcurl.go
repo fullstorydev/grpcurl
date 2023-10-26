@@ -295,16 +295,16 @@ func main() {
 	// default behavior is to use tls
 	usetls := !*plaintext && !*usealts
 
-	// converto to CertificateFileType
-	if len(*certTypeString) == 0 {
-		certType = grpcurl.CertTypePEM // default PEM
-	} else if strings.EqualFold(*certTypeString, "PEM") {
-		certType = grpcurl.CertTypePEM
-	} else if strings.EqualFold(*certTypeString, "P12") {
-		certType = grpcurl.CertTypeP12
-	} else {
-		fail(nil, "The -cert-type argument must be PEM or P12.")
-	}
+	//// converto to CertificateFileType
+	//if len(*certTypeString) == 0 {
+	//	certType = grpcurl.CertTypePEM // default PEM
+	//} else if strings.EqualFold(*certTypeString, "PEM") {
+	//	certType = grpcurl.CertTypePEM
+	//} else if strings.EqualFold(*certTypeString, "P12") {
+	//	certType = grpcurl.CertTypeP12
+	//} else {
+	//	fail(nil, "The -cert-type argument must be PEM or P12.")
+	//}
 
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
@@ -332,21 +332,21 @@ func main() {
 		fail(nil, "The -key argument can only be used with TLS.")
 	}
 
-	switch certType {
-	case grpcurl.CertTypePEM:
-		if (*key == "") != (*cert == "") {
-			fail(nil, "The -cert and -key arguments must be used together and both be present when -cert-type is PEM.")
-		}
-	case grpcurl.CertTypeP12:
-		if *key != "" {
-			fail(nil, "The -key arguments must not be used when -cert-type is P12.")
-		}
-		if *cert == "" {
-			fail(nil, "The -cert arguments must be used when -cert-type is P12.")
-		}
-	default:
-		fail(nil, "Not support cert type %v.", certType)
-	}
+	//switch certType {
+	//case grpcurl.CertTypePEM:
+	//	if (*key == "") != (*cert == "") {
+	//		fail(nil, "The -cert and -key arguments must be used together and both be present when -cert-type is PEM.")
+	//	}
+	//case grpcurl.CertTypeP12:
+	//	if *key != "" {
+	//		fail(nil, "The -key arguments must not be used when -cert-type is P12.")
+	//	}
+	//	if *cert == "" {
+	//		fail(nil, "The -cert arguments must be used when -cert-type is P12.")
+	//	}
+	//default:
+	//	fail(nil, "Not support cert type %v.", certType)
+	//}
 
 	if *altsHandshakerServiceAddress != "" && !*usealts {
 		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")

@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fullstorydev/grpcurl/internal/certigo/lib"
 	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
@@ -549,16 +550,29 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile, clientCertFile, clie
 
 	if clientCertFile != "" {
 		// Load the client certificates from disk
-		var certificate tls.Certificate
-		var err error
-		switch clientCertType {
-		case CertTypeP12:
-			certificate, err = loadClientCertP12(clientCertFile, clientPass)
-		case CertTypePEM:
-			certificate, err = tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
-		default:
-			return nil, fmt.Errorf("not support client certificate type: %v", clientCertType)
+		clientCertFormat := ""
+		var pemBuf bytes.Buffer
+		err := lib.ReadAsPEMEx(clientCertFile, clientCertFormat, clientPass, func(block *pem.Block, format string) error {
+			return pem.Encode(&pemBuf, block)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("could not load client cert: %v", err)
 		}
+		pemBytes := pemBuf.Bytes()
+		pemKeyBytes := pemBytes
+
+		if clientKeyFile != "" {
+			var pemKeyBuf bytes.Buffer
+			err := lib.ReadAsPEMEx(clientKeyFile, clientCertFormat, clientPass, func(block *pem.Block, format string) error {
+				return pem.Encode(&pemKeyBuf, block)
+			})
+			if err != nil {
+				return nil, fmt.Errorf("could not load client key: %v", err)
+			}
+			pemKeyBytes = pemKeyBuf.Bytes()
+		}
+
+		certificate, err := tls.X509KeyPair(pemBytes, pemKeyBytes)
 		if err != nil {
 			return nil, fmt.Errorf("could not load client key pair: %v", err)
 		}
@@ -584,6 +598,21 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile, clientCertFile, clie
 	}
 
 	return &tlsConf, nil
+}
+
+func inputFiles(fileNames []string) ([]*os.File, error) {
+	var files []*os.File
+	for _, filename := range fileNames {
+		if filename == "" {
+			continue
+		}
+		rawFile, err := os.Open(filename)
+		if err != nil {
+			return nil, fmt.Errorf("unable to open file: %s\n", err)
+		}
+		files = append(files, rawFile)
+	}
+	return files, nil
 }
 
 func loadClientCertP12(pfxFile, pfxPassword string) (tls.Certificate, error) {
