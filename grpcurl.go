@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	xdsCredentials "google.golang.org/grpc/credentials/xds"
 	"google.golang.org/grpc/metadata"
 	protov2 "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -629,7 +630,16 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 			TransportCredentials: creds,
 			writeResult:          writeResult,
 		}
+	} else {
+		creds = insecure.NewCredentials()
 	}
+
+	var err error
+	creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
+	if err != nil {
+		return nil, err
+	}
+
 	dialer := func(ctx context.Context, address string) (net.Conn, error) {
 		// NB: We *could* handle the TLS handshake ourselves, in the custom
 		// dialer (instead of customizing both the dialer and the credentials).
@@ -655,13 +665,8 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append([]grpc.DialOption{grpc.FailOnNonTempDialError(true)}, opts...)
 		// But we don't want caller to be able to override these two, so we put
 		// them *after* the explicitly provided options.
-		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer))
+		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(creds))
 
-		if creds == nil {
-			opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		} else {
-			opts = append(opts, grpc.WithTransportCredentials(creds))
-		}
 		conn, err := grpc.DialContext(ctx, address, opts...)
 		var res interface{}
 		if err != nil {
