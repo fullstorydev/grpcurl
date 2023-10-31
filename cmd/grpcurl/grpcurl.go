@@ -154,6 +154,8 @@ var (
 		Enable verbose output.`))
 	veryVerbose = flags.Bool("vv", false, prettify(`
 		Enable very verbose output.`))
+	showTimings = flags.Bool("t", false, prettify(`
+		Display debug timings.`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate. This flag is
 		ignored if -plaintext or -insecure is used.
@@ -274,6 +276,12 @@ func (cs compositeSource) AllExtensionsForType(typeName string) ([]*desc.FieldDe
 	return exts, nil
 }
 
+type TimingData struct {
+	Title	string
+	Value	time.Duration
+	Sub		[]TimingData
+}
+
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
@@ -362,6 +370,9 @@ func main() {
 	if *veryVerbose {
 		verbosityLevel = 2
 	}
+	timingData := []TimingData{}
+	startTime := time.Now()
+	s := startTime
 
 	var symbol string
 	if invoke {
@@ -419,12 +430,20 @@ func main() {
 	}
 
 	dial := func() *grpc.ClientConn {
+		s := time.Now()
+		td := TimingData{
+			Title: "Dial",
+		}
 		dialTime := 10 * time.Second
 		if *connectTimeout > 0 {
 			dialTime = time.Duration(*connectTimeout * float64(time.Second))
 		}
 		ctx, cancel := context.WithTimeout(ctx, dialTime)
 		defer cancel()
+		defer func() {
+			td.Value = time.Now().Sub(s)
+			timingData = append(timingData, td)
+		}()
 		var opts []grpc.DialOption
 		if *keepaliveTime > 0 {
 			timeout := time.Duration(*keepaliveTime * float64(time.Second))
@@ -451,6 +470,7 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
+			s := time.Now()
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -483,6 +503,10 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
+			td.Sub = append(td.Sub, TimingData{
+				Title: "TLS Setup",
+				Value: time.Now().Sub(s),
+			})
 		} else {
 			panic("Should have defaulted to use TLS.")
 		}
@@ -500,10 +524,15 @@ func main() {
 		if isUnixSocket != nil && isUnixSocket() {
 			network = "unix"
 		}
+		s = time.Now()
 		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
+		td.Sub = append(td.Sub, TimingData{
+			Title: "BlockingDial",
+			Value: time.Now().Sub(s),
+		})
 		return cc
 	}
 	printFormattedStatus := func(w io.Writer, stat *status.Status, formatter grpcurl.Formatter) {
@@ -747,6 +776,7 @@ func main() {
 			VerbosityLevel: verbosityLevel,
 		}
 
+		s = time.Now()
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
 		if err != nil {
 			if errStatus, ok := status.FromError(err); ok && *formatError {
@@ -755,6 +785,10 @@ func main() {
 				fail(err, "Error invoking method %q", symbol)
 			}
 		}
+		timingData = append(timingData, TimingData{
+			Title: "InvokeRPC",
+			Value: time.Now().Sub(s),
+		})
 		reqSuffix := ""
 		respSuffix := ""
 		reqCount := rf.NumRequests()
@@ -767,6 +801,15 @@ func main() {
 		if verbosityLevel > 0 {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
+		if *showTimings {
+			defer func() {
+				fmt.Printf("== Timing Data == \n")
+				for _, td := range timingData {
+					dumpTiming(td, 1)
+				}
+				fmt.Printf("\n  Total time: %v\n", time.Now().Sub(startTime))
+			}()
+		}
 		if h.Status.Code() != codes.OK {
 			if *formatError {
 				printFormattedStatus(os.Stderr, h.Status, formatter)
@@ -775,6 +818,17 @@ func main() {
 			}
 			exit(statusCodeOffset + int(h.Status.Code()))
 		}
+	}
+}
+
+func dumpTiming(td TimingData, lvl int) {
+	indent := "  "
+	for x := 0; x < lvl - 1; x++ {
+		indent += indent
+	}
+	fmt.Printf("%s%s: %s\n", indent, td.Title, td.Value)
+	for _, sd := range td.Sub {
+		dumpTiming(sd, lvl + 1)
 	}
 }
 
