@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
 	"encoding/pem"
@@ -50,6 +51,7 @@ const (
 var fileExtToFormat = map[string]string{
 	".pem":   "PEM",
 	".crt":   "PEM",
+	".cer":   "PEM",
 	".p7b":   "PEM",
 	".p7c":   "PEM",
 	".p12":   "PKCS12",
@@ -84,28 +86,166 @@ func errorFromErrors(errs []error) error {
 	return errors.New(buffer.String())
 }
 
-// ReadAsPEMFromFiles will read PEM blocks from the given set of inputs. Input
-// data may be in plain-text PEM files, DER-encoded certificates or PKCS7
-// envelopes, or PKCS12/JCEKS keystores. All inputs will be converted to PEM
-// blocks and passed to the callback.
-func ReadAsPEMFromFiles(files []*os.File, format string, password func(string) string, callback func(*pem.Block, string) error) error {
-	var errs []error
-	for _, file := range files {
-		reader := bufio.NewReaderSize(file, 4)
-		format, err := formatForFile(reader, file.Name(), format)
-		if err != nil {
-			return fmt.Errorf("unable to guess file type for file %s", file.Name())
-		}
-
-		err = readCertsFromStream(reader, file.Name(), format, password, callback)
-		if err != nil {
-			errs = append(errs, err)
-		}
+func NewCertificateKeyFormat(fileFormat string) CertificateKeyFormat {
+	fileFormat = strings.ToUpper(fileFormat)
+	switch fileFormat {
+	case "":
+		return CertKeyFormatNONE
+	case "PEM":
+		return CertKeyFormatPEM
+	case "DER":
+		return CertKeyFormatDER
+	case "PKCS12", "P12":
+		return CertKeyFormatPKCS12
+	default:
+		return CertKeyFormatNONE
 	}
-	return errorFromErrors(errs)
 }
 
-func ReadAsPEMEx(filename string, format string, password string, callback func(*pem.Block, string) error) error {
+type CertificateKeyFormat string
+
+const (
+	CertKeyFormatNONE CertificateKeyFormat = ""
+	// The file contains plain-text PEM data
+	CertKeyFormatPEM CertificateKeyFormat = "PEM"
+	// The file contains X.509 DER encoded data
+	CertKeyFormatDER CertificateKeyFormat = "DER"
+	// The file contains JCEKS keystores
+	CertKeyFormatJCEKS CertificateKeyFormat = "JCEKS"
+	// The file contains PFX data describing PKCS#12
+	CertKeyFormatPKCS12 CertificateKeyFormat = "PKCS12"
+)
+
+func (f *CertificateKeyFormat) Set(fileFormat string) {
+	*f = NewCertificateKeyFormat(fileFormat)
+}
+
+func (f CertificateKeyFormat) IsNone() bool {
+	return f == CertKeyFormatNONE
+}
+
+func (f *CertificateKeyFormat) SetPEM() {
+	*f = CertKeyFormatPEM
+}
+
+func (f CertificateKeyFormat) IsPEM() bool {
+	return f == CertKeyFormatPEM
+}
+
+func (f CertificateKeyFormat) IsDER() bool {
+	return f == CertKeyFormatDER
+}
+
+func (f CertificateKeyFormat) IsPKCS12() bool {
+	return f == CertKeyFormatPKCS12
+}
+
+// ClientTLSConfigV2 builds transport-layer config for a gRPC client using the
+// given properties. Support certificate file both PEM and P12.
+func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile string, cacertFormat CertificateKeyFormat, clientCertFile string, certFormat CertificateKeyFormat, clientKeyFile string, keyFormat CertificateKeyFormat, clientPass string) (*tls.Config, error) {
+	var tlsConf tls.Config
+
+	if clientCertFile != "" {
+		// Load the client certificates
+		pemCertBytes, err := readAsPEMEx2(clientCertFile, string(certFormat), clientPass)
+		if err != nil {
+			return nil, fmt.Errorf("could not load client cert: %v", err)
+		}
+		pemKeyBytes := pemCertBytes // allow clientCertFile include both certificate and key file (JCEKS/PKCS12/PEM)
+
+		// Load the client key
+		if clientKeyFile != "" {
+			pemBytes, err := readAsPEMEx2(clientKeyFile, string(keyFormat), clientPass)
+			if err != nil {
+				return nil, fmt.Errorf("could not load client key: %v", err)
+			}
+			pemKeyBytes = pemBytes
+		}
+
+		// Load tls.Certificate
+		certificate, err := tls.X509KeyPair(pemCertBytes, pemKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not load client key pair: %v", err)
+		}
+		tlsConf.Certificates = []tls.Certificate{certificate}
+	}
+
+	if insecureSkipVerify {
+		tlsConf.InsecureSkipVerify = true
+	} else if cacertFile != "" {
+		// Create a certificate pool from the certificate authority
+		certPool := x509.NewCertPool()
+		pemCACertBytes, err := readAsPEMEx2(cacertFile, string(cacertFormat), "")
+		if err != nil {
+			return nil, fmt.Errorf("could not load cacert : %v", err)
+		}
+
+		// Append the certificates from the CA
+		if ok := certPool.AppendCertsFromPEM(pemCACertBytes); !ok {
+			return nil, errors.New("failed to append ca certs")
+		}
+
+		tlsConf.RootCAs = certPool
+	}
+
+	return &tlsConf, nil
+}
+
+func GuessFormatForFile(filename, format string) (string, error) {
+	// Second, attempt to guess based on extension
+	guess, ok := fileExtToFormat[strings.ToLower(filepath.Ext(filename))]
+	if ok {
+		return guess, nil
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", fmt.Errorf("unable to open file: %s\n", err)
+	}
+	defer file.Close()
+	reader := bufio.NewReaderSize(file, 4)
+
+	// Third, attempt to guess based on first 4 bytes of input
+	data, err := reader.Peek(4)
+	if err != nil {
+		return "", fmt.Errorf("unable to read file: %s\n", err)
+	}
+
+	// Heuristics for guessing -- best effort.
+	magic := binary.BigEndian.Uint32(data)
+	if magic == 0xCECECECE || magic == 0xFEEDFEED {
+		// JCEKS/JKS files always start with this prefix
+		return "JCEKS", nil
+	}
+	if magic == 0x2D2D2D2D || magic == 0x434f4e4e {
+		// Starts with '----' or 'CONN' (what s_client prints...)
+		// TODO start with 'Certificate'
+		return "PEM", nil
+	}
+	if magic&0xFFFF0000 == 0x30820000 {
+		// Looks like the input is DER-encoded, so it's either PKCS12 or X.509.
+		if magic&0x0000FF00 == 0x0300 {
+			// Probably X.509
+			return "DER", nil
+		}
+		return "PKCS12", nil
+	}
+
+	return "", nil
+}
+
+func readAsPEMEx2(filename string, format string, password string) ([]byte, error) {
+	var pembuf bytes.Buffer
+	err := readAsPEMEx(filename, format, "", func(block *pem.Block, format string) error {
+		return pem.Encode(&pembuf, block)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not load client cert: %v", err)
+	}
+	return pembuf.Bytes(), nil
+}
+
+func readAsPEMEx(filename string, format string, password string, callback func(*pem.Block, string) error) error {
 	rawFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("unable to open file: %s\n", err)
@@ -114,8 +254,38 @@ func ReadAsPEMEx(filename string, format string, password string, callback func(
 	passwordFunc := func(promet string) string {
 		return password
 	}
-	return ReadAsPEM([]io.Reader{rawFile}, format, passwordFunc, callback)
+
+	reader := bufio.NewReaderSize(rawFile, 4)
+	format, err = formatForFile(reader, "", format)
+	if err != nil {
+		return fmt.Errorf("unable to guess format for input stream")
+	}
+
+	return readCertsFromStream(reader, "", format, passwordFunc, callback)
 }
+
+// // ReadAsPEMFromFiles will read PEM blocks from the given set of inputs. Input
+// // data may be in plain-text PEM files, DER-encoded certificates or PKCS7
+// // envelopes, or PKCS12/JCEKS keystores. All inputs will be converted to PEM
+// // blocks and passed to the callback.
+//
+//	func ReadAsPEMFromFiles(files []*os.File, format string, password func(string) string, callback func(*pem.Block, string) error) error {
+//		var errs []error
+//		for _, file := range files {
+//			reader := bufio.NewReaderSize(file, 4)
+//			format, err := formatForFile(reader, file.Name(), format)
+//			if err != nil {
+//				return fmt.Errorf("unable to guess file type for file %s", file.Name())
+//			}
+//
+//			err = readCertsFromStream(reader, file.Name(), format, password, callback)
+//			if err != nil {
+//				errs = append(errs, err)
+//			}
+//		}
+//		return errorFromErrors(errs)
+//	}
+//
 
 // ReadAsPEM will read PEM blocks from the given set of inputs. Input data may
 // be in plain-text PEM files, DER-encoded certificates or PKCS7 envelopes, or
@@ -138,76 +308,76 @@ func ReadAsPEM(readers []io.Reader, format string, password func(string) string,
 	return errorFromErrors(errs)
 }
 
-// ReadAsX509FromFiles will read X.509 certificates from the given set of
-// inputs. Input data may be in plain-text PEM files, DER-encoded certificates
-// or PKCS7 envelopes, or PKCS12/JCEKS keystores. All inputs will be converted
-// to X.509 certificates (private keys are skipped) and passed to the callback.
-func ReadAsX509FromFiles(files []*os.File, format string, password func(string) string, callback func(*x509.Certificate, string, error) error) error {
-	errs := []error{}
-	for _, file := range files {
-		reader := bufio.NewReaderSize(file, 4)
-		format, err := formatForFile(reader, file.Name(), format)
-		if err != nil {
-			return fmt.Errorf("unable to guess file type for file %s, try adding --format flag", file.Name())
-		}
-
-		err = readCertsFromStream(reader, file.Name(), format, password, pemToX509(callback))
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errorFromErrors(errs)
-}
-
-// ReadAsX509 will read X.509 certificates from the given set of inputs. Input
-// data may be in plain-text PEM files, DER-encoded certificates or PKCS7
-// envelopes, or PKCS12/JCEKS keystores. All inputs will be converted to X.509
-// certificates (private keys are skipped) and passed to the callback.
-func ReadAsX509(readers []io.Reader, format string, password func(string) string, callback func(*x509.Certificate, string, error) error) error {
-	errs := []error{}
-	for _, r := range readers {
-		reader := bufio.NewReaderSize(r, 4)
-		format, err := formatForFile(reader, "", format)
-		if err != nil {
-			return fmt.Errorf("unable to guess format for input stream")
-		}
-
-		err = readCertsFromStream(reader, "", format, password, pemToX509(callback))
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errorFromErrors(errs)
-}
-
-func pemToX509(callback func(*x509.Certificate, string, error) error) func(*pem.Block, string) error {
-	return func(block *pem.Block, format string) error {
-		switch block.Type {
-		case "CERTIFICATE":
-			cert, err := x509.ParseCertificate(block.Bytes)
-			return callback(cert, format, err)
-		case "PKCS7":
-			certs, err := pkcs7.ExtractCertificates(block.Bytes)
-			if err == nil {
-				for _, cert := range certs {
-					return callback(cert, format, nil)
-				}
-			} else {
-				return callback(nil, format, err)
-			}
-		case "CERTIFICATE REQUEST":
-			fmt.Println("warning: certificate requests are not supported")
-		}
-		return nil
-	}
-}
-
-func ReadCertsFromStream(reader io.Reader, filename string, format string, password string, callback func(*pem.Block, string) error) error {
-	passwordFunc := func(promet string) string {
-		return password
-	}
-	return readCertsFromStream(reader, filename, format, passwordFunc, callback)
-}
+//// ReadAsX509FromFiles will read X.509 certificates from the given set of
+//// inputs. Input data may be in plain-text PEM files, DER-encoded certificates
+//// or PKCS7 envelopes, or PKCS12/JCEKS keystores. All inputs will be converted
+//// to X.509 certificates (private keys are skipped) and passed to the callback.
+//func ReadAsX509FromFiles(files []*os.File, format string, password func(string) string, callback func(*x509.Certificate, string, error) error) error {
+//	errs := []error{}
+//	for _, file := range files {
+//		reader := bufio.NewReaderSize(file, 4)
+//		format, err := formatForFile(reader, file.Name(), format)
+//		if err != nil {
+//			return fmt.Errorf("unable to guess file type for file %s, try adding --format flag", file.Name())
+//		}
+//
+//		err = readCertsFromStream(reader, file.Name(), format, password, pemToX509(callback))
+//		if err != nil {
+//			errs = append(errs, err)
+//		}
+//	}
+//	return errorFromErrors(errs)
+//}
+//
+//// ReadAsX509 will read X.509 certificates from the given set of inputs. Input
+//// data may be in plain-text PEM files, DER-encoded certificates or PKCS7
+//// envelopes, or PKCS12/JCEKS keystores. All inputs will be converted to X.509
+//// certificates (private keys are skipped) and passed to the callback.
+//func ReadAsX509(readers []io.Reader, format string, password func(string) string, callback func(*x509.Certificate, string, error) error) error {
+//	errs := []error{}
+//	for _, r := range readers {
+//		reader := bufio.NewReaderSize(r, 4)
+//		format, err := formatForFile(reader, "", format)
+//		if err != nil {
+//			return fmt.Errorf("unable to guess format for input stream")
+//		}
+//
+//		err = readCertsFromStream(reader, "", format, password, pemToX509(callback))
+//		if err != nil {
+//			errs = append(errs, err)
+//		}
+//	}
+//	return errorFromErrors(errs)
+//}
+//
+//func pemToX509(callback func(*x509.Certificate, string, error) error) func(*pem.Block, string) error {
+//	return func(block *pem.Block, format string) error {
+//		switch block.Type {
+//		case "CERTIFICATE":
+//			cert, err := x509.ParseCertificate(block.Bytes)
+//			return callback(cert, format, err)
+//		case "PKCS7":
+//			certs, err := pkcs7.ExtractCertificates(block.Bytes)
+//			if err == nil {
+//				for _, cert := range certs {
+//					return callback(cert, format, nil)
+//				}
+//			} else {
+//				return callback(nil, format, err)
+//			}
+//		case "CERTIFICATE REQUEST":
+//			fmt.Println("warning: certificate requests are not supported")
+//		}
+//		return nil
+//	}
+//}
+//
+//func ReadCertsFromStream(reader io.Reader, filename string, format string, password string, callback func(*pem.Block, string) error) error {
+//	passwordFunc := func(promet string) string {
+//		return password
+//	}
+//	return readCertsFromStream(reader, filename, format, passwordFunc, callback)
+//}
 
 // readCertsFromStream takes some input and converts it to PEM blocks.
 func readCertsFromStream(reader io.Reader, filename string, format string, password func(string) string, callback func(*pem.Block, string) error) error {
@@ -237,7 +407,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 		x509Certs, err0 := x509.ParseCertificates(data)
 		if err0 == nil {
 			for _, cert := range x509Certs {
-				err := callback(EncodeX509ToPEM(cert, headers), format)
+				err := callback(encodeX509ToPEM(cert, headers), format)
 				if err != nil {
 					return err
 				}
@@ -279,7 +449,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 		}
 		for _, alias := range keyStore.ListCerts() {
 			cert, _ := keyStore.GetCert(alias)
-			err := callback(EncodeX509ToPEM(cert, mergeHeaders(headers, map[string]string{nameHeader: alias})), format)
+			err := callback(encodeX509ToPEM(cert, mergeHeaders(headers, map[string]string{nameHeader: alias})), format)
 			if err != nil {
 				return err
 			}
@@ -302,7 +472,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 			}
 
 			for _, cert := range certs {
-				if err = callback(EncodeX509ToPEM(cert, mergedHeaders), format); err != nil {
+				if err = callback(encodeX509ToPEM(cert, mergedHeaders), format); err != nil {
 					return err
 				}
 			}
@@ -323,8 +493,8 @@ func mergeHeaders(baseHeaders, extraHeaders map[string]string) (headers map[stri
 	return
 }
 
-// EncodeX509ToPEM converts an X.509 certificate into a PEM block for output.
-func EncodeX509ToPEM(cert *x509.Certificate, headers map[string]string) *pem.Block {
+// encodeX509ToPEM converts an X.509 certificate into a PEM block for output.
+func encodeX509ToPEM(cert *x509.Certificate, headers map[string]string) *pem.Block {
 	return &pem.Block{
 		Type:    "CERTIFICATE",
 		Bytes:   cert.Raw,
@@ -392,6 +562,7 @@ func formatForFile(file *bufio.Reader, filename, format string) (string, error) 
 	}
 	if magic == 0x2D2D2D2D || magic == 0x434f4e4e {
 		// Starts with '----' or 'CONN' (what s_client prints...)
+		// TODO start with 'Certificate'
 		return "PEM", nil
 	}
 	if magic&0xFFFF0000 == 0x30820000 {

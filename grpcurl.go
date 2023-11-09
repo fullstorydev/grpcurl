@@ -526,78 +526,12 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 	return credentials.NewTLS(tlsConf), nil
 }
 
-type CertificateType int
-
-const (
-	// The certificate file contains PEM encoded data
-	CertTypePEM CertificateType = 1
-	// The certificate file contains PFX data describing PKCS#12.
-	CertTypeP12 CertificateType = 2
-)
-
 // ClientTLSConfig builds transport-layer config for a gRPC client using the
 // given properties. If cacertFile is blank, only standard trusted certs are used to
 // verify the server certs. If clientCertFile is blank, the client will not use a client
 // certificate. If clientCertFile is not blank then clientKeyFile must not be blank.
 func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string) (*tls.Config, error) {
-	return ClientTLSConfigV2(insecureSkipVerify, cacertFile, clientCertFile, clientKeyFile, CertTypePEM, "")
-}
-
-// ClientTLSConfigV2 builds transport-layer config for a gRPC client using the
-// given properties. Support certificate file both PEM and P12.
-func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string, clientCertType CertificateType, clientPass string) (*tls.Config, error) {
-	var tlsConf tls.Config
-
-	if clientCertFile != "" {
-		// Load the client certificates from disk
-		clientCertFormat := ""
-		var pemBuf bytes.Buffer
-		err := lib.ReadAsPEMEx(clientCertFile, clientCertFormat, clientPass, func(block *pem.Block, format string) error {
-			return pem.Encode(&pemBuf, block)
-		})
-		if err != nil {
-			return nil, fmt.Errorf("could not load client cert: %v", err)
-		}
-		pemBytes := pemBuf.Bytes()
-		pemKeyBytes := pemBytes
-
-		if clientKeyFile != "" {
-			var pemKeyBuf bytes.Buffer
-			err := lib.ReadAsPEMEx(clientKeyFile, clientCertFormat, clientPass, func(block *pem.Block, format string) error {
-				return pem.Encode(&pemKeyBuf, block)
-			})
-			if err != nil {
-				return nil, fmt.Errorf("could not load client key: %v", err)
-			}
-			pemKeyBytes = pemKeyBuf.Bytes()
-		}
-
-		certificate, err := tls.X509KeyPair(pemBytes, pemKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not load client key pair: %v", err)
-		}
-		tlsConf.Certificates = []tls.Certificate{certificate}
-	}
-
-	if insecureSkipVerify {
-		tlsConf.InsecureSkipVerify = true
-	} else if cacertFile != "" {
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(cacertFile)
-		if err != nil {
-			return nil, fmt.Errorf("could not read ca certificate: %v", err)
-		}
-
-		// Append the certificates from the CA
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			return nil, errors.New("failed to append ca certs")
-		}
-
-		tlsConf.RootCAs = certPool
-	}
-
-	return &tlsConf, nil
+	return lib.ClientTLSConfigV2(insecureSkipVerify, cacertFile, lib.CertKeyFormatPEM, clientCertFile, lib.CertKeyFormatPEM, clientKeyFile, lib.CertKeyFormatPEM, "")
 }
 
 func inputFiles(fileNames []string) ([]*os.File, error) {
