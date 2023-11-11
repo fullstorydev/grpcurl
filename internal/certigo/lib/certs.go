@@ -162,7 +162,6 @@ func GuessFormatForFile(filename string, format CertificateKeyFormat) (Certifica
 
 	// Heuristics for guessing -- best effort.
 	magic := binary.BigEndian.Uint32(data)
-	fmt.Printf(" magic 0x%0x\n", magic)
 	if magic == 0xCECECECE || magic == 0xFEEDFEED {
 		// JCEKS/JKS files always start with this prefix
 		return CertKeyFormatJCEKS, nil
@@ -355,7 +354,6 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 		x509Certs, err0 := x509.ParseCertificates(data)
 		if err0 == nil {
 			for _, cert := range x509Certs {
-				fmt.Printf("cert cn: %v\n", cert.Issuer.CommonName)
 				err := callback(encodeX509ToPEM(cert, headers), format)
 				if err != nil {
 					return err

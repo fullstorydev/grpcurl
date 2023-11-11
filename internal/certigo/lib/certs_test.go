@@ -8,14 +8,12 @@ func TestClientTLSConfig(t *testing.T) {
 	derfmt := CertKeyFormatDER
 	pemfmt := CertKeyFormatPEM
 	pfxfmt := CertKeyFormatPKCS12
-	testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client.crt", pemfmt, "tls/client.key", pemfmt, "")
-	testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client.der", derfmt, "tls/client.key", pemfmt, "")
-	testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client.pfx", pfxfmt, "tls/client.key", pemfmt, "")
-	testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client_pass.pfx", pfxfmt, "", pemfmt, "pfxpassword")
-	testTLSConfig(t, false, "tls/ca.der", derfmt, "tls/client.pfx", pfxfmt, "", pemfmt, "")
-	//testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client.crt", pemfmt, "tls/client.key.pass", pemfmt, "123456") // not support
-	//testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client_pass.pfx", pfxfmt, "", pemfmt, "invalidpwd") // invalid
-	//testTLSConfig(t, false, "tls/ca.crt", pemfmt, "tls/client.der", derfmt, "tls/client.key.der", derfmt, "") key can not be der
+	testTLSConfig(t, false, "../../testing/tls/ca.crt", pemfmt, "../../testing/tls/client.crt", pemfmt, "../../testing/tls/client.key", pemfmt, "")
+	testTLSConfig(t, false, "../../testing/tls/ca.crt", pemfmt, "../../testing/tls/client.der", derfmt, "../../testing/tls/client.key", pemfmt, "")
+	testTLSConfig(t, false, "../../testing/tls/ca.crt", pemfmt, "../../testing/tls/client.pfx", pfxfmt, "../../testing/tls/client.key", pemfmt, "")
+	testTLSConfig(t, false, "../../testing/tls/ca.crt", pemfmt, "../../testing/tls/client_pass.pfx", pfxfmt, "", pemfmt, "pfxpassword")
+	testTLSConfig(t, false, "../../testing/tls/ca.der", derfmt, "../../testing/tls/client.pfx", pfxfmt, "", pemfmt, "")
+	testTLSConfig(t, false, "../../testing/tls/ca.crt", pemfmt, "../../testing/tls/testcert.pem", pemfmt, "../../testing/tls/testkey.pem", pemfmt, "")
 }
 
 func testTLSConfig(
@@ -40,12 +38,12 @@ func testTLSConfig(
 }
 
 func TestGuessFormat(t *testing.T) {
-	guessFormat(t, "tls/client.crt", CertKeyFormatPEM)
-	guessFormat(t, "tls/client.cer", CertKeyFormatPEM)
-	guessFormat(t, "tls/client.key", CertKeyFormatPEM)
-	guessFormat(t, "tls/client.pfx", CertKeyFormatPKCS12)
-	guessFormat(t, "tls/client.der", CertKeyFormatDER)
-	forceFormat(t, "tls/client.guess", CertKeyFormatPEM, CertKeyFormatPEM)
+	guessFormat(t, "../../testing/tls/client.crt", CertKeyFormatPEM)
+	guessFormat(t, "../../testing/tls/client.cer", CertKeyFormatPEM)
+	guessFormat(t, "../../testing/tls/client.key", CertKeyFormatPEM)
+	guessFormat(t, "../../testing/tls/client.pfx", CertKeyFormatPKCS12)
+	guessFormat(t, "../../testing/tls/client.der", CertKeyFormatDER)
+	forceFormat(t, "../../testing/tls/client.guess", CertKeyFormatPEM, CertKeyFormatPEM)
 }
 
 func guessFormat(t *testing.T, filename string, formatExpected CertificateKeyFormat) {
