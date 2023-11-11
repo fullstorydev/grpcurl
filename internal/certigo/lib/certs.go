@@ -48,97 +48,42 @@ const (
 	fileHeader = "originFile"
 )
 
-var fileExtToFormat = map[string]string{
-	".pem":   "PEM",
-	".crt":   "PEM",
-	".cer":   "PEM",
-	".p7b":   "PEM",
-	".p7c":   "PEM",
-	".p12":   "PKCS12",
-	".pfx":   "PKCS12",
-	".jceks": "JCEKS",
-	".jks":   "JCEKS", // Only partially supported
-	".der":   "DER",
+var fileExtToFormat = map[string]CertificateKeyFormat{
+	".pem":   CertKeyFormatPEM,
+	".crt":   CertKeyFormatPEM,
+	".p7b":   CertKeyFormatPEM,
+	".p7c":   CertKeyFormatPEM,
+	".p12":   CertKeyFormatPKCS12,
+	".pfx":   CertKeyFormatPKCS12,
+	".jceks": CertKeyFormatJCEKS,
+	".jks":   CertKeyFormatJCEKS, // Only partially supported
+	".der":   CertKeyFormatDER,
 }
 
-var badSignatureAlgorithms = [...]x509.SignatureAlgorithm{
-	x509.MD2WithRSA,
-	x509.MD5WithRSA,
-	x509.SHA1WithRSA,
-	x509.DSAWithSHA1,
-	x509.ECDSAWithSHA1,
-}
+//var badSignatureAlgorithms = [...]x509.SignatureAlgorithm{
+//	x509.MD2WithRSA,
+//	x509.MD5WithRSA,
+//	x509.SHA1WithRSA,
+//	x509.DSAWithSHA1,
+//	x509.ECDSAWithSHA1,
+//}
 
-func errorFromErrors(errs []error) error {
-	if len(errs) == 0 {
-		return nil
-	}
-	if len(errs) == 1 {
-		return errs[0]
-	}
-	buffer := new(bytes.Buffer)
-	buffer.WriteString("encountered multiple errors:\n")
-	for _, err := range errs {
-		buffer.WriteString("* ")
-		buffer.WriteString(strings.TrimSuffix(err.Error(), "\n"))
-		buffer.WriteString("\n")
-	}
-	return errors.New(buffer.String())
-}
-
-func NewCertificateKeyFormat(fileFormat string) CertificateKeyFormat {
-	fileFormat = strings.ToUpper(fileFormat)
-	switch fileFormat {
-	case "":
-		return CertKeyFormatNONE
-	case "PEM":
-		return CertKeyFormatPEM
-	case "DER":
-		return CertKeyFormatDER
-	case "PKCS12", "P12":
-		return CertKeyFormatPKCS12
-	default:
-		return CertKeyFormatNONE
-	}
-}
-
-type CertificateKeyFormat string
-
-const (
-	CertKeyFormatNONE CertificateKeyFormat = ""
-	// The file contains plain-text PEM data
-	CertKeyFormatPEM CertificateKeyFormat = "PEM"
-	// The file contains X.509 DER encoded data
-	CertKeyFormatDER CertificateKeyFormat = "DER"
-	// The file contains JCEKS keystores
-	CertKeyFormatJCEKS CertificateKeyFormat = "JCEKS"
-	// The file contains PFX data describing PKCS#12
-	CertKeyFormatPKCS12 CertificateKeyFormat = "PKCS12"
-)
-
-func (f *CertificateKeyFormat) Set(fileFormat string) {
-	*f = NewCertificateKeyFormat(fileFormat)
-}
-
-func (f CertificateKeyFormat) IsNone() bool {
-	return f == CertKeyFormatNONE
-}
-
-func (f *CertificateKeyFormat) SetPEM() {
-	*f = CertKeyFormatPEM
-}
-
-func (f CertificateKeyFormat) IsPEM() bool {
-	return f == CertKeyFormatPEM
-}
-
-func (f CertificateKeyFormat) IsDER() bool {
-	return f == CertKeyFormatDER
-}
-
-func (f CertificateKeyFormat) IsPKCS12() bool {
-	return f == CertKeyFormatPKCS12
-}
+//func errorFromErrors(errs []error) error {
+//	if len(errs) == 0 {
+//		return nil
+//	}
+//	if len(errs) == 1 {
+//		return errs[0]
+//	}
+//	buffer := new(bytes.Buffer)
+//	buffer.WriteString("encountered multiple errors:\n")
+//	for _, err := range errs {
+//		buffer.WriteString("* ")
+//		buffer.WriteString(strings.TrimSuffix(err.Error(), "\n"))
+//		buffer.WriteString("\n")
+//	}
+//	return errors.New(buffer.String())
+//}
 
 // ClientTLSConfigV2 builds transport-layer config for a gRPC client using the
 // given properties. Support certificate file both PEM and P12.
@@ -147,7 +92,7 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile string, cacertFormat 
 
 	if clientCertFile != "" {
 		// Load the client certificates
-		pemCertBytes, err := readAsPEMEx2(clientCertFile, string(certFormat), clientPass)
+		pemCertBytes, err := readAsPEMEx(clientCertFile, certFormat, clientPass)
 		if err != nil {
 			return nil, fmt.Errorf("could not load client cert: %v", err)
 		}
@@ -155,7 +100,7 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile string, cacertFormat 
 
 		// Load the client key
 		if clientKeyFile != "" {
-			pemBytes, err := readAsPEMEx2(clientKeyFile, string(keyFormat), clientPass)
+			pemBytes, err := readAsPEMEx(clientKeyFile, keyFormat, clientPass)
 			if err != nil {
 				return nil, fmt.Errorf("could not load client key: %v", err)
 			}
@@ -174,13 +119,12 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile string, cacertFormat 
 		tlsConf.InsecureSkipVerify = true
 	} else if cacertFile != "" {
 		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		pemCACertBytes, err := readAsPEMEx2(cacertFile, string(cacertFormat), "")
+		pemCACertBytes, err := readAsPEMEx(cacertFile, cacertFormat, "")
 		if err != nil {
 			return nil, fmt.Errorf("could not load cacert : %v", err)
 		}
-
 		// Append the certificates from the CA
+		certPool := x509.NewCertPool()
 		if ok := certPool.AppendCertsFromPEM(pemCACertBytes); !ok {
 			return nil, errors.New("failed to append ca certs")
 		}
@@ -191,7 +135,12 @@ func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile string, cacertFormat 
 	return &tlsConf, nil
 }
 
-func GuessFormatForFile(filename, format string) (string, error) {
+func GuessFormatForFile(filename string, format CertificateKeyFormat) (CertificateKeyFormat, error) {
+	// First, honor --format flag we got from user
+	if !format.IsNone() {
+		return format, nil
+	}
+
 	// Second, attempt to guess based on extension
 	guess, ok := fileExtToFormat[strings.ToLower(filepath.Ext(filename))]
 	if ok {
@@ -200,7 +149,7 @@ func GuessFormatForFile(filename, format string) (string, error) {
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return "", fmt.Errorf("unable to open file: %s\n", err)
+		return CertKeyFormatNONE, fmt.Errorf("unable to open file: %s\n", err)
 	}
 	defer file.Close()
 	reader := bufio.NewReaderSize(file, 4)
@@ -208,60 +157,60 @@ func GuessFormatForFile(filename, format string) (string, error) {
 	// Third, attempt to guess based on first 4 bytes of input
 	data, err := reader.Peek(4)
 	if err != nil {
-		return "", fmt.Errorf("unable to read file: %s\n", err)
+		return CertKeyFormatNONE, fmt.Errorf("unable to read file: %s\n", err)
 	}
 
 	// Heuristics for guessing -- best effort.
 	magic := binary.BigEndian.Uint32(data)
+	fmt.Printf(" magic 0x%0x\n", magic)
 	if magic == 0xCECECECE || magic == 0xFEEDFEED {
 		// JCEKS/JKS files always start with this prefix
-		return "JCEKS", nil
+		return CertKeyFormatJCEKS, nil
 	}
-	if magic == 0x2D2D2D2D || magic == 0x434f4e4e {
-		// Starts with '----' or 'CONN' (what s_client prints...)
-		// TODO start with 'Certificate'
-		return "PEM", nil
+	if magic == 0x2D2D2D2D {
+		// Starts with '----'
+		return CertKeyFormatPEM, nil
+	}
+	if magic == 0x434f4e4e {
+		// Starts with 'CONN' (what s_client prints...)
+		return CertKeyFormatPEM, nil
+	}
+	if magic == 0x43657274 {
+		// Starts with 'Cert' (what openssl x509 -text -in tls/client.crt prints...)
+		return CertKeyFormatPEM, nil
 	}
 	if magic&0xFFFF0000 == 0x30820000 {
 		// Looks like the input is DER-encoded, so it's either PKCS12 or X.509.
 		if magic&0x0000FF00 == 0x0300 {
 			// Probably X.509
-			return "DER", nil
+			return CertKeyFormatDER, nil
 		}
-		return "PKCS12", nil
+		return CertKeyFormatPKCS12, nil
 	}
 
-	return "", nil
+	return CertKeyFormatNONE, fmt.Errorf("unable to guess format for %v magic 0x%0x", filename, magic)
 }
 
-func readAsPEMEx2(filename string, format string, password string) ([]byte, error) {
+func readAsPEMEx(filename string, format CertificateKeyFormat, password string) ([]byte, error) {
 	var pembuf bytes.Buffer
-	err := readAsPEMEx(filename, format, "", func(block *pem.Block, format string) error {
+	pembufFunc := func(block *pem.Block, format CertificateKeyFormat) error {
 		return pem.Encode(&pembuf, block)
-	})
-	if err != nil {
-		return nil, fmt.Errorf("could not load client cert: %v", err)
 	}
-	return pembuf.Bytes(), nil
-}
-
-func readAsPEMEx(filename string, format string, password string, callback func(*pem.Block, string) error) error {
-	rawFile, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("unable to open file: %s\n", err)
-	}
-	defer rawFile.Close()
 	passwordFunc := func(promet string) string {
 		return password
 	}
 
-	reader := bufio.NewReaderSize(rawFile, 4)
-	format, err = formatForFile(reader, "", format)
+	rawFile, err := os.Open(filename)
 	if err != nil {
-		return fmt.Errorf("unable to guess format for input stream")
+		return nil, fmt.Errorf("unable to open file: %s\n", err)
 	}
+	defer rawFile.Close()
 
-	return readCertsFromStream(reader, "", format, passwordFunc, callback)
+	err = readCertsFromStream(rawFile, "", format, passwordFunc, pembufFunc)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %s\n", err)
+	}
+	return pembuf.Bytes(), nil
 }
 
 // // ReadAsPEMFromFiles will read PEM blocks from the given set of inputs. Input
@@ -287,26 +236,26 @@ func readAsPEMEx(filename string, format string, password string, callback func(
 //	}
 //
 
-// ReadAsPEM will read PEM blocks from the given set of inputs. Input data may
-// be in plain-text PEM files, DER-encoded certificates or PKCS7 envelopes, or
-// PKCS12/JCEKS keystores. All inputs will be converted to PEM blocks and
-// passed to the callback.
-func ReadAsPEM(readers []io.Reader, format string, password func(string) string, callback func(*pem.Block, string) error) error {
-	errs := []error{}
-	for _, r := range readers {
-		reader := bufio.NewReaderSize(r, 4)
-		format, err := formatForFile(reader, "", format)
-		if err != nil {
-			return fmt.Errorf("unable to guess format for input stream")
-		}
-
-		err = readCertsFromStream(reader, "", format, password, callback)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errorFromErrors(errs)
-}
+//// ReadAsPEM will read PEM blocks from the given set of inputs. Input data may
+//// be in plain-text PEM files, DER-encoded certificates or PKCS7 envelopes, or
+//// PKCS12/JCEKS keystores. All inputs will be converted to PEM blocks and
+//// passed to the callback.
+//func ReadAsPEM(readers []io.Reader, format string, password func(string) string, callback func(*pem.Block, string) error) error {
+//	errs := []error{}
+//	for _, r := range readers {
+//		reader := bufio.NewReaderSize(r, 4)
+//		format, err := formatForFile(reader, "", format)
+//		if err != nil {
+//			return fmt.Errorf("unable to guess format for input stream")
+//		}
+//
+//		err = readCertsFromStream(reader, "", format, password, callback)
+//		if err != nil {
+//			errs = append(errs, err)
+//		}
+//	}
+//	return errorFromErrors(errs)
+//}
 
 //// ReadAsX509FromFiles will read X.509 certificates from the given set of
 //// inputs. Input data may be in plain-text PEM files, DER-encoded certificates
@@ -380,15 +329,14 @@ func ReadAsPEM(readers []io.Reader, format string, password func(string) string,
 //}
 
 // readCertsFromStream takes some input and converts it to PEM blocks.
-func readCertsFromStream(reader io.Reader, filename string, format string, password func(string) string, callback func(*pem.Block, string) error) error {
+func readCertsFromStream(reader io.Reader, filename string, format CertificateKeyFormat, password func(string) string, callback func(*pem.Block, CertificateKeyFormat) error) error {
 	headers := map[string]string{}
 	if filename != "" && filename != os.Stdin.Name() {
 		headers[fileHeader] = filename
 	}
 
-	format = strings.TrimSpace(format)
 	switch format {
-	case "PEM":
+	case CertKeyFormatPEM:
 		scanner := pemScanner(reader)
 		for scanner.Scan() {
 			block, _ := pem.Decode(scanner.Bytes())
@@ -399,7 +347,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 			}
 		}
 		return nil
-	case "DER":
+	case CertKeyFormatDER:
 		data, err := ioutil.ReadAll(reader)
 		if err != nil {
 			return fmt.Errorf("unable to read input: %s\n", err)
@@ -407,6 +355,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 		x509Certs, err0 := x509.ParseCertificates(data)
 		if err0 == nil {
 			for _, cert := range x509Certs {
+				fmt.Printf("cert cn: %v\n", cert.Issuer.CommonName)
 				err := callback(encodeX509ToPEM(cert, headers), format)
 				if err != nil {
 					return err
@@ -425,7 +374,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 			return nil
 		}
 		return fmt.Errorf("unable to parse certificates from DER data\n* X.509 parser gave: %s\n* PKCS7 parser gave: %s\n", err0, err1)
-	case "PKCS12":
+	case CertKeyFormatPKCS12:
 		data, err := ioutil.ReadAll(reader)
 		if err != nil {
 			return fmt.Errorf("unable to read input: %s\n", err)
@@ -442,7 +391,7 @@ func readCertsFromStream(reader io.Reader, filename string, format string, passw
 			}
 		}
 		return nil
-	case "JCEKS":
+	case CertKeyFormatJCEKS:
 		keyStore, err := jceks.LoadFromReader(reader, []byte(password("")))
 		if err != nil {
 			return fmt.Errorf("unable to parse keystore: %s\n", err)
@@ -534,48 +483,47 @@ func keyToPem(key crypto.PrivateKey, headers map[string]string) (*pem.Block, err
 	return nil, fmt.Errorf("unknown key type: %s\n", reflect.TypeOf(key))
 }
 
-// formatForFile returns the file format (either from flags or
-// based on file extension).
-func formatForFile(file *bufio.Reader, filename, format string) (string, error) {
-	// First, honor --format flag we got from user
-	if format != "" {
-		return format, nil
-	}
-
-	// Second, attempt to guess based on extension
-	guess, ok := fileExtToFormat[strings.ToLower(filepath.Ext(filename))]
-	if ok {
-		return guess, nil
-	}
-
-	// Third, attempt to guess based on first 4 bytes of input
-	data, err := file.Peek(4)
-	if err != nil {
-		return "", fmt.Errorf("unable to read file: %s\n", err)
-	}
-
-	// Heuristics for guessing -- best effort.
-	magic := binary.BigEndian.Uint32(data)
-	if magic == 0xCECECECE || magic == 0xFEEDFEED {
-		// JCEKS/JKS files always start with this prefix
-		return "JCEKS", nil
-	}
-	if magic == 0x2D2D2D2D || magic == 0x434f4e4e {
-		// Starts with '----' or 'CONN' (what s_client prints...)
-		// TODO start with 'Certificate'
-		return "PEM", nil
-	}
-	if magic&0xFFFF0000 == 0x30820000 {
-		// Looks like the input is DER-encoded, so it's either PKCS12 or X.509.
-		if magic&0x0000FF00 == 0x0300 {
-			// Probably X.509
-			return "DER", nil
-		}
-		return "PKCS12", nil
-	}
-
-	return "", fmt.Errorf("unable to guess file format")
-}
+//// formatForFile returns the file format (either from flags or
+//// based on file extension).
+//func formatForFile(file *bufio.Reader, filename, format string) (string, error) {
+//	// First, honor --format flag we got from user
+//	if format != "" {
+//		return format, nil
+//	}
+//
+//	// Second, attempt to guess based on extension
+//	guess, ok := fileExtToFormat[strings.ToLower(filepath.Ext(filename))]
+//	if ok {
+//		return string(guess), nil
+//	}
+//
+//	// Third, attempt to guess based on first 4 bytes of input
+//	data, err := file.Peek(4)
+//	if err != nil {
+//		return "", fmt.Errorf("unable to read file: %s\n", err)
+//	}
+//
+//	// Heuristics for guessing -- best effort.
+//	magic := binary.BigEndian.Uint32(data)
+//	if magic == 0xCECECECE || magic == 0xFEEDFEED {
+//		// JCEKS/JKS files always start with this prefix
+//		return "JCEKS", nil
+//	}
+//	if magic == 0x2D2D2D2D || magic == 0x434f4e4e {
+//		// Starts with '----' or 'CONN' (what s_client prints...)
+//		return "PEM", nil
+//	}
+//	if magic&0xFFFF0000 == 0x30820000 {
+//		// Looks like the input is DER-encoded, so it's either PKCS12 or X.509.
+//		if magic&0x0000FF00 == 0x0300 {
+//			// Probably X.509
+//			return "DER", nil
+//		}
+//		return "PKCS12", nil
+//	}
+//
+//	return "", fmt.Errorf("unable to guess file format")
+//}
 
 // pemScanner will return a bufio.Scanner that splits the input
 // from the given reader into PEM blocks.

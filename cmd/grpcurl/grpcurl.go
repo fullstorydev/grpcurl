@@ -73,13 +73,11 @@ var (
 		when use PEM/DER certificate file.`))
 	pCertFormat = flags.String("cert-format", string(lib.CertKeyFormatPEM), prettify(`
 		cert Format of given input (PEM, DER, PKCS12; heuristic if missing).`))
-	pass = flags.String("pass", "", prettify(`
-		Pass phrase for the key`))
+	certPass = flags.String("pass", "", prettify(`
+		Pass phrase for the PKCS12 cert`))
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
-	pKeyFormat = flags.String("key-format", string(lib.CertKeyFormatPEM), prettify(`
-		key Format of given input (PEM, DER; heuristic if missing).`))
 
 	// ALTS Options
 	usealts = flags.Bool("alts", false, prettify(`
@@ -300,7 +298,7 @@ func main() {
 	usetls := !*plaintext && !*usealts
 	cacertFormat := lib.NewCertificateKeyFormat(*pCACertFormat)
 	certFormat := lib.NewCertificateKeyFormat(*pCertFormat)
-	keyFormat := lib.NewCertificateKeyFormat(*pKeyFormat)
+	keyFormat := lib.CertKeyFormatPEM
 
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
@@ -330,55 +328,45 @@ func main() {
 
 	if usetls {
 		if *cacert != "" {
-			if cacertFormat.IsNone() {
-				guessFormat, err := lib.GuessFormatForFile(*cacert, "")
-				if err != nil {
-					fail(nil, "Fail to guess file format of -key  err: %s", err)
-				}
-				cacertFormat.Set(guessFormat)
+			guessFormat, err := lib.GuessFormatForFile(*cacert, cacertFormat)
+			if err != nil {
+				fail(nil, "Fail to guess file format of -key  err: %s", err)
 			}
-			switch cacertFormat {
+			switch guessFormat {
 			case lib.CertKeyFormatPEM, lib.CertKeyFormatDER:
-				// do nothing
+				cacertFormat = guessFormat
 			default:
-				fail(nil, "The -cacert-format %s not support.", keyFormat)
+				fail(nil, "The -cacert-format %s not support.", cacertFormat)
 			}
 		}
 		if *cert != "" {
-			if certFormat.IsNone() {
-				guessFormat, err := lib.GuessFormatForFile(*cert, "")
-				if err != nil {
-					fail(nil, "Fail to guess file format of -cert err: %s", err)
-				}
-				certFormat.Set(guessFormat)
+			guessFormat, err := lib.GuessFormatForFile(*cert, certFormat)
+			if err != nil {
+				fail(nil, "Fail to guess file format of -cert err: %s", err)
 			}
 
-			switch certFormat {
+			switch guessFormat {
 			case lib.CertKeyFormatPEM, lib.CertKeyFormatDER:
 				if *cert == "" || *key == "" {
 					fail(nil, "The -cert and -key arguments must be used together and both be present.")
 				}
+				certFormat = guessFormat
 			case lib.CertKeyFormatPKCS12:
-				// do nothing
+				certFormat = guessFormat
 			default:
 				fail(nil, "The -cert-format %s not support.", certFormat)
 			}
 		}
-		if *key != "" {
-			if keyFormat.IsNone() {
-				guessFormat, err := lib.GuessFormatForFile(*key, "")
-				if err != nil {
-					fail(nil, "Fail to guess file format of -key  err: %s", err)
-				}
-				keyFormat.Set(guessFormat)
-			}
-			switch keyFormat {
-			case lib.CertKeyFormatPEM, lib.CertKeyFormatDER:
-				if *cert == "" || *key == "" {
-					fail(nil, "The -cert and -key arguments must be used together and both be present.")
-				}
+		if *certPass != "" {
+			switch certFormat {
+			case lib.CertKeyFormatPKCS12:
 			default:
-				fail(nil, "The -key-format %s not support.", keyFormat)
+				fail(nil, "The -pass argument is only supported when -cert-type is PKCS12.")
+			}
+		}
+		if *key != "" {
+			if *cert == "" || *key == "" {
+				fail(nil, "The -cert and -key arguments must be used together and both be present.")
 			}
 		}
 
@@ -518,7 +506,7 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
-			tlsConf, err := lib.ClientTLSConfigV2(*insecure, *cacert, cacertFormat, *cert, certFormat, *key, keyFormat, *pass)
+			tlsConf, err := lib.ClientTLSConfigV2(*insecure, *cacert, cacertFormat, *cert, certFormat, *key, keyFormat, *certPass)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
 			}
