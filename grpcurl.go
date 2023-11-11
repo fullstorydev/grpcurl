@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
+	"golang.org/x/crypto/pkcs12"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -523,16 +525,40 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 	return credentials.NewTLS(tlsConf), nil
 }
 
+type CertificateType int
+
+const (
+	// The certificate file contains PEM encoded data
+	CertTypePEM CertificateType = 1
+	// The certificate file contains PFX data describing PKCS#12.
+	CertTypeP12 CertificateType = 2
+)
+
 // ClientTLSConfig builds transport-layer config for a gRPC client using the
 // given properties. If cacertFile is blank, only standard trusted certs are used to
 // verify the server certs. If clientCertFile is blank, the client will not use a client
 // certificate. If clientCertFile is not blank then clientKeyFile must not be blank.
 func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string) (*tls.Config, error) {
+	return ClientTLSConfigV2(insecureSkipVerify, cacertFile, clientCertFile, clientKeyFile, CertTypePEM, "")
+}
+
+// ClientTLSConfigV2 builds transport-layer config for a gRPC client using the
+// given properties. Support certificate file both PEM and P12.
+func ClientTLSConfigV2(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string, clientCertType CertificateType, clientPass string) (*tls.Config, error) {
 	var tlsConf tls.Config
 
 	if clientCertFile != "" {
 		// Load the client certificates from disk
-		certificate, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+		var certificate tls.Certificate
+		var err error
+		switch clientCertType {
+		case CertTypeP12:
+			certificate, err = loadClientCertP12(clientCertFile, clientPass)
+		case CertTypePEM:
+			certificate, err = tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+		default:
+			return nil, fmt.Errorf("not support client certificate type: %v", clientCertType)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("could not load client key pair: %v", err)
 		}
@@ -558,6 +584,27 @@ func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, client
 	}
 
 	return &tlsConf, nil
+}
+
+func loadClientCertP12(pfxFile, pfxPassword string) (tls.Certificate, error) {
+	b, err := os.ReadFile(pfxFile)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("os.ReadFile err: %w", err)
+	}
+	pemBlocks, err := pkcs12.ToPEM(b, pfxPassword)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("pkcs12.ToPEM err: %w", err)
+	}
+
+	var pemBytes []byte
+	for _, block := range pemBlocks {
+		pemBytes = append(pemBytes, pem.EncodeToMemory(block)...)
+	}
+	certificate, err := tls.X509KeyPair(pemBytes, pemBytes)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	return certificate, nil
 }
 
 // ServerTransportCredentials builds transport credentials for a gRPC server using the

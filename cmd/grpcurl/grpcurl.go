@@ -66,7 +66,13 @@ var (
 		Ignored if -insecure is specified.`))
 	cert = flags.String("cert", "", prettify(`
 		File containing client certificate (public key), to present to the
-		server. Not valid with -plaintext option. Must also provide -key option.`))
+		server. Not valid with -plaintext option. Must also provide -key option
+		when use PEM certificate file.`))
+	certTypeString = flags.String("cert-type", "", prettify(`
+		Client certificate file type. (PEM/P12)`))
+	certType = grpcurl.CertTypePEM
+	pass     = flags.String("pass", "", prettify(`
+		Pass phrase for the key`))
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
@@ -289,6 +295,17 @@ func main() {
 	// default behavior is to use tls
 	usetls := !*plaintext && !*usealts
 
+	// converto to CertificateFileType
+	if len(*certTypeString) == 0 {
+		certType = grpcurl.CertTypePEM // default PEM
+	} else if strings.EqualFold(*certTypeString, "PEM") {
+		certType = grpcurl.CertTypePEM
+	} else if strings.EqualFold(*certTypeString, "P12") {
+		certType = grpcurl.CertTypeP12
+	} else {
+		fail(nil, "The -cert-type argument must be PEM or P12.")
+	}
+
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
 		fail(nil, "The -connect-timeout argument must not be negative.")
@@ -314,9 +331,23 @@ func main() {
 	if *key != "" && !usetls {
 		fail(nil, "The -key argument can only be used with TLS.")
 	}
-	if (*key == "") != (*cert == "") {
-		fail(nil, "The -cert and -key arguments must be used together and both be present.")
+
+	switch certType {
+	case grpcurl.CertTypePEM:
+		if (*key == "") != (*cert == "") {
+			fail(nil, "The -cert and -key arguments must be used together and both be present when -cert-type is PEM.")
+		}
+	case grpcurl.CertTypeP12:
+		if *key != "" {
+			fail(nil, "The -key arguments must not be used when -cert-type is P12.")
+		}
+		if *cert == "" {
+			fail(nil, "The -cert arguments must be used when -cert-type is P12.")
+		}
+	default:
+		fail(nil, "Not support cert type %v.", certType)
 	}
+
 	if *altsHandshakerServiceAddress != "" && !*usealts {
 		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")
 	}
@@ -451,7 +482,7 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
-			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
+			tlsConf, err := grpcurl.ClientTLSConfigV2(*insecure, *cacert, *cert, *key, certType, *pass)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
 			}
