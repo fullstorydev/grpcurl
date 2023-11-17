@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 cd "$(dirname $0)"
 
@@ -56,22 +56,22 @@ cs sign wrong-client --years 10 --CA wrong-ca
 cs request-cert --common-name expired --ip 127.0.0.1 --domain localhost
 cs sign expired --years 0 --CA ca
 
-# Create DER PKCS12 file
-openssl x509  -outform der -in tls/ca.crt -out tls/ca.der
-openssl x509  -outform der -in tls/client.crt -out tls/client.der
-openssl x509  -outform der -in tls/client.crt -out tls/client.der
-openssl x509  -text -in tls/client.crt > tls/client.cer
-sed '1s/^/invalidGuess/' tls/client.cer > tls/client.guess
-openssl pkcs12 -export \
-	-in tls/client.crt \
-	-inkey tls/client.key \
-	-certfile tls/ca.crt \
-	-out tls/client.pfx \
-	-password pass:
-openssl pkcs12 -export \
-	-in tls/client.crt \
-	-inkey tls/client.key \
-	-certfile tls/ca.crt \
-	-out tls/client_pass.pfx \
-	-password pass:pfxpassword
+## Create DER PKCS12 file
+#openssl x509  -outform der -in testing/tls/ca.crt -out testing/tls/ca.der
+#openssl x509  -outform der -in testing/tls/client.crt -out testing/tls/client.der
+#openssl x509  -outform der -in testing/tls/client.crt -out testing/tls/client.der
+#openssl x509  -text -in testing/tls/client.crt > testing/tls/client.cer
+#sed '1s/^/invalidGuess/' testing/tls/client.cer > testing/tls/client.guess
+#openssl pkcs12 -export \
+#	-in        testing/tls/client.crt \
+#	-inkey     testing/tls/client.key \
+#	-certfile  testing/tls/ca.crt \
+#	-out       testing/tls/client.pfx \
+#	-password pass:
+#openssl pkcs12 -export \
+#	-in        testing/tls/client.crt \
+#	-inkey     testing/tls/client.key \
+#	-certfile  testing/tls/ca.crt \
+#	-out       testing/tls/client_pass.pfx \
+#	-password pass:pfxpassword
 
