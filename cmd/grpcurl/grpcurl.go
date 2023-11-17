@@ -153,9 +153,7 @@ var (
 	verbose = flags.Bool("v", false, prettify(`
 		Enable verbose output.`))
 	veryVerbose = flags.Bool("vv", false, prettify(`
-		Enable very verbose output.`))
-	showTimings = flags.Bool("t", false, prettify(`
-		Display debug timings.`))
+		Enable very verbose output (includes timing data).`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate. This flag is
 		ignored if -plaintext or -insecure is used.
@@ -801,7 +799,7 @@ func main() {
 		if verbosityLevel > 0 {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
-		if *showTimings {
+		if verbosityLevel > 1 {
 			defer func() {
 				fmt.Printf("== Timing Data == \n")
 				for _, td := range timingData {
