@@ -149,7 +149,7 @@ func GuessFormatForFile(filename string, format CertificateKeyFormat) (Certifica
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return CertKeyFormatNONE, fmt.Errorf("unable to open file: %s\n", err)
+		return CertKeyFormatNONE, fmt.Errorf("unable to open file: %v", err)
 	}
 	defer file.Close()
 	reader := bufio.NewReaderSize(file, 4)
@@ -157,7 +157,7 @@ func GuessFormatForFile(filename string, format CertificateKeyFormat) (Certifica
 	// Third, attempt to guess based on first 4 bytes of input
 	data, err := reader.Peek(4)
 	if err != nil {
-		return CertKeyFormatNONE, fmt.Errorf("unable to read file: %s\n", err)
+		return CertKeyFormatNONE, fmt.Errorf("unable to read file: %v", err)
 	}
 
 	// Heuristics for guessing -- best effort.
@@ -201,13 +201,13 @@ func readAsPEMEx(filename string, format CertificateKeyFormat, password string) 
 
 	rawFile, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open file: %s\n", err)
+		return nil, fmt.Errorf("unable to open file: %v", err)
 	}
 	defer rawFile.Close()
 
 	err = readCertsFromStream(rawFile, "", format, passwordFunc, pembufFunc)
 	if err != nil {
-		return nil, fmt.Errorf("could not read file: %s\n", err)
+		return nil, fmt.Errorf("could not read file: %v", err)
 	}
 	return pembuf.Bytes(), nil
 }
@@ -349,7 +349,7 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 	case CertKeyFormatDER:
 		data, err := ioutil.ReadAll(reader)
 		if err != nil {
-			return fmt.Errorf("unable to read input: %s\n", err)
+			return fmt.Errorf("unable to read input: %v", err)
 		}
 		x509Certs, err0 := x509.ParseCertificates(data)
 		if err0 == nil {
@@ -371,15 +371,15 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 			}
 			return nil
 		}
-		return fmt.Errorf("unable to parse certificates from DER data\n* X.509 parser gave: %s\n* PKCS7 parser gave: %s\n", err0, err1)
+		return fmt.Errorf("unable to parse certificates from DER data X.509 parser gave: [%v] PKCS7 parser gave: [%v]", err0, err1)
 	case CertKeyFormatPKCS12:
 		data, err := ioutil.ReadAll(reader)
 		if err != nil {
-			return fmt.Errorf("unable to read input: %s\n", err)
+			return fmt.Errorf("unable to read input: %v", err)
 		}
 		blocks, err := pkcs12.ToPEM(data, password(""))
 		if err != nil || len(blocks) == 0 {
-			return fmt.Errorf("keystore appears to be empty or password was incorrect\n")
+			return fmt.Errorf("keystore appears to be empty or password was incorrect")
 		}
 		for _, block := range blocks {
 			block.Headers = mergeHeaders(block.Headers, headers)
@@ -392,7 +392,7 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 	case CertKeyFormatJCEKS:
 		keyStore, err := jceks.LoadFromReader(reader, []byte(password("")))
 		if err != nil {
-			return fmt.Errorf("unable to parse keystore: %s\n", err)
+			return fmt.Errorf("unable to parse keystore: %v", err)
 		}
 		for _, alias := range keyStore.ListCerts() {
 			cert, _ := keyStore.GetCert(alias)
@@ -404,14 +404,14 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 		for _, alias := range keyStore.ListPrivateKeys() {
 			key, certs, err := keyStore.GetPrivateKeyAndCerts(alias, []byte(password(alias)))
 			if err != nil {
-				return fmt.Errorf("unable to parse keystore: %s\n", err)
+				return fmt.Errorf("unable to parse keystore: %v", err)
 			}
 
 			mergedHeaders := mergeHeaders(headers, map[string]string{nameHeader: alias})
 
 			block, err := keyToPem(key, mergedHeaders)
 			if err != nil {
-				return fmt.Errorf("problem reading key: %s\n", err)
+				return fmt.Errorf("problem reading key: %v", err)
 			}
 
 			if err := callback(block, format); err != nil {
@@ -426,7 +426,7 @@ func readCertsFromStream(reader io.Reader, filename string, format CertificateKe
 		}
 		return nil
 	}
-	return fmt.Errorf("unknown file type '%s'\n", format)
+	return fmt.Errorf("unknown file type '%s'", format)
 }
 
 func mergeHeaders(baseHeaders, extraHeaders map[string]string) (headers map[string]string) {
@@ -470,7 +470,7 @@ func keyToPem(key crypto.PrivateKey, headers map[string]string) (*pem.Block, err
 	case *ecdsa.PrivateKey:
 		raw, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
-			return nil, fmt.Errorf("error marshaling key: %s\n", reflect.TypeOf(key))
+			return nil, fmt.Errorf("error marshaling key: %s", reflect.TypeOf(key))
 		}
 		return &pem.Block{
 			Type:    "EC PRIVATE KEY",
@@ -478,7 +478,7 @@ func keyToPem(key crypto.PrivateKey, headers map[string]string) (*pem.Block, err
 			Headers: headers,
 		}, nil
 	}
-	return nil, fmt.Errorf("unknown key type: %s\n", reflect.TypeOf(key))
+	return nil, fmt.Errorf("unknown key type: %s", reflect.TypeOf(key))
 }
 
 //// formatForFile returns the file format (either from flags or

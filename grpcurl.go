@@ -12,7 +12,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +26,6 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
-	"golang.org/x/crypto/pkcs12"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -532,42 +530,6 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 // certificate. If clientCertFile is not blank then clientKeyFile must not be blank.
 func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string) (*tls.Config, error) {
 	return lib.ClientTLSConfigV2(insecureSkipVerify, cacertFile, lib.CertKeyFormatPEM, clientCertFile, lib.CertKeyFormatPEM, clientKeyFile, lib.CertKeyFormatPEM, "")
-}
-
-func inputFiles(fileNames []string) ([]*os.File, error) {
-	var files []*os.File
-	for _, filename := range fileNames {
-		if filename == "" {
-			continue
-		}
-		rawFile, err := os.Open(filename)
-		if err != nil {
-			return nil, fmt.Errorf("unable to open file: %s\n", err)
-		}
-		files = append(files, rawFile)
-	}
-	return files, nil
-}
-
-func loadClientCertP12(pfxFile, pfxPassword string) (tls.Certificate, error) {
-	b, err := os.ReadFile(pfxFile)
-	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("os.ReadFile err: %w", err)
-	}
-	pemBlocks, err := pkcs12.ToPEM(b, pfxPassword)
-	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("pkcs12.ToPEM err: %w", err)
-	}
-
-	var pemBytes []byte
-	for _, block := range pemBlocks {
-		pemBytes = append(pemBytes, pem.EncodeToMemory(block)...)
-	}
-	certificate, err := tls.X509KeyPair(pemBytes, pemBytes)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	return certificate, nil
 }
 
 // ServerTransportCredentials builds transport credentials for a gRPC server using the
