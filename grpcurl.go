@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fullstorydev/grpcurl/internal/certigo/lib"
 	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
@@ -528,36 +529,7 @@ func ClientTransportCredentials(insecureSkipVerify bool, cacertFile, clientCertF
 // verify the server certs. If clientCertFile is blank, the client will not use a client
 // certificate. If clientCertFile is not blank then clientKeyFile must not be blank.
 func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, clientKeyFile string) (*tls.Config, error) {
-	var tlsConf tls.Config
-
-	if clientCertFile != "" {
-		// Load the client certificates from disk
-		certificate, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("could not load client key pair: %v", err)
-		}
-		tlsConf.Certificates = []tls.Certificate{certificate}
-	}
-
-	if insecureSkipVerify {
-		tlsConf.InsecureSkipVerify = true
-	} else if cacertFile != "" {
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(cacertFile)
-		if err != nil {
-			return nil, fmt.Errorf("could not read ca certificate: %v", err)
-		}
-
-		// Append the certificates from the CA
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			return nil, errors.New("failed to append ca certs")
-		}
-
-		tlsConf.RootCAs = certPool
-	}
-
-	return &tlsConf, nil
+	return lib.ClientTLSConfigV2(insecureSkipVerify, cacertFile, lib.CertKeyFormatPEM, clientCertFile, lib.CertKeyFormatPEM, clientKeyFile, lib.CertKeyFormatPEM, "")
 }
 
 // ServerTransportCredentials builds transport credentials for a gRPC server using the

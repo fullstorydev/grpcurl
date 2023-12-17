@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fullstorydev/grpcurl/internal/certigo/lib"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
@@ -64,9 +65,16 @@ var (
 	cacert = flags.String("cacert", "", prettify(`
 		File containing trusted root certificates for verifying the server.
 		Ignored if -insecure is specified.`))
+	pCACertFormat = flags.String("cacert-format", string(lib.CertKeyFormatPEM), prettify(`
+		cacert Format of given input (PEM, DER; heuristic if missing).`))
 	cert = flags.String("cert", "", prettify(`
 		File containing client certificate (public key), to present to the
-		server. Not valid with -plaintext option. Must also provide -key option.`))
+		server. Not valid with -plaintext option. Must also provide -key option
+		when use PEM/DER certificate file.`))
+	pCertFormat = flags.String("cert-format", string(lib.CertKeyFormatPEM), prettify(`
+		cert Format of given input (PEM, DER, PKCS12; heuristic if missing).`))
+	certPass = flags.String("pass", "", prettify(`
+		Pass phrase for the PKCS12 cert`))
 	key = flags.String("key", "", prettify(`
 		File containing client private key, to present to the server. Not valid
 		with -plaintext option. Must also provide -cert option.`))
@@ -288,6 +296,9 @@ func main() {
 
 	// default behavior is to use tls
 	usetls := !*plaintext && !*usealts
+	cacertFormat := lib.NewCertificateKeyFormat(*pCACertFormat)
+	certFormat := lib.NewCertificateKeyFormat(*pCertFormat)
+	keyFormat := lib.CertKeyFormatPEM
 
 	// Do extra validation on arguments and figure out what user asked us to do.
 	if *connectTimeout < 0 {
@@ -314,9 +325,53 @@ func main() {
 	if *key != "" && !usetls {
 		fail(nil, "The -key argument can only be used with TLS.")
 	}
-	if (*key == "") != (*cert == "") {
-		fail(nil, "The -cert and -key arguments must be used together and both be present.")
+
+	if usetls {
+		if *cacert != "" {
+			guessFormat, err := lib.GuessFormatForFile(*cacert, cacertFormat)
+			if err != nil {
+				fail(nil, "Fail to guess file format of -key  err: %s", err)
+			}
+			switch guessFormat {
+			case lib.CertKeyFormatPEM, lib.CertKeyFormatDER:
+				cacertFormat = guessFormat
+			default:
+				fail(nil, "The -cacert-format %s not support.", cacertFormat)
+			}
+		}
+		if *cert != "" {
+			guessFormat, err := lib.GuessFormatForFile(*cert, certFormat)
+			if err != nil {
+				fail(nil, "Fail to guess file format of -cert err: %s", err)
+			}
+
+			switch guessFormat {
+			case lib.CertKeyFormatPEM, lib.CertKeyFormatDER:
+				if *cert == "" || *key == "" {
+					fail(nil, "The -cert and -key arguments must be used together and both be present.")
+				}
+				certFormat = guessFormat
+			case lib.CertKeyFormatPKCS12:
+				certFormat = guessFormat
+			default:
+				fail(nil, "The -cert-format %s not support.", certFormat)
+			}
+		}
+		if *certPass != "" {
+			switch certFormat {
+			case lib.CertKeyFormatPKCS12:
+			default:
+				fail(nil, "The -pass argument is only supported when -cert-type is PKCS12.")
+			}
+		}
+		if *key != "" {
+			if *cert == "" || *key == "" {
+				fail(nil, "The -cert and -key arguments must be used together and both be present.")
+			}
+		}
+
 	}
+
 	if *altsHandshakerServiceAddress != "" && !*usealts {
 		fail(nil, "The -alts-handshaker-service argument must be used with the -alts argument.")
 	}
@@ -451,7 +506,7 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
-			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
+			tlsConf, err := lib.ClientTLSConfigV2(*insecure, *cacert, cacertFormat, *cert, certFormat, *key, keyFormat, *certPass)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
 			}
