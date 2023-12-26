@@ -18,10 +18,12 @@ ci: deps checkgofmt checkgenerate vet staticcheck ineffassign predeclared test
 .PHONY: deps
 deps:
 	go get -d -v -t ./...
+	go mod tidy
 
 .PHONY: updatedeps
 updatedeps:
 	go get -d -v -t -u -f ./...
+	go mod tidy
 
 .PHONY: install
 install:
