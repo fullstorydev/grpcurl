@@ -274,10 +274,27 @@ func (cs compositeSource) AllExtensionsForType(typeName string) ([]*desc.FieldDe
 	return exts, nil
 }
 
-type TimingData struct {
-	Title	string
-	Value	time.Duration
-	Sub		[]TimingData
+type timingData struct {
+	Title  string
+	Start  time.Time
+	Value  time.Duration
+	Parent *timingData
+	Sub    []*timingData
+}
+
+func (d *timingData) Child(title string) *timingData {
+	if d == nil {
+		return nil
+	}
+	child := &timingData{Title: title, Start: time.Now()}
+	d.Sub = append(d.Sub, child)
+	return child
+}
+
+func (d *timingData) Done() {
+	if d.Value == 0 {
+		d.Value = time.Since(d.Start)
+	}
 }
 
 func main() {
@@ -365,12 +382,17 @@ func main() {
 	if *verbose {
 		verbosityLevel = 1
 	}
+
+	var rootTiming *timingData
 	if *veryVerbose {
 		verbosityLevel = 2
+
+		rootTiming = &timingData{Title: "Timing Data", Start: time.Now()}
+		defer func() {
+			rootTiming.Done()
+			dumpTiming(rootTiming, 0)
+		}()
 	}
-	timingData := []TimingData{}
-	startTime := time.Now()
-	s := startTime
 
 	var symbol string
 	if invoke {
@@ -428,20 +450,14 @@ func main() {
 	}
 
 	dial := func() *grpc.ClientConn {
-		s := time.Now()
-		td := TimingData{
-			Title: "Dial",
-		}
+		dialTiming := rootTiming.Child("Dial")
+		defer dialTiming.Done()
 		dialTime := 10 * time.Second
 		if *connectTimeout > 0 {
 			dialTime = time.Duration(*connectTimeout * float64(time.Second))
 		}
 		ctx, cancel := context.WithTimeout(ctx, dialTime)
 		defer cancel()
-		defer func() {
-			td.Value = time.Now().Sub(s)
-			timingData = append(timingData, td)
-		}()
 		var opts []grpc.DialOption
 		if *keepaliveTime > 0 {
 			timeout := time.Duration(*keepaliveTime * float64(time.Second))
@@ -468,7 +484,9 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
-			s := time.Now()
+			tlsTiming := dialTiming.Child("TLS Setup")
+			defer tlsTiming.Done()
+
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -501,10 +519,7 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
-			td.Sub = append(td.Sub, TimingData{
-				Title: "TLS Setup",
-				Value: time.Now().Sub(s),
-			})
+			tlsTiming.Done()
 		} else {
 			panic("Should have defaulted to use TLS.")
 		}
@@ -522,15 +537,12 @@ func main() {
 		if isUnixSocket != nil && isUnixSocket() {
 			network = "unix"
 		}
-		s = time.Now()
+		blockingDialTiming := dialTiming.Child("BlockingDial")
+		defer blockingDialTiming.Done()
 		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
-		td.Sub = append(td.Sub, TimingData{
-			Title: "BlockingDial",
-			Value: time.Now().Sub(s),
-		})
 		return cc
 	}
 	printFormattedStatus := func(w io.Writer, stat *status.Status, formatter grpcurl.Formatter) {
@@ -774,8 +786,9 @@ func main() {
 			VerbosityLevel: verbosityLevel,
 		}
 
-		s = time.Now()
+		invokeTiming := rootTiming.Child("InvokeRPC")
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
+		invokeTiming.Done()
 		if err != nil {
 			if errStatus, ok := status.FromError(err); ok && *formatError {
 				h.Status = errStatus
@@ -783,10 +796,6 @@ func main() {
 				fail(err, "Error invoking method %q", symbol)
 			}
 		}
-		timingData = append(timingData, TimingData{
-			Title: "InvokeRPC",
-			Value: time.Now().Sub(s),
-		})
 		reqSuffix := ""
 		respSuffix := ""
 		reqCount := rf.NumRequests()
@@ -799,15 +808,6 @@ func main() {
 		if verbosityLevel > 0 {
 			fmt.Printf("Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
 		}
-		if verbosityLevel > 1 {
-			defer func() {
-				fmt.Printf("== Timing Data == \n")
-				for _, td := range timingData {
-					dumpTiming(td, 1)
-				}
-				fmt.Printf("\n  Total time: %v\n", time.Now().Sub(startTime))
-			}()
-		}
 		if h.Status.Code() != codes.OK {
 			if *formatError {
 				printFormattedStatus(os.Stderr, h.Status, formatter)
@@ -819,14 +819,14 @@ func main() {
 	}
 }
 
-func dumpTiming(td TimingData, lvl int) {
-	indent := "  "
-	for x := 0; x < lvl - 1; x++ {
-		indent += indent
+func dumpTiming(td *timingData, lvl int) {
+	ind := ""
+	for x := 0; x < lvl; x++ {
+		ind += "  "
 	}
-	fmt.Printf("%s%s: %s\n", indent, td.Title, td.Value)
+	fmt.Printf("%s%s: %s\n", ind, td.Title, td.Value)
 	for _, sd := range td.Sub {
-		dumpTiming(sd, lvl + 1)
+		dumpTiming(sd, lvl+1)
 	}
 }
 
