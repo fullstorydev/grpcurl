@@ -292,6 +292,9 @@ func (d *timingData) Child(title string) *timingData {
 }
 
 func (d *timingData) Done() {
+	if d == nil {
+		return
+	}
 	if d.Value == 0 {
 		d.Value = time.Since(d.Start)
 	}
