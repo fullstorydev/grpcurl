@@ -610,6 +610,21 @@ func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string
 // and blocking until the returned connection is ready. If the given credentials are nil, the
 // connection will be insecure (plain-text).
 func BlockingDial(ctx context.Context, network, address string, creds credentials.TransportCredentials, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	if creds == nil {
+		creds = insecure.NewCredentials()
+	}
+
+	var err error
+	if strings.HasPrefix(address, "xds:///") {
+		// The xds:/// prefix is used to signal to the gRPC client to use an xDS server to resolve the
+		// target. The relevant credentials will be automatically pulled from the GRPC_XDS_BOOTSTRAP or
+		// GRPC_XDS_BOOTSTRAP_CONFIG env vars.
+		creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// grpc.Dial doesn't provide any information on permanent connection errors (like
 	// TLS handshake failures). So in order to provide good error messages, we need a
 	// custom dialer that can provide that info. That means we manage the TLS handshake.
@@ -625,24 +640,9 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 
 	// custom credentials and dialer will notify on error via the
 	// writeResult function
-	if creds != nil {
-		creds = &errSignalingCreds{
-			TransportCredentials: creds,
-			writeResult:          writeResult,
-		}
-	} else {
-		creds = insecure.NewCredentials()
-	}
-
-	var err error
-	if strings.HasPrefix(address, "xds:///") {
-		// The xds:/// prefix is used to signal to the gRPC client to use an xDS server to resolve the
-		// target. The relevant credentials will be automatically pulled from the GRPC_XDS_BOOTSTRAP or
-		// GRPC_XDS_BOOTSTRAP_CONFIG env vars.
-		creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
-		if err != nil {
-			return nil, err
-		}
+	creds = &errSignalingCreds{
+		TransportCredentials: creds,
+		writeResult:          writeResult,
 	}
 
 	dialer := func(ctx context.Context, address string) (net.Conn, error) {
