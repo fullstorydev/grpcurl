@@ -133,9 +133,11 @@ var (
 		is received for this same period then the connection is closed and the
 		operation fails.`))
 	maxTime = flags.Float64("max-time", 0, prettify(`
-		The maximum total time the operation can take, in seconds. This is
-		useful for preventing batch jobs that use grpcurl from hanging due to
-		slow or bad network links or due to incorrect stream method usage.`))
+		The maximum total time the operation can take, in seconds. This sets a
+                timeout on the gRPC context, allowing both client and server to give up
+		after the deadline has past. This is useful for preventing batch jobs
+                that use grpcurl from hanging due to slow or bad network links or due
+		to incorrect stream method usage.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
 		The maximum encoded size of a response message, in bytes, that grpcurl
 		will accept. If not specified, defaults to 4,194,304 (4 megabytes).`))
@@ -825,7 +827,7 @@ func prettify(docString string) string {
 		j++
 	}
 
-	return strings.Join(parts[:j], "\n"+indent())
+	return strings.Join(parts[:j], "\n")
 }
 
 func warn(msg string, args ...interface{}) {
