@@ -155,7 +155,7 @@ var (
 	verbose = flags.Bool("v", false, prettify(`
 		Enable verbose output.`))
 	veryVerbose = flags.Bool("vv", false, prettify(`
-		Enable very verbose output.`))
+		Enable very verbose output (includes timing data).`))
 	serverName = flags.String("servername", "", prettify(`
 		Override server name when validating TLS certificate. This flag is
 		ignored if -plaintext or -insecure is used.
@@ -276,6 +276,32 @@ func (cs compositeSource) AllExtensionsForType(typeName string) ([]*desc.FieldDe
 	return exts, nil
 }
 
+type timingData struct {
+	Title  string
+	Start  time.Time
+	Value  time.Duration
+	Parent *timingData
+	Sub    []*timingData
+}
+
+func (d *timingData) Child(title string) *timingData {
+	if d == nil {
+		return nil
+	}
+	child := &timingData{Title: title, Start: time.Now()}
+	d.Sub = append(d.Sub, child)
+	return child
+}
+
+func (d *timingData) Done() {
+	if d == nil {
+		return
+	}
+	if d.Value == 0 {
+		d.Value = time.Since(d.Start)
+	}
+}
+
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
@@ -361,8 +387,16 @@ func main() {
 	if *verbose {
 		verbosityLevel = 1
 	}
+
+	var rootTiming *timingData
 	if *veryVerbose {
 		verbosityLevel = 2
+
+		rootTiming = &timingData{Title: "Timing Data", Start: time.Now()}
+		defer func() {
+			rootTiming.Done()
+			dumpTiming(rootTiming, 0)
+		}()
 	}
 
 	var symbol string
@@ -421,6 +455,8 @@ func main() {
 	}
 
 	dial := func() *grpc.ClientConn {
+		dialTiming := rootTiming.Child("Dial")
+		defer dialTiming.Done()
 		dialTime := 10 * time.Second
 		if *connectTimeout > 0 {
 			dialTime = time.Duration(*connectTimeout * float64(time.Second))
@@ -453,6 +489,9 @@ func main() {
 			}
 			creds = alts.NewClientCreds(clientOptions)
 		} else if usetls {
+			tlsTiming := dialTiming.Child("TLS Setup")
+			defer tlsTiming.Done()
+
 			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
 			if err != nil {
 				fail(err, "Failed to create TLS config")
@@ -485,6 +524,7 @@ func main() {
 			if overrideName != "" {
 				opts = append(opts, grpc.WithAuthority(overrideName))
 			}
+			tlsTiming.Done()
 		} else {
 			panic("Should have defaulted to use TLS.")
 		}
@@ -502,6 +542,8 @@ func main() {
 		if isUnixSocket != nil && isUnixSocket() {
 			network = "unix"
 		}
+		blockingDialTiming := dialTiming.Child("BlockingDial")
+		defer blockingDialTiming.Done()
 		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
@@ -749,7 +791,9 @@ func main() {
 			VerbosityLevel: verbosityLevel,
 		}
 
+		invokeTiming := rootTiming.Child("InvokeRPC")
 		err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, append(addlHeaders, rpcHeaders...), h, rf.Next)
+		invokeTiming.Done()
 		if err != nil {
 			if errStatus, ok := status.FromError(err); ok && *formatError {
 				h.Status = errStatus
@@ -777,6 +821,17 @@ func main() {
 			}
 			exit(statusCodeOffset + int(h.Status.Code()))
 		}
+	}
+}
+
+func dumpTiming(td *timingData, lvl int) {
+	ind := ""
+	for x := 0; x < lvl; x++ {
+		ind += "  "
+	}
+	fmt.Printf("%s%s: %s\n", ind, td.Title, td.Value)
+	for _, sd := range td.Sub {
+		dumpTiming(sd, lvl+1)
 	}
 }
 
