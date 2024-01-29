@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang/protobuf v1.5.3
-	github.com/jhump/protoreflect v1.15.4
+	github.com/jhump/protoreflect v1.15.5
 	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.32.0
 )
@@ -12,7 +12,7 @@ require (
 require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/bufbuild/protocompile v0.7.1 // indirect
+	github.com/bufbuild/protocompile v0.8.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cncf/udpa/go v0.0.0-20220112060539-c52dc94e7fbe // indirect
