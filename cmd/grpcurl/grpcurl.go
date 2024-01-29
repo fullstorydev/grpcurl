@@ -164,7 +164,8 @@ var (
 		permitted if they are both set to the same value, to increase backwards
 		compatibility with earlier releases that allowed both to be set).`))
 	reflection = optionalBoolFlag{val: true}
-)
+	encoding = flags.String("encoding", "gzip", prettify(` The value to send for
+		the encoding header. Only 'gzip' and 'identity' are currently supported`)))
 
 func init() {
 	flags.Var(&addlHeaders, "H", prettify(`
@@ -357,6 +358,9 @@ func main() {
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
 	}
+	if *encoding  != "gzip" && *encoding != "identity" {
+		fail(nil, "The -encoding flag can only be used with the values 'gzip' or 'identity'")
+	}
 
 	args := flags.Args()
 
@@ -474,6 +478,7 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
+		opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor(*encoding)))
 		var creds credentials.TransportCredentials
 		if *plaintext {
 			if *authority != "" {
