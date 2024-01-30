@@ -97,7 +97,8 @@ var (
 		value of the ":authority" pseudo-header in the HTTP/2 protocol. When TLS
 		is used, this will also be used as the server name when verifying the
 		server's certificate. It defaults to the address that is provided in the
-		positional arguments.`))
+		positional arguments, or 'localhost' in the case of a unix domain
+		socket.`))
 	userAgent = flags.String("user-agent", "", prettify(`
 		If set, the specified value will be added to the User-Agent header set
 		by the grpc-go library.
@@ -474,6 +475,13 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
+		network := "tcp"
+		if isUnixSocket != nil && isUnixSocket() {
+			network = "unix"
+			if *authority == "" {
+				*authority = "localhost"
+			}
+		}
 		var creds credentials.TransportCredentials
 		if *plaintext {
 			if *authority != "" {
@@ -538,10 +546,6 @@ func main() {
 		}
 		opts = append(opts, grpc.WithUserAgent(grpcurlUA))
 
-		network := "tcp"
-		if isUnixSocket != nil && isUnixSocket() {
-			network = "unix"
-		}
 		blockingDialTiming := dialTiming.Child("BlockingDial")
 		defer blockingDialTiming.Done()
 		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
