@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang/protobuf v1.5.3
-	github.com/jhump/protoreflect v1.15.5
+	github.com/jhump/protoreflect v1.15.6
 	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.32.0
 )
