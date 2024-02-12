@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	xdsCredentials "google.golang.org/grpc/credentials/xds"
 	"google.golang.org/grpc/metadata"
 	protov2 "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -609,6 +610,21 @@ func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string
 // and blocking until the returned connection is ready. If the given credentials are nil, the
 // connection will be insecure (plain-text).
 func BlockingDial(ctx context.Context, network, address string, creds credentials.TransportCredentials, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	if creds == nil {
+		creds = insecure.NewCredentials()
+	}
+
+	var err error
+	if strings.HasPrefix(address, "xds:///") {
+		// The xds:/// prefix is used to signal to the gRPC client to use an xDS server to resolve the
+		// target. The relevant credentials will be automatically pulled from the GRPC_XDS_BOOTSTRAP or
+		// GRPC_XDS_BOOTSTRAP_CONFIG env vars.
+		creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// grpc.Dial doesn't provide any information on permanent connection errors (like
 	// TLS handshake failures). So in order to provide good error messages, we need a
 	// custom dialer that can provide that info. That means we manage the TLS handshake.
@@ -624,12 +640,11 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 
 	// custom credentials and dialer will notify on error via the
 	// writeResult function
-	if creds != nil {
-		creds = &errSignalingCreds{
-			TransportCredentials: creds,
-			writeResult:          writeResult,
-		}
+	creds = &errSignalingCreds{
+		TransportCredentials: creds,
+		writeResult:          writeResult,
 	}
+
 	dialer := func(ctx context.Context, address string) (net.Conn, error) {
 		// NB: We *could* handle the TLS handshake ourselves, in the custom
 		// dialer (instead of customizing both the dialer and the credentials).
@@ -655,13 +670,8 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append([]grpc.DialOption{grpc.FailOnNonTempDialError(true)}, opts...)
 		// But we don't want caller to be able to override these two, so we put
 		// them *after* the explicitly provided options.
-		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer))
+		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(creds))
 
-		if creds == nil {
-			opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		} else {
-			opts = append(opts, grpc.WithTransportCredentials(creds))
-		}
 		conn, err := grpc.DialContext(ctx, address, opts...)
 		var res interface{}
 		if err != nil {
