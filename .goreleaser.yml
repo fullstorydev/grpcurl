@@ -29,12 +29,26 @@ builds:
 
 archives:
   - format: tar.gz
+    name_template: >-
+      {{ .Binary }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}osx{{ else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}x86_32
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
     format_overrides:
       - goos: windows
         format: zip
-    replacements:
-      amd64: x86_64
-      386: x86_32
-      darwin: osx
     files:
       - LICENSE
+
+nfpms:
+  - vendor: FullStory
+    homepage: https://github.com/fullstorydev/grpcurl/
+    maintainer: Engineering at FullStory  <fixme@fixme>
+    description: 'Like cURL, but for gRPC: Command-line tool for interacting with gRPC servers'
+    license: MIT
+    id: nfpms
+    formats:
+      - deb
+      - rpm
