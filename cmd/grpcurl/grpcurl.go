@@ -600,6 +600,7 @@ func main() {
 		refCtx := metadata.NewOutgoingContext(ctx, md)
 		cc = dial()
 		refClient = grpcreflect.NewClientAuto(refCtx, cc)
+		refClient.AllowMissingFileDescriptors()
 		reflSource := grpcurl.DescriptorSourceFromServer(ctx, refClient)
 		if fileSource != nil {
 			descSource = compositeSource{reflSource, fileSource}
