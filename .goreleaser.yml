@@ -43,9 +43,9 @@ archives:
       - LICENSE
 
 nfpms:
-  - vendor: FullStory
+  - vendor: Fullstory
     homepage: https://github.com/fullstorydev/grpcurl/
-    maintainer: Engineering at FullStory  <fixme@fixme>
+    maintainer: Engineering at Fullstory  <fixme@fixme>
     description: 'Like cURL, but for gRPC: Command-line tool for interacting with gRPC servers'
     license: MIT
     id: nfpms

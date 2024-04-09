@@ -1,5 +1,5 @@
 FROM golang:1.18-alpine as builder
-MAINTAINER FullStory Engineering
+MAINTAINER Fullstory Engineering
 
 # create non-privileged group and user
 RUN addgroup -S grpcurl && adduser -S grpcurl -G grpcurl
