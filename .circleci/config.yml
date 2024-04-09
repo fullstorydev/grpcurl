@@ -25,18 +25,20 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.21
-    steps: *simple_job_steps
-
-  build-1-22:
-    working_directory: ~/repo
-    docker:
-      - image: cimg/go:1.22
     steps:
       - checkout
       - run:
           name: Run tests and linters
           command: |
             make ci
+
+  # TODO: Need updates to some static analyzer tools to support 1.22. After those
+  #       are updated, move the full linting from 1.21 to this latest release.
+  build-1-22:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.22
+    steps: *simple_job_steps
 
 workflows:
   pr-build-test:
