@@ -33,9 +33,9 @@ import (
 	"github.com/fullstorydev/grpcurl"
 )
 
-// To avoid confusion between program error codes and the gRPC resonse
+// To avoid confusion between program error codes and the gRPC response
 // status codes 'Cancelled' and 'Unknown', 1 and 2 respectively,
-// the response status codes emitted use an offest of 64
+// the response status codes emitted use an offset of 64
 const statusCodeOffset = 64
 
 const noVersion = "dev build <no version set>"
