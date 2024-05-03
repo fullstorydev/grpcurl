@@ -8,14 +8,23 @@ builds:
     goarch:
       - amd64
       - 386
+      - arm
       - arm64
       - s390x
       - ppc64le
+    goarm:
+      - 5
+      - 6
+      - 7
     ignore:
       - goos: darwin
         goarch: 386
       - goos: windows
         goarch: arm64
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
       - goos: darwin
         goarch: s390x
       - goos: windows
