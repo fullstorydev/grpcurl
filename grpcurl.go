@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	xdsCredentials "google.golang.org/grpc/credentials/xds"
+	_ "google.golang.org/grpc/health" // import grpc/health to enable transparent client side checking
 	"google.golang.org/grpc/metadata"
 	protov2 "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
