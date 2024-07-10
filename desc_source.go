@@ -321,10 +321,13 @@ func WriteProtoFiles(outProtoDirPath string, descSource DescriptorSource, symbol
 		fileName := filepath.Base(fdFQName)
 		filePath := filepath.Join(outFilepath, fileName)
 		f, err := os.Create(filePath)
-		defer f.Close()
 		if err != nil {
+			if f != nil {
+				_ = f.Close()
+			}
 			return fmt.Errorf("failed to create file %q: %v", filePath, err)
 		}
+		_ = f.Close()
 		if err := pr.PrintProtoFile(fd, f); err != nil {
 			return fmt.Errorf("failed to write file %q: %v", filePath, err)
 		}
