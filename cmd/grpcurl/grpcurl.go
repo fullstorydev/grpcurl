@@ -151,7 +151,7 @@ var (
 		file if this option is given. When invoking an RPC and this option is
 		given, the method being invoked and its transitive dependencies will be
 		included in the output file.`))
-	protoOut = flags.String("proto-out", "", prettify(`
+	protoOut = flags.String("proto-out-dir", "", prettify(`
 		The name of a directory where the generated .proto files will be written.
 		With the list and describe verbs, the listed or described elements and
 		their transitive dependencies will be written as .proto files in the

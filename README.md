@@ -161,7 +161,7 @@ grpcurl -protoset my-protos.bin list
 grpcurl -import-path ../protos -proto my-stuff.proto list
 
 # Export proto files
-grpcurl -plaintext -proto-out "out_protos" "192.168.100.1:9200" describe Api.Service
+grpcurl -plaintext -proto-out-dir "out_protos" "192.168.100.1:9200" describe Api.Service
 
 
 ```
