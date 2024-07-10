@@ -151,6 +151,14 @@ var (
 		file if this option is given. When invoking an RPC and this option is
 		given, the method being invoked and its transitive dependencies will be
 		included in the output file.`))
+	protoOut = flags.String("proto-out", "", prettify(`
+		The name of a directory where the generated .proto files will be written.
+		With the list and describe verbs, the listed or described elements and
+		their transitive dependencies will be written as .proto files in the
+		specified directory if this option is given. When invoking an RPC and
+		this option is given, the method being invoked and its transitive
+		dependencies will be included in the generated .proto files in the
+		output directory.`))
 	msgTemplate = flags.Bool("msg-template", false, prettify(`
 		When describing messages, show a template of input data.`))
 	verbose = flags.Bool("v", false, prettify(`
@@ -645,6 +653,9 @@ func main() {
 			if err := writeProtoset(descSource, svcs...); err != nil {
 				fail(err, "Failed to write protoset to %s", *protosetOut)
 			}
+			if err := writeProtos(descSource, svcs...); err != nil {
+				fail(err, "Failed to write protos to %s", *protoOut)
+			}
 		} else {
 			methods, err := grpcurl.ListMethods(descSource, symbol)
 			if err != nil {
@@ -659,6 +670,9 @@ func main() {
 			}
 			if err := writeProtoset(descSource, symbol); err != nil {
 				fail(err, "Failed to write protoset to %s", *protosetOut)
+			}
+			if err := writeProtos(descSource, symbol); err != nil {
+				fail(err, "Failed to write protos to %s", *protoOut)
 			}
 		}
 
@@ -763,6 +777,9 @@ func main() {
 		}
 		if err := writeProtoset(descSource, symbols...); err != nil {
 			fail(err, "Failed to write protoset to %s", *protosetOut)
+		}
+		if err := writeProtos(descSource, symbol); err != nil {
+			fail(err, "Failed to write protos to %s", *protoOut)
 		}
 
 	} else {
@@ -921,6 +938,13 @@ func writeProtoset(descSource grpcurl.DescriptorSource, symbols ...string) error
 	}
 	defer f.Close()
 	return grpcurl.WriteProtoset(f, descSource, symbols...)
+}
+
+func writeProtos(descSource grpcurl.DescriptorSource, symbols ...string) error {
+	if *protoOut == "" {
+		return nil
+	}
+	return grpcurl.WriteProtoFiles(*protoOut, descSource, symbols...)
 }
 
 type optionalBoolFlag struct {

@@ -159,6 +159,11 @@ grpcurl -protoset my-protos.bin list
 
 # Using proto sources
 grpcurl -import-path ../protos -proto my-stuff.proto list
+
+# Export proto files
+grpcurl -plaintext -proto-out "out_protos" "192.168.100.1:9200" describe Api.Service
+
+
 ```
 
 The "list" verb also lets you see all methods in a particular service:
