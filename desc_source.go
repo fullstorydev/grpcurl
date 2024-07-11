@@ -305,31 +305,37 @@ func WriteProtoFiles(outProtoDirPath string, descSource DescriptorSource, symbol
 	// now expand that to include transitive dependencies in topologically sorted
 	// order (such that file always appears after its dependencies)
 	expandedFiles := make(map[string]struct{}, len(fds))
-	allFilesSlice := make([]*desc.FileDescriptor, 0, len(fds))
+	allFileDescriptors := make([]*desc.FileDescriptor, 0, len(fds))
 	for _, filename := range filenames {
-		allFilesSlice = addFilesToFileDescriptorList(allFilesSlice, expandedFiles, fds[filename])
+		allFileDescriptors = addFilesToFileDescriptorList(allFileDescriptors, expandedFiles, fds[filename])
 	}
 	pr := protoprint.Printer{}
 	// now we can serialize to files
-	for _, fd := range allFilesSlice {
-		fdFQName := fd.GetFullyQualifiedName()
-		dirPath := filepath.Dir(fdFQName)
-		outFilepath := filepath.Join(outProtoDirPath, dirPath)
-		if err := os.MkdirAll(outFilepath, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %q: %v", outFilepath, err)
+	for i := range allFileDescriptors {
+		if err := writeProtoFile(outProtoDirPath, allFileDescriptors[i], &pr); err != nil {
+			return err
 		}
-		fileName := filepath.Base(fdFQName)
-		filePath := filepath.Join(outFilepath, fileName)
-		f, err := os.Create(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to create file %q: %v", filePath, err)
-		}
-		err = pr.PrintProtoFile(fd, f)
-		if err == nil {
-			_ = f.Close()
-		} else {
-			return fmt.Errorf("failed to write file %q: %v", filePath, err)
-		}
+	}
+	return nil
+}
+
+func writeProtoFile(outProtoDirPath string, fd *desc.FileDescriptor, pr *protoprint.Printer) error {
+	fdFQName := fd.GetFullyQualifiedName()
+	dirPath := filepath.Dir(fdFQName)
+	outFilepath := filepath.Join(outProtoDirPath, dirPath)
+	if err := os.MkdirAll(outFilepath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %q: %v", outFilepath, err)
+	}
+	fileName := filepath.Base(fdFQName)
+	filePath := filepath.Join(outFilepath, fileName)
+
+	f, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create proto file: %v", err)
+	}
+	defer f.Close()
+	if err := pr.PrintProtoFile(fd, f); err != nil {
+		return fmt.Errorf("failed to write proto file: %v", err)
 	}
 	return nil
 }
