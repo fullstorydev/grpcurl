@@ -159,6 +159,13 @@ grpcurl -protoset my-protos.bin list
 
 # Using proto sources
 grpcurl -import-path ../protos -proto my-stuff.proto list
+
+# Export proto files (use -proto-out-dir to specify the output directory)
+grpcurl -plaintext -proto-out-dir "out_protos" "localhost:8787" describe my.custom.server.Service
+
+# Export protoset file (use -protoset-out to specify the output file)
+grpcurl -plaintext -protoset-out "out.protoset" "localhost:8787" describe my.custom.server.Service
+
 ```
 
 The "list" verb also lets you see all methods in a particular service:

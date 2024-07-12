@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc/codes"
@@ -258,19 +260,9 @@ func reflectionSupport(err error) error {
 // given output. The output will include descriptors for all files in which the
 // symbols are defined as well as their transitive dependencies.
 func WriteProtoset(out io.Writer, descSource DescriptorSource, symbols ...string) error {
-	// compute set of file descriptors
-	filenames := make([]string, 0, len(symbols))
-	fds := make(map[string]*desc.FileDescriptor, len(symbols))
-	for _, sym := range symbols {
-		d, err := descSource.FindSymbol(sym)
-		if err != nil {
-			return fmt.Errorf("failed to find descriptor for %q: %v", sym, err)
-		}
-		fd := d.GetFile()
-		if _, ok := fds[fd.GetName()]; !ok {
-			fds[fd.GetName()] = fd
-			filenames = append(filenames, fd.GetName())
-		}
+	filenames, fds, err := getFileDescriptors(symbols, descSource)
+	if err != nil {
+		return err
 	}
 	// now expand that to include transitive dependencies in topologically sorted
 	// order (such that file always appears after its dependencies)
@@ -301,4 +293,77 @@ func addFilesToSet(allFiles []*descriptorpb.FileDescriptorProto, expanded map[st
 		allFiles = addFilesToSet(allFiles, expanded, dep)
 	}
 	return append(allFiles, fd.AsFileDescriptorProto())
+}
+
+// WriteProtoFiles will use the given descriptor source to resolve all the given
+// symbols and write proto files with their definitions to the given output directory.
+func WriteProtoFiles(outProtoDirPath string, descSource DescriptorSource, symbols ...string) error {
+	filenames, fds, err := getFileDescriptors(symbols, descSource)
+	if err != nil {
+		return err
+	}
+	// now expand that to include transitive dependencies in topologically sorted
+	// order (such that file always appears after its dependencies)
+	expandedFiles := make(map[string]struct{}, len(fds))
+	allFileDescriptors := make([]*desc.FileDescriptor, 0, len(fds))
+	for _, filename := range filenames {
+		allFileDescriptors = addFilesToFileDescriptorList(allFileDescriptors, expandedFiles, fds[filename])
+	}
+	pr := protoprint.Printer{}
+	// now we can serialize to files
+	for i := range allFileDescriptors {
+		if err := writeProtoFile(outProtoDirPath, allFileDescriptors[i], &pr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeProtoFile(outProtoDirPath string, fd *desc.FileDescriptor, pr *protoprint.Printer) error {
+	outFile := filepath.Join(outProtoDirPath, fd.GetFullyQualifiedName())
+	outDir := filepath.Dir(outFile)
+	if err := os.MkdirAll(outDir, 0777); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", outDir, err)
+	}
+
+	f, err := os.Create(outFile)
+	if err != nil {
+		return fmt.Errorf("failed to create proto file %q: %w", outFile, err)
+	}
+	defer f.Close()
+	if err := pr.PrintProtoFile(fd, f); err != nil {
+		return fmt.Errorf("failed to write proto file %q: %w", outFile, err)
+	}
+	return nil
+}
+
+func getFileDescriptors(symbols []string, descSource DescriptorSource) ([]string, map[string]*desc.FileDescriptor, error) {
+	// compute set of file descriptors
+	filenames := make([]string, 0, len(symbols))
+	fds := make(map[string]*desc.FileDescriptor, len(symbols))
+	for _, sym := range symbols {
+		d, err := descSource.FindSymbol(sym)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to find descriptor for %q: %v", sym, err)
+		}
+		fd := d.GetFile()
+		if _, ok := fds[fd.GetName()]; !ok {
+			fds[fd.GetName()] = fd
+			filenames = append(filenames, fd.GetName())
+		}
+	}
+	return filenames, fds, nil
+}
+
+func addFilesToFileDescriptorList(allFiles []*desc.FileDescriptor, expanded map[string]struct{}, fd *desc.FileDescriptor) []*desc.FileDescriptor {
+	if _, ok := expanded[fd.GetName()]; ok {
+		// already seen this one
+		return allFiles
+	}
+	expanded[fd.GetName()] = struct{}{}
+	// add all dependencies first
+	for _, dep := range fd.GetDependencies() {
+		allFiles = addFilesToFileDescriptorList(allFiles, expanded, dep)
+	}
+	return append(allFiles, fd)
 }
