@@ -320,22 +320,19 @@ func WriteProtoFiles(outProtoDirPath string, descSource DescriptorSource, symbol
 }
 
 func writeProtoFile(outProtoDirPath string, fd *desc.FileDescriptor, pr *protoprint.Printer) error {
-	fdFQName := fd.GetFullyQualifiedName()
-	dirPath := filepath.Dir(fdFQName)
-	outFilepath := filepath.Join(outProtoDirPath, dirPath)
-	if err := os.MkdirAll(outFilepath, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %q: %v", outFilepath, err)
+	outFile := filepath.Join(outProtoDirPath, fd.GetFullyQualifiedName())
+	outDir := filepath.Dir(outFile)
+	if err := os.MkdirAll(outDir, 0777); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", outDir, err)
 	}
-	fileName := filepath.Base(fdFQName)
-	filePath := filepath.Join(outFilepath, fileName)
 
-	f, err := os.Create(filePath)
+	f, err := os.Create(outFile)
 	if err != nil {
-		return fmt.Errorf("failed to create proto file: %v", err)
+		return fmt.Errorf("failed to create proto file %q: %w", outFile, err)
 	}
 	defer f.Close()
 	if err := pr.PrintProtoFile(fd, f); err != nil {
-		return fmt.Errorf("failed to write proto file: %v", err)
+		return fmt.Errorf("failed to write proto file %q: %w", outFile, err)
 	}
 	return nil
 }
