@@ -645,21 +645,6 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		writeResult:          writeResult,
 	}
 
-	dialer := func(ctx context.Context, address string) (net.Conn, error) {
-		// NB: We *could* handle the TLS handshake ourselves, in the custom
-		// dialer (instead of customizing both the dialer and the credentials).
-		// But that requires using insecure.NewCredentials() dial transport
-		// option (so that the gRPC library doesn't *also* try to do a
-		// handshake). And that would mean that the library would send the
-		// wrong ":scheme" metaheader to servers: it would send "http" instead
-		// of "https" because it is unaware that TLS is actually in use.
-		conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
-		if err != nil {
-			writeResult(err)
-		}
-		return conn, err
-	}
-
 	// Even with grpc.FailOnNonTempDialError, this call will usually timeout in
 	// the face of TLS handshake errors. So we can't rely on grpc.WithBlock() to
 	// know when we're done. So we run it in a goroutine and then use result
@@ -670,7 +655,7 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append([]grpc.DialOption{grpc.FailOnNonTempDialError(true)}, opts...)
 		// But we don't want caller to be able to override these two, so we put
 		// them *after* the explicitly provided options.
-		opts = append(opts, grpc.WithBlock(), grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(creds))
+		opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(creds))
 
 		conn, err := grpc.DialContext(ctx, address, opts...)
 		var res interface{}
