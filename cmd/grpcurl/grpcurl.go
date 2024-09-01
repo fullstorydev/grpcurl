@@ -553,6 +553,7 @@ func main() {
 			grpcurlUA = *userAgent + " " + grpcurlUA
 		}
 		opts = append(opts, grpc.WithUserAgent(grpcurlUA))
+		grpcurl.GrpcurlUA = grpcurlUA
 
 		blockingDialTiming := dialTiming.Child("BlockingDial")
 		defer blockingDialTiming.Done()

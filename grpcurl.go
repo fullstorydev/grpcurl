@@ -37,6 +37,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+var GrpcurlUA string
+
 // ListServices uses the given descriptor source to return a sorted list of fully-qualified
 // service names.
 func ListServices(source DescriptorSource) ([]string, error) {
@@ -653,7 +655,7 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		// handshake). And that would mean that the library would send the
 		// wrong ":scheme" metaheader to servers: it would send "http" instead
 		// of "https" because it is unaware that TLS is actually in use.
-		conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
+		conn, err := proxyDial(ctx, address, GrpcurlUA)
 		if err != nil {
 			writeResult(err)
 		}
