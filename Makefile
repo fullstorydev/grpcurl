@@ -1,9 +1,7 @@
 dev_build_version=$(shell git describe --tags --always --dirty)
 
 export PATH := $(shell pwd)/.tmp/protoc/bin:$(PATH)
-
 export PROTOC_VERSION := 22.0
-
 # Disable CGO for improved compatibility across distros
 export CGO_ENABLED=0
 
@@ -44,7 +42,9 @@ docker:
 generate: .tmp/protoc/bin/protoc
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@a709e31e5d12
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+	@go install github.com/jhump/protoreflect/desc/sourceinfo/cmd/protoc-gen-gosrcinfo@v1.14.1
 	go generate ./...
+	go mod tidy
 
 .PHONY: checkgenerate
 checkgenerate: generate
