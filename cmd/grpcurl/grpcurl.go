@@ -173,6 +173,13 @@ var (
 		permitted if they are both set to the same value, to increase backwards
 		compatibility with earlier releases that allowed both to be set).`))
 	reflection = optionalBoolFlag{val: true}
+
+	convertMessage = flags.String("convert-message", "", prettify(`
+		Turns the tool into an offline converter; the proto representation of 
+		the JSON input will be printed to the standard output.
+		This parameter should specify the fully qualified name of the protobuf 
+		message definition (e.g. some.service/ReadRequest).
+	`))
 )
 
 func init() {
@@ -368,28 +375,35 @@ func main() {
 	}
 
 	args := flags.Args()
+	
+	convertJson := *convertMessage != ""
 
-	if len(args) == 0 {
-		fail(nil, "Too few arguments.")
-	}
 	var target string
-	if args[0] != "list" && args[0] != "describe" {
-		target = args[0]
-		args = args[1:]
-	}
-
-	if len(args) == 0 {
-		fail(nil, "Too few arguments.")
-	}
 	var list, describe, invoke bool
-	if args[0] == "list" {
-		list = true
-		args = args[1:]
-	} else if args[0] == "describe" {
-		describe = true
-		args = args[1:]
+	if len(args) != 0 {
+		if convertJson {
+			fail(nil, "Target service should be omitted for offline conversions.")
+		}
+
+		if args[0] != "list" && args[0] != "describe" {
+			target = args[0]
+			args = args[1:]
+		}
+
+		if args[0] == "list" {
+			list = true
+			args = args[1:]
+		} else if args[0] == "describe" {
+			describe = true
+			args = args[1:]
+		} else {
+			invoke = true
+		}
+
 	} else {
-		invoke = true
+		if !convertJson {
+			fail(nil, "Too few arguments.")
+		}
 	}
 
 	verbosityLevel := 0
@@ -416,7 +430,7 @@ func main() {
 		symbol = args[0]
 		args = args[1:]
 	} else {
-		if *data != "" {
+		if *data != "" && !convertJson {
 			warn("The -d argument is not used with 'list' or 'describe' verb.")
 		}
 		if len(rpcHeaders) > 0 {
@@ -784,9 +798,10 @@ func main() {
 
 	} else {
 		// Invoke an RPC
-		if cc == nil {
+		if cc == nil && !convertJson {
 			cc = dial()
 		}
+
 		var in io.Reader
 		if *data == "@" {
 			in = os.Stdin
@@ -807,6 +822,16 @@ func main() {
 		if err != nil {
 			fail(err, "Failed to construct request parser and formatter for %q", *format)
 		}
+
+		if convertJson {
+		    proto, err:= grpcurl.ConvertMessage(descSource, *convertMessage, rf.Next)
+			if err != nil {
+				fail(err, "Error converting message %q", *convertMessage)
+			}
+			os.Stdout.Write(proto)
+			os.Exit(0)
+		}
+
 		h := &grpcurl.DefaultEventHandler{
 			Out:            os.Stdout,
 			Formatter:      formatter,
