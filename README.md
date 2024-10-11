@@ -145,6 +145,13 @@ grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<EOM
 }
 EOM
 ```
+### Adding Headers/Metadata to Request
+Adding of headers / metadata to a rpc request is possible via the `-H name:value` command line option. Multiple headers can be added in a similar fashion.
+Example :
+```shell
+grpcurl -H header1:value1 -H header2:value2 -d '{"id": 1234, "tags": ["foo","bar"]}' grpc.server.com:443 my.custom.server.Service/Method
+```
+For more usage guide, check out the help docs via `grpcurl -help`
 
 ### Listing Services
 To list all services exposed by a server, use the "list" verb. When using `.proto` source
