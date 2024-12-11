@@ -310,7 +310,7 @@ func fetchAllExtensions(source DescriptorSource, ext *dynamic.ExtensionRegistry,
 	if len(md.GetExtensionRanges()) > 0 {
 		fds, err := source.AllExtensionsForType(msgTypeName)
 		if err != nil {
-			return fmt.Errorf("failed to query for extensions of type %s: %v", msgTypeName, err)
+			fds = []*desc.FieldDescriptor{}
 		}
 		for _, fd := range fds {
 			if err := ext.AddExtension(fd); err != nil {
