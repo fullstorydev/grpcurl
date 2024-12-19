@@ -45,8 +45,6 @@ var version = noVersion
 var (
 	exit = os.Exit
 
-	isUnixSocket func() bool // nil when run on non-unix platform
-
 	flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	help = flags.Bool("help", false, prettify(`
@@ -483,13 +481,6 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
-		network := "tcp"
-		if isUnixSocket != nil && isUnixSocket() {
-			network = "unix"
-			if *authority == "" {
-				*authority = "localhost"
-			}
-		}
 		var creds credentials.TransportCredentials
 		if *plaintext {
 			if *authority != "" {
@@ -556,7 +547,7 @@ func main() {
 
 		blockingDialTiming := dialTiming.Child("BlockingDial")
 		defer blockingDialTiming.Done()
-		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
+		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
@@ -881,8 +872,7 @@ method's request type will be sent.
 The address will typically be in the form "host:port" where host can be an IP
 address or a hostname and port is a numeric port or service name. If an IPv6
 address is given, it must be surrounded by brackets, like "[2001:db8::1]". For
-Unix variants, if a -unix=true flag is present, then the address must be the
-path to the domain socket.
+Unix variants, the address must start with schema "unix://" followed by the path.
 
 Available flags:
 `, os.Args[0])
