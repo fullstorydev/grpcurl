@@ -363,6 +363,9 @@ func main() {
 	if *format != "json" && *format != "text" {
 		fail(nil, "The -format option must be 'json' or 'text'.")
 	}
+	if isUnixSocket != nil && isUnixSocket() {
+		fail(nil, "The -unix option is deprecated, please use unix://{path} as the address instead.")
+	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
 	}
@@ -483,13 +486,6 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
-		network := "tcp"
-		if isUnixSocket != nil && isUnixSocket() {
-			network = "unix"
-			if *authority == "" {
-				*authority = "localhost"
-			}
-		}
 		var creds credentials.TransportCredentials
 		if *plaintext {
 			if *authority != "" {
@@ -556,7 +552,7 @@ func main() {
 
 		blockingDialTiming := dialTiming.Child("BlockingDial")
 		defer blockingDialTiming.Done()
-		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
+		cc, err := grpcurl.BlockingDial(ctx, target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
@@ -881,8 +877,7 @@ method's request type will be sent.
 The address will typically be in the form "host:port" where host can be an IP
 address or a hostname and port is a numeric port or service name. If an IPv6
 address is given, it must be surrounded by brackets, like "[2001:db8::1]". For
-Unix variants, if a -unix=true flag is present, then the address must be the
-path to the domain socket.
+Unix variants, the address must start with schema "unix://" followed by the path.
 
 Available flags:
 `, os.Args[0])
