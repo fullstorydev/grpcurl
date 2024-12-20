@@ -333,7 +333,7 @@ func createTestServerAndClient(serverCreds, clientCreds credentials.TransportCre
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	cc, err := BlockingDial(ctx, fmt.Sprintf("127.0.0.1:%d", port), clientCreds)
+	cc, err := BlockingDial(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", port), clientCreds)
 	if err != nil {
 		return e, err
 	}
