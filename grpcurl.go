@@ -609,6 +609,8 @@ func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string
 // BlockingDial is a helper method to dial the given address, using optional TLS credentials,
 // and blocking until the returned connection is ready. If the given credentials are nil, the
 // connection will be insecure (plain-text).
+// The network parameter should be left empty in most cases when your address is a RFC 3986
+// compliant URI. The resolver from grpc-go will resolve the correct network type.
 func BlockingDial(ctx context.Context, network, address string, creds credentials.TransportCredentials, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if creds == nil {
 		creds = insecure.NewCredentials()
