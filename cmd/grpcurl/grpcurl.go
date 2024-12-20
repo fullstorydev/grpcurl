@@ -45,8 +45,6 @@ var version = noVersion
 var (
 	exit = os.Exit
 
-	isUnixSocket func() bool // nil when run on non-unix platform
-
 	flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	help = flags.Bool("help", false, prettify(`
@@ -362,9 +360,6 @@ func main() {
 	}
 	if *format != "json" && *format != "text" {
 		fail(nil, "The -format option must be 'json' or 'text'.")
-	}
-	if isUnixSocket != nil && isUnixSocket() {
-		fail(nil, "The -unix option is deprecated, please use unix://{path} as the address instead.")
 	}
 	if *emitDefaults && *format != "json" {
 		warn("The -emit-defaults is only used when using json format.")
