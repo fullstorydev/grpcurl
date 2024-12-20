@@ -645,6 +645,34 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		writeResult:          writeResult,
 	}
 
+	switch network {
+	case "":
+		// no-op, use address as-is
+	case "tcp":
+		if strings.HasPrefix(address, "unix://") {
+			return nil, fmt.Errorf("tcp network type cannot use unix address %s", address)
+		}
+	case "unix":
+		if !strings.HasPrefix(address, "unix://") {
+			// prepend unix:// to the address if it's not already there
+			// this is to maintain backwards compatibility because the custom dialer is replaced by
+			// the default dialer in grpc-go.
+			// https://github.com/fullstorydev/grpcurl/pull/480
+			address = "unix://" + address
+		}
+	default:
+		// custom dialer for other networks
+		dialer := func(ctx context.Context, address string) (net.Conn, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
+			if err != nil {
+				// capture the error so we can provide a better message
+				writeResult(err)
+			}
+			return conn, err
+		}
+		opts = append([]grpc.DialOption{grpc.WithContextDialer(dialer)}, opts...)
+	}
+
 	// Even with grpc.FailOnNonTempDialError, this call will usually timeout in
 	// the face of TLS handshake errors. So we can't rely on grpc.WithBlock() to
 	// know when we're done. So we run it in a goroutine and then use result

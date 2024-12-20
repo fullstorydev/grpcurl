@@ -483,12 +483,12 @@ func main() {
 		if *maxMsgSz > 0 {
 			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
 		}
-		network := "tcp"
-		if isUnixSocket != nil && isUnixSocket() {
-			network = "unix"
-			if *authority == "" {
-				*authority = "localhost"
-			}
+		if isUnixSocket != nil && isUnixSocket() && !strings.HasPrefix(target, "unix://") {
+			// prepend unix:// to the address if it's not already there
+			// this is to maintain backwards compatibility because the custom dialer is replaced by
+			// the default dialer in grpc-go.
+			// https://github.com/fullstorydev/grpcurl/pull/480
+			target = "unix://" + target
 		}
 		var creds credentials.TransportCredentials
 		if *plaintext {
@@ -556,7 +556,7 @@ func main() {
 
 		blockingDialTiming := dialTiming.Child("BlockingDial")
 		defer blockingDialTiming.Done()
-		cc, err := grpcurl.BlockingDial(ctx, network, target, creds, opts...)
+		cc, err := grpcurl.BlockingDial(ctx, "", target, creds, opts...)
 		if err != nil {
 			fail(err, "Failed to dial target host %q", target)
 		}
