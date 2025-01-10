@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/golang/protobuf/proto"              //lint:ignore SA1019 we have to import these because some of their types appear in exported API
+	"github.com/jhump/protoreflect/desc"            //lint:ignore SA1019 same as above
+	"github.com/jhump/protoreflect/desc/protoparse" //lint:ignore SA1019 same as above
 	"github.com/jhump/protoreflect/desc/protoprint"
-	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/dynamic" //lint:ignore SA1019 same as above
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

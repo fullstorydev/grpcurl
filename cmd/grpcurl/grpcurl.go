@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 required to use APIs in other grpcurl package
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
