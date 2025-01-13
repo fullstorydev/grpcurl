@@ -9,10 +9,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/golang/protobuf/jsonpb" //lint:ignore SA1019 we have to import this because it appears in exported API
-	"github.com/golang/protobuf/proto"  //lint:ignore SA1019 we have to import this because it appears in exported API
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
+	"github.com/golang/protobuf/jsonpb"     //lint:ignore SA1019 we have to import these because some of their types appear in exported API
+	"github.com/golang/protobuf/proto"      //lint:ignore SA1019 same as above
+	"github.com/jhump/protoreflect/desc"    //lint:ignore SA1019 same as above
+	"github.com/jhump/protoreflect/dynamic" //lint:ignore SA1019 same as above
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
