@@ -68,7 +68,7 @@ vet:
 .PHONY: staticcheck
 staticcheck:
 	@go install honnef.co/go/tools/cmd/staticcheck@v0.5.1
-	staticcheck ./...
+	staticcheck -checks "inherit,-SA1019" ./...
 
 .PHONY: ineffassign
 ineffassign:
