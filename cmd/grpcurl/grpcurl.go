@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -457,7 +458,7 @@ func main() {
 
 	ctx := context.Background()
 	if *maxTime > 0 {
-		timeout := time.Duration(*maxTime * float64(time.Second))
+		timeout := floatSecondsToDuration(*maxTime)
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -468,13 +469,13 @@ func main() {
 		defer dialTiming.Done()
 		dialTime := 10 * time.Second
 		if *connectTimeout > 0 {
-			dialTime = time.Duration(*connectTimeout * float64(time.Second))
+			dialTime = floatSecondsToDuration(*connectTimeout)
 		}
 		ctx, cancel := context.WithTimeout(ctx, dialTime)
 		defer cancel()
 		var opts []grpc.DialOption
 		if *keepaliveTime > 0 {
-			timeout := time.Duration(*keepaliveTime * float64(time.Second))
+			timeout := floatSecondsToDuration(*keepaliveTime)
 			opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
 				Time:    timeout,
 				Timeout: timeout,
@@ -970,4 +971,13 @@ func (f *optionalBoolFlag) Set(s string) error {
 
 func (f *optionalBoolFlag) IsBoolFlag() bool {
 	return true
+}
+
+func floatSecondsToDuration(seconds float64) time.Duration {
+	durationFloat := seconds * float64(time.Second)
+	if durationFloat > math.MaxInt64 {
+		// Avoid overflow
+		return math.MaxInt64
+	}
+	return time.Duration(durationFloat)
 }
