@@ -10,6 +10,7 @@ description: |
 
 grade: stable
 confinement: strict
+license: MIT
 
 apps:
   grpcurl:
