@@ -1,14 +1,16 @@
 name: grpcurl
 base: core24
-version: '0.1'
+# allow grpcurl part to call craftctl set-version
+adopt-info: grpcurl
 summary: grpcurl is a command-line tool that lets you interact with gRPC servers.
 
 description: |
   grpcurl is a command-line tool that lets you interact with gRPC servers. 
   It's basically curl for gRPC servers.
 
-grade: devel
-confinement: devmode
+grade: stable
+confinement: strict
+license: MIT
 
 apps:
   grpcurl:
@@ -23,6 +25,9 @@ parts:
     source: https://github.com/fullstorydev/grpcurl
     source-type: git
     override-build: |
+      tag="$(git describe --tags --abbrev=0)"
+      craftctl set version="$tag"
+
       go build -o $CRAFT_PART_INSTALL/grpcurl ./cmd/grpcurl/grpcurl.go
       
       # adjust the permissions

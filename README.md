@@ -1,6 +1,7 @@
 # gRPCurl
 [![Build Status](https://circleci.com/gh/fullstorydev/grpcurl/tree/master.svg?style=svg)](https://circleci.com/gh/fullstorydev/grpcurl/tree/master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fullstorydev/grpcurl)](https://goreportcard.com/report/github.com/fullstorydev/grpcurl)
+[![Snap Release Status](https://snapcraft.io/grpcurl/badge.svg)](https://snapcraft.io/grpcurl)
 
 `grpcurl` is a command-line tool that lets you interact with gRPC servers. It's
 basically `curl` for gRPC servers.
@@ -78,6 +79,12 @@ of environments, including Windows and myriad Linux distributions.
 
 You can see more details and the full list of other packages for `grpcurl` at _repology.org_:
 https://repology.org/project/grpcurl/information
+
+### Snap
+
+You can install `grpcurl` using the snap package:
+
+`snap install grpcurl`
 
 ### From Source
 If you already have the [Go SDK](https://golang.org/doc/install) installed, you can use the `go`
