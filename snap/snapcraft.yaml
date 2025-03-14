@@ -8,7 +8,7 @@ description: |
   It's basically curl for gRPC servers.
 
 grade: devel
-confinement: devmode
+confinement: strict
 
 apps:
   grpcurl:
