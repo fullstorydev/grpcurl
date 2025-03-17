@@ -4,6 +4,8 @@ export PATH := $(shell pwd)/.tmp/protoc/bin:$(PATH)
 export PROTOC_VERSION := 22.0
 # Disable CGO for improved compatibility across distros
 export CGO_ENABLED=0
+export GOFLAGS=-trimpath
+export GOWORK=off
 
 # TODO: run golint and errcheck, but only to catch *new* violations and
 # decide whether to change code or not (e.g. we need to be able to whitelist
