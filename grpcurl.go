@@ -609,6 +609,8 @@ func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string
 // BlockingDial is a helper method to dial the given address, using optional TLS credentials,
 // and blocking until the returned connection is ready. If the given credentials are nil, the
 // connection will be insecure (plain-text).
+// The network parameter should be left empty in most cases when your address is a RFC 3986
+// compliant URI. The resolver from grpc-go will resolve the correct network type.
 func BlockingDial(ctx context.Context, network, address string, creds credentials.TransportCredentials, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if creds == nil {
 		creds = insecure.NewCredentials()
@@ -643,6 +645,34 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	creds = &errSignalingCreds{
 		TransportCredentials: creds,
 		writeResult:          writeResult,
+	}
+
+	switch network {
+	case "":
+		// no-op, use address as-is
+	case "tcp":
+		if strings.HasPrefix(address, "unix://") {
+			return nil, fmt.Errorf("tcp network type cannot use unix address %s", address)
+		}
+	case "unix":
+		if !strings.HasPrefix(address, "unix://") {
+			// prepend unix:// to the address if it's not already there
+			// this is to maintain backwards compatibility because the custom dialer is replaced by
+			// the default dialer in grpc-go.
+			// https://github.com/fullstorydev/grpcurl/pull/480
+			address = "unix://" + address
+		}
+	default:
+		// custom dialer for other networks
+		dialer := func(ctx context.Context, address string) (net.Conn, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
+			if err != nil {
+				// capture the error so we can provide a better message
+				writeResult(err)
+			}
+			return conn, err
+		}
+		opts = append([]grpc.DialOption{grpc.WithContextDialer(dialer)}, opts...)
 	}
 
 	// Even with grpc.FailOnNonTempDialError, this call will usually timeout in
