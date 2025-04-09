@@ -1,13 +1,13 @@
 module github.com/fullstorydev/grpcurl
 
 go 1.21
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/golang/protobuf v1.5.4
 	github.com/jhump/protoreflect v1.17.0
 	google.golang.org/grpc v1.61.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
