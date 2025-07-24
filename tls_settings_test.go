@@ -253,8 +253,12 @@ func TestBrokenTLS_ClientNotTrusted(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "bad certificate") {
-		t.Fatalf("expecting TLS certificate error, got: %v", err)
+	// Check for either the old error (Go <=1.24) or the new one (Go 1.25+)
+	// Go 1.24: "bad certificate"
+	// Go 1.25: "handshake failure"
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "bad certificate") && !strings.Contains(errMsg, "handshake failure") {
+		t.Fatalf("expecting a specific TLS certificate or handshake error, got: %v", err)
 	}
 }
 
@@ -293,8 +297,12 @@ func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	if !strings.Contains(err.Error(), "bad certificate") {
-		t.Fatalf("expecting TLS certificate error, got: %v", err)
+	// Check for either the old error (Go <=1.24) or the new one (Go 1.25+)
+	// Go 1.24: "bad certificate"
+	// Go 1.25: "handshake failure"
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "bad certificate") && !strings.Contains(errMsg, "handshake failure") {
+		t.Fatalf("expecting a specific TLS certificate or handshake error, got: %v", err)
 	}
 }
 
