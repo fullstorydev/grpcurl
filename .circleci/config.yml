@@ -25,6 +25,12 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.24
+    steps: *simple_job_steps
+
+  build-1-25:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.25
     steps:
       - checkout
       - run:
@@ -38,3 +44,4 @@ workflows:
       - build-1-22
       - build-1-23
       - build-1-24
+      - build-1-25
