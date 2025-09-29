@@ -12,6 +12,19 @@ grade: stable
 confinement: strict
 license: MIT
 
+platforms:
+  amd64:
+    build-on:
+      - amd64
+    build-for:
+      - amd64
+  arm64:
+    build-on:
+      - amd64
+      - arm64
+    build-for:
+      - arm64
+
 apps:
   grpcurl:
     command: grpcurl
