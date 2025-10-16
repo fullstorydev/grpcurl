@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -450,11 +451,9 @@ func makeTemplate(md *desc.MessageDescriptor, path []*desc.MessageDescriptor) pr
 	dm := dynamic.NewMessage(md)
 
 	// if the message is a recursive structure, we don't want to blow the stack
-	for _, seen := range path {
-		if seen == md {
-			// already visited this type; avoid infinite recursion
-			return dm
-		}
+	if slices.Contains(path, md) {
+		// already visited this type; avoid infinite recursion
+		return dm
 	}
 	path = append(path, dm.GetMessageDescriptor())
 
