@@ -848,11 +848,11 @@ func main() {
 }
 
 func dumpTiming(td *timingData, lvl int) {
-	ind := ""
+	var ind strings.Builder
 	for x := 0; x < lvl; x++ {
-		ind += "  "
+		ind.WriteString("  ")
 	}
-	fmt.Printf("%s%s: %s\n", ind, td.Title, td.Value)
+	fmt.Printf("%s%s: %s\n", ind.String(), td.Title, td.Value)
 	for _, sd := range td.Sub {
 		dumpTiming(sd, lvl+1)
 	}
