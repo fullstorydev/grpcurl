@@ -1,5 +1,5 @@
-FROM golang:1.23-alpine as builder
-MAINTAINER Fullstory Engineering
+FROM golang:1.25-alpine AS builder
+LABEL maintainer="Fullstory Engineering"
 
 # create non-privileged group and user
 RUN addgroup -S grpcurl && adduser -S grpcurl -G grpcurl
@@ -16,7 +16,7 @@ RUN go build -o /grpcurl \
     -ldflags "-w -extldflags \"-static\" -X \"main.version=$(cat VERSION)\"" \
     ./cmd/grpcurl
 
-FROM alpine:3 as alpine
+FROM alpine:3 AS alpine
 WORKDIR /
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /etc/passwd /etc/passwd
