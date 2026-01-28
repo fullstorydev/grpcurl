@@ -57,6 +57,13 @@ On macOS, `grpcurl` is available via Homebrew:
 brew install grpcurl
 ```
 
+### Using mise
+
+On Linux/MacOS/Windows, `grpcurl` is available via [mise](https://github.com/jdx/mise), the polyglot tool version manager by using a command like this:
+```shell
+mise use -g grpcurl@latest
+```
+
 ### Docker
 
 For platforms that support Docker, you can download an image that lets you run `grpcurl`:
