@@ -74,10 +74,8 @@ func TestMain(m *testing.M) {
 	defer svrReflect.Stop()
 
 	// And a corresponding client
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if ccReflect, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portReflect),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock()); err != nil {
+	if ccReflect, err = grpc.NewClient(fmt.Sprintf("passthrough:///127.0.0.1:%d", portReflect),
+		grpc.WithTransportCredentials(insecure.NewCredentials())); err != nil {
 		panic(err)
 	}
 	defer ccReflect.Close()
@@ -99,10 +97,8 @@ func TestMain(m *testing.M) {
 	defer svrProtoset.Stop()
 
 	// And a corresponding client
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if ccNoReflect, err = grpc.DialContext(ctx, fmt.Sprintf("127.0.0.1:%d", portProtoset),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock()); err != nil {
+	if ccNoReflect, err = grpc.NewClient(fmt.Sprintf("passthrough:///127.0.0.1:%d", portProtoset),
+		grpc.WithTransportCredentials(insecure.NewCredentials())); err != nil {
 		panic(err)
 	}
 	defer ccNoReflect.Close()

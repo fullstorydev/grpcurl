@@ -26,6 +26,7 @@ import (
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/jhump/protoreflect/dynamic" //lint:ignore SA1019 same as above
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	xdsCredentials "google.golang.org/grpc/credentials/xds"
@@ -674,26 +675,41 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append([]grpc.DialOption{grpc.WithContextDialer(dialer)}, opts...)
 	}
 
-	// Even with grpc.FailOnNonTempDialError, this call will usually timeout in
-	// the face of TLS handshake errors. So we can't rely on grpc.WithBlock() to
-	// know when we're done. So we run it in a goroutine and then use result
-	// channel to either get the connection or fail-fast.
-	go func() {
-		// We put grpc.FailOnNonTempDialError *before* the explicitly provided
-		// options so that it could be overridden.
-		opts = append([]grpc.DialOption{grpc.FailOnNonTempDialError(true)}, opts...)
-		// But we don't want caller to be able to override these two, so we put
-		// them *after* the explicitly provided options.
-		opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(creds))
+	// grpc.NewClient does not connect immediately, so we use conn.Connect()
+	// to trigger eager connection and then poll connectivity state to block
+	// until ready. The errSignalingCreds wrapper will capture TLS handshake
+	// errors and write them to the result channel for fail-fast behavior.
 
-		conn, err := grpc.DialContext(ctx, address, opts...)
-		var res interface{}
-		if err != nil {
-			res = err
-		} else {
-			res = conn
+	// Normalize address for NewClient which defaults to "dns" resolver.
+	// Bare host:port addresses need "passthrough:///" to preserve the old
+	// grpc.Dial behavior.
+	if !strings.Contains(address, "://") {
+		address = "passthrough:///" + address
+	}
+
+	opts = append(opts, grpc.WithTransportCredentials(creds))
+
+	conn, err := grpc.NewClient(address, opts...)
+	if err != nil {
+		return nil, err
+	}
+	conn.Connect()
+
+	go func() {
+		for {
+			s := conn.GetState()
+			if s == connectivity.Ready {
+				writeResult(conn)
+				return
+			}
+			if s == connectivity.Shutdown {
+				return
+			}
+			if !conn.WaitForStateChange(ctx, s) {
+				// Context expired
+				return
+			}
 		}
-		writeResult(res)
 	}()
 
 	select {
