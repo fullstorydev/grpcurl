@@ -733,20 +733,14 @@ func (c *errSignalingCreds) ClientHandshake(ctx context.Context, addr string, ra
 		c.writeResult(err)
 		return conn, auth, err
 	}
-	// Wrap TLS connections to capture post-handshake errors. With TLS 1.3,
-	// client certificate rejection by the server happens after the client
-	// considers the handshake complete. The server's TLS alert surfaces on the
-	// first Read from the connection. Only TLS connections need this (plaintext
-	// connections don't have post-handshake alerts).
-	if _, isTLS := auth.(credentials.TLSInfo); isTLS {
-		conn = &errSignalingConn{Conn: conn, writeResult: c.writeResult}
-	}
-	return conn, auth, nil
+	// Wrap the connection to capture post-handshake errors, e.g.:
+	// - TLS 1.3 client cert rejection (server sends alert after handshake)
+	// - Plaintext client to TLS server (server closes conn immediately)
+	return &errSignalingConn{Conn: conn, writeResult: c.writeResult}, auth, nil
 }
 
 // errSignalingConn wraps a net.Conn to capture the first read error and
-// report it via writeResult. This allows BlockingDial to surface post-handshake
-// errors.
+// report it via writeResult.
 type errSignalingConn struct {
 	net.Conn
 	writeResult func(res interface{})

@@ -171,58 +171,17 @@ func TestBrokenTLS_ClientPlainText(t *testing.T) {
 		t.Fatalf("failed to create server creds: %v", err)
 	}
 
-	// client connection (usually) succeeds since client is not waiting for TLS handshake
-	// (we try several times, but if we never get a connection and the error message is
-	// a known/expected possibility, we'll just bail)
-	var e testEnv
-	failCount := 0
-	for {
-		e, err = createTestServerAndClient(serverCreds, nil)
-		if err == nil {
-			// success!
-			defer e.Close()
-			break
-		}
-
-		if strings.Contains(err.Error(), "deadline exceeded") ||
-			strings.Contains(err.Error(), "use of closed network connection") {
-			// It is possible that the connection never becomes healthy:
-			//   1) grpc connects successfully
-			//   2) grpc client tries to send HTTP/2 preface and settings frame
-			//   3) server, expecting handshake, closes the connection
-			//   4) in the client, the write fails, so the connection never
-			//      becomes ready
-			// The client will attempt to reconnect on transient errors, so
-			// may eventually bump into the connect time limit. This used to
-			// result in a "deadline exceeded" error, but more recent versions
-			// of the grpc library report any underlying I/O error instead, so
-			// we also check for "use of closed network connection".
-			failCount++
-			if failCount > 5 {
-				return // bail...
-			}
-			// we'll try again
-
-		} else {
-			// some other error occurred, so we'll consider that a test failure
-			t.Fatalf("failed to setup server and client: %v", err)
-		}
-	}
-
-	// but request fails because server closes connection upon seeing request
-	// bytes that are not a TLS handshake
-	cl := grpcurl_testing.NewTestServiceClient(e.cc)
-	_, err = cl.UnaryCall(context.Background(), &grpcurl_testing.SimpleRequest{})
+	// Plaintext client to TLS server: the server expects a TLS handshake,
+	// gets an HTTP/2 preface instead, and closes the connection.
+	e, err := createTestServerAndClient(serverCreds, nil)
 	if err == nil {
-		t.Fatal("expecting failure")
+		e.Close()
+		t.Fatal("expecting failure when connecting plaintext to TLS server")
 	}
-	// various errors possible when server closes connection
-	if !strings.Contains(err.Error(), "transport is closing") &&
-		!strings.Contains(err.Error(), "connection is unavailable") &&
+	if !strings.Contains(err.Error(), "EOF") &&
 		!strings.Contains(err.Error(), "use of closed network connection") &&
-		!strings.Contains(err.Error(), "all SubConns are in TransientFailure") {
-
-		t.Fatalf("expecting transport failure, got: %v", err)
+		!strings.Contains(err.Error(), "connection reset by peer") {
+		t.Fatalf("expecting connection closed error, got: %v", err)
 	}
 }
 
