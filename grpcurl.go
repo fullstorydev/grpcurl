@@ -20,6 +20,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import these because some of their types appear in exported API
 	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
@@ -568,9 +569,6 @@ func ClientTLSConfig(insecureSkipVerify bool, cacertFile, clientCertFile, client
 // client certs. The serverCertFile and serverKeyFile must both not be blank.
 func ServerTransportCredentials(cacertFile, serverCertFile, serverKeyFile string, requireClientCerts bool) (credentials.TransportCredentials, error) {
 	var tlsConf tls.Config
-	// TODO(jh): Remove this line once https://github.com/golang/go/issues/28779 is fixed
-	// in Go tip. Until then, the recently merged TLS 1.3 support breaks the TLS tests.
-	tlsConf.MaxVersion = tls.VersionTLS12
 
 	// Load the server certificates from disk
 	certificate, err := tls.LoadX509KeyPair(serverCertFile, serverKeyFile)
@@ -734,6 +732,34 @@ func (c *errSignalingCreds) ClientHandshake(ctx context.Context, addr string, ra
 	conn, auth, err := c.TransportCredentials.ClientHandshake(ctx, addr, rawConn)
 	if err != nil {
 		c.writeResult(err)
+		return conn, auth, err
 	}
-	return conn, auth, err
+	// Wrap TLS connections to capture post-handshake errors. With TLS 1.3,
+	// client certificate rejection by the server happens after the client
+	// considers the handshake complete. The server's TLS alert surfaces on the
+	// first Read from the connection. Only TLS connections need this (plaintext
+	// connections don't have post-handshake alerts).
+	if _, isTLS := auth.(credentials.TLSInfo); isTLS {
+		conn = &errSignalingConn{Conn: conn, writeResult: c.writeResult}
+	}
+	return conn, auth, nil
+}
+
+// errSignalingConn wraps a net.Conn to capture the first read error and
+// report it via writeResult. This allows BlockingDial to surface post-handshake
+// errors.
+type errSignalingConn struct {
+	net.Conn
+	writeResult func(res interface{})
+	once        sync.Once
+}
+
+func (c *errSignalingConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if err != nil {
+		c.once.Do(func() {
+			c.writeResult(err)
+		})
+	}
+	return n, err
 }
