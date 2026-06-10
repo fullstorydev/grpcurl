@@ -2,6 +2,7 @@ package grpcurl_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
 
 	. "github.com/fullstorydev/grpcurl"
 	grpcurl_testing "github.com/fullstorydev/grpcurl/internal/testing"
@@ -99,6 +101,68 @@ func TestRequireClientCertTLS(t *testing.T) {
 	defer e.Close()
 
 	simpleTest(t, e.cc)
+}
+
+func TestTLS12(t *testing.T) {
+	serverCreds, err := ServerTransportCredentials("", "internal/testing/tls/server.crt", "internal/testing/tls/server.key", false)
+	if err != nil {
+		t.Fatalf("failed to create server creds: %v", err)
+	}
+	tlsConf, err := ClientTLSConfig(false, "internal/testing/tls/ca.crt", "", "")
+	if err != nil {
+		t.Fatalf("failed to create client TLS config: %v", err)
+	}
+	tlsConf.MaxVersion = tls.VersionTLS12
+
+	e, err := createTestServerAndClient(serverCreds, credentials.NewTLS(tlsConf))
+	if err != nil {
+		t.Fatalf("failed to setup server and client: %v", err)
+	}
+	defer e.Close()
+
+	tlsVersion := negotiatedTLSVersion(t, e.cc)
+	if tlsVersion != tls.VersionTLS12 {
+		t.Errorf("expected TLS 1.2, got 0x%04x", tlsVersion)
+	}
+}
+
+func TestTLS13(t *testing.T) {
+	serverCreds, err := ServerTransportCredentials("", "internal/testing/tls/server.crt", "internal/testing/tls/server.key", false)
+	if err != nil {
+		t.Fatalf("failed to create server creds: %v", err)
+	}
+	clientCreds, err := ClientTransportCredentials(false, "internal/testing/tls/ca.crt", "", "")
+	if err != nil {
+		t.Fatalf("failed to create client creds: %v", err)
+	}
+
+	e, err := createTestServerAndClient(serverCreds, clientCreds)
+	if err != nil {
+		t.Fatalf("failed to setup server and client: %v", err)
+	}
+	defer e.Close()
+
+	tlsVersion := negotiatedTLSVersion(t, e.cc)
+	if tlsVersion != tls.VersionTLS13 {
+		t.Errorf("expected TLS 1.3, got 0x%04x", tlsVersion)
+	}
+}
+
+func negotiatedTLSVersion(t *testing.T, cc *grpc.ClientConn) uint16 {
+	t.Helper()
+	cl := grpcurl_testing.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var p peer.Peer
+	_, err := cl.UnaryCall(ctx, &grpcurl_testing.SimpleRequest{}, grpc.WaitForReady(true), grpc.Peer(&p))
+	if err != nil {
+		t.Fatalf("RPC failed: %v", err)
+	}
+	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		t.Fatalf("expected TLS auth info, got %T", p.AuthInfo)
+	}
+	return tlsInfo.State.Version
 }
 
 func TestBrokenTLS_ClientPlainText(t *testing.T) {
@@ -253,12 +317,14 @@ func TestBrokenTLS_ClientNotTrusted(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	// Check for either the old error (Go <=1.24) or the new one (Go 1.25+)
-	// Go 1.24: "bad certificate"
-	// Go 1.25: "handshake failure"
+	// The exact TLS alert varies by Go version and TLS version negotiated:
+	// - TLS 1.2: "bad certificate" (Go <=1.24) or "handshake failure" (Go 1.25+)
+	// - TLS 1.3: "certificate required" (server rejects after handshake)
 	errMsg := err.Error()
-	if !strings.Contains(errMsg, "bad certificate") && !strings.Contains(errMsg, "handshake failure") {
-		t.Fatalf("expecting a specific TLS certificate or handshake error, got: %v", err)
+	if !strings.Contains(errMsg, "bad certificate") &&
+		!strings.Contains(errMsg, "handshake failure") &&
+		!strings.Contains(errMsg, "certificate required") {
+		t.Fatalf("expecting a TLS certificate error, got: %v", err)
 	}
 }
 
@@ -297,12 +363,14 @@ func TestBrokenTLS_RequireClientCertButNonePresented(t *testing.T) {
 		e.Close()
 		t.Fatal("expecting TLS failure setting up server and client")
 	}
-	// Check for either the old error (Go <=1.24) or the new one (Go 1.25+)
-	// Go 1.24: "bad certificate"
-	// Go 1.25: "handshake failure"
+	// The exact TLS alert varies by Go version and TLS version negotiated:
+	// - TLS 1.2: "bad certificate" (Go <=1.24) or "handshake failure" (Go 1.25+)
+	// - TLS 1.3: "certificate required" (server rejects after handshake)
 	errMsg := err.Error()
-	if !strings.Contains(errMsg, "bad certificate") && !strings.Contains(errMsg, "handshake failure") {
-		t.Fatalf("expecting a specific TLS certificate or handshake error, got: %v", err)
+	if !strings.Contains(errMsg, "bad certificate") &&
+		!strings.Contains(errMsg, "handshake failure") &&
+		!strings.Contains(errMsg, "certificate required") {
+		t.Fatalf("expecting a TLS certificate error, got: %v", err)
 	}
 }
 
