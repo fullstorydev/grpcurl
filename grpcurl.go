@@ -20,7 +20,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import these because some of their types appear in exported API
 	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
@@ -751,15 +750,12 @@ func (c *errSignalingCreds) ClientHandshake(ctx context.Context, addr string, ra
 type errSignalingConn struct {
 	net.Conn
 	writeResult func(res interface{})
-	once        sync.Once
 }
 
 func (c *errSignalingConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if err != nil {
-		c.once.Do(func() {
-			c.writeResult(err)
-		})
+		c.writeResult(err)
 	}
 	return n, err
 }
