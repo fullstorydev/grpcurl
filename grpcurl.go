@@ -618,7 +618,7 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 
 	var err error
 	if strings.HasPrefix(address, "xds://") {
-		// The xds:/// prefix is used to signal to the gRPC client to use an xDS server to resolve the
+		// The xds:// prefix is used to signal to the gRPC client to use an xDS server to resolve the
 		// target. The relevant credentials will be automatically pulled from the GRPC_XDS_BOOTSTRAP or
 		// GRPC_XDS_BOOTSTRAP_CONFIG env vars.
 		creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
