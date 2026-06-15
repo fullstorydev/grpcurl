@@ -614,8 +614,8 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	}
 
 	var err error
-	if strings.HasPrefix(address, "xds:///") {
-		// The xds:/// prefix is used to signal to the gRPC client to use an xDS server to resolve the
+	if strings.HasPrefix(address, "xds://") {
+		// The xds:// prefix is used to signal to the gRPC client to use an xDS server to resolve the
 		// target. The relevant credentials will be automatically pulled from the GRPC_XDS_BOOTSTRAP or
 		// GRPC_XDS_BOOTSTRAP_CONFIG env vars.
 		creds, err = xdsCredentials.NewClientCredentials(xdsCredentials.ClientOptions{FallbackCreds: creds})
@@ -752,4 +752,19 @@ func (c *errSignalingConn) Read(b []byte) (int, error) {
 		c.writeResult(err)
 	}
 	return n, err
+}
+
+// UsesXDS forwards the optional UsesXDS marker of the wrapped credentials. The
+// xDS credentials returned for "xds://" targets implement this method, and
+// grpc-go's cds balancer relies on a type assertion for it to decide whether to
+// apply the security configuration (e.g. UpstreamTlsContext) delivered by the
+// management server. Because errSignalingCreds embeds the TransportCredentials
+// interface, that extra method is not promoted automatically, so we forward it
+// explicitly. Without this, xDS-supplied mTLS is silently ignored and the
+// connection falls back to the plain credentials.
+func (c *errSignalingCreds) UsesXDS() bool {
+	if x, ok := c.TransportCredentials.(interface{ UsesXDS() bool }); ok {
+		return x.UsesXDS()
+	}
+	return false
 }
