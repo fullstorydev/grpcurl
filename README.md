@@ -146,7 +146,7 @@ grpcurl -d @ grpc.server.com:443 my.custom.server.Service/Method <<EOM
 {
   "id": 1234,
   "tags": [
-    "foor",
+    "foo",
     "bar"
   ]
 }
