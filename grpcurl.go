@@ -20,6 +20,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import these because some of their types appear in exported API
 	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
@@ -629,7 +631,14 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	// custom dialer that can provide that info. That means we manage the TLS handshake.
 	result := make(chan interface{}, 1)
 
+	// dialCompleted is closed once the outcome of the dial (ready connection
+	// or error) is known, so that connection teardown no longer needs to wait
+	// for a pending TLS alert to be read.
+	dialCompleted := make(chan struct{})
+	var dialCompletedOnce sync.Once
+
 	writeResult := func(res interface{}) {
+		dialCompletedOnce.Do(func() { close(dialCompleted) })
 		// non-blocking write: we only need the first result
 		select {
 		case result <- res:
@@ -642,6 +651,7 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	creds = &errSignalingCreds{
 		TransportCredentials: creds,
 		writeResult:          writeResult,
+		dialCompleted:        dialCompleted,
 	}
 
 	switch network {
@@ -724,7 +734,8 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 // it will use the writeResult function to notify on error.
 type errSignalingCreds struct {
 	credentials.TransportCredentials
-	writeResult func(res interface{})
+	writeResult   func(res interface{})
+	dialCompleted <-chan struct{}
 }
 
 func (c *errSignalingCreds) ClientHandshake(ctx context.Context, addr string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
@@ -736,14 +747,23 @@ func (c *errSignalingCreds) ClientHandshake(ctx context.Context, addr string, ra
 	// Wrap the connection to capture post-handshake errors, e.g.:
 	// - TLS 1.3 client cert rejection (server sends alert after handshake)
 	// - Plaintext client to TLS server (server closes conn immediately)
-	return &errSignalingConn{Conn: conn, writeResult: c.writeResult}, auth, nil
+	return &errSignalingConn{Conn: conn, writeResult: c.writeResult, dialCompleted: c.dialCompleted}, auth, nil
 }
 
-// errSignalingConn wraps a net.Conn to capture the first read error and
-// report it via writeResult.
+// maxTLSAlertWait is an upper bound on how long a failing dial's connection
+// teardown waits for a pending TLS alert to be read. It is a heuristic: long
+// enough for the reader goroutine to be scheduled even on a loaded machine,
+// short enough to not noticeably delay a failing dial.
+const maxTLSAlertWait = 50 * time.Millisecond
+
+// errSignalingConn wraps a net.Conn to capture read errors and report
+// them via writeResult. Close is delayed until the dial has completed to
+// give the reader a chance to read a pending TLS alert before the
+// connection is closed.
 type errSignalingConn struct {
 	net.Conn
-	writeResult func(res interface{})
+	writeResult   func(res interface{})
+	dialCompleted <-chan struct{}
 }
 
 func (c *errSignalingConn) Read(b []byte) (int, error) {
@@ -752,6 +772,21 @@ func (c *errSignalingConn) Read(b []byte) (int, error) {
 		c.writeResult(err)
 	}
 	return n, err
+}
+
+func (c *errSignalingConn) Close() error {
+	// With TLS 1.3, the server may reject the connection *after* the
+	// handshake completes (e.g. a missing client cert), by sending an alert.
+	// If the transport closes the connection before that alert is read, the
+	// caller sees a less useful error (e.g. "use of closed network
+	// connection") instead of the TLS alert. So while the outcome of the
+	// dial is still undecided, give the reader a brief window to read a
+	// pending alert before closing the connection.
+	select {
+	case <-c.dialCompleted:
+	case <-time.After(maxTLSAlertWait):
+	}
+	return c.Conn.Close()
 }
 
 // UsesXDS forwards the optional UsesXDS marker of the wrapped credentials. The
