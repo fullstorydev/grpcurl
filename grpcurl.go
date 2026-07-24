@@ -636,9 +636,11 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 	// for a pending TLS alert to be read.
 	dialCompleted := make(chan struct{})
 	var dialCompletedOnce sync.Once
+	completeDial := func() { dialCompletedOnce.Do(func() { close(dialCompleted) }) }
+	defer completeDial()
 
 	writeResult := func(res interface{}) {
-		dialCompletedOnce.Do(func() { close(dialCompleted) })
+		completeDial()
 		// non-blocking write: we only need the first result
 		select {
 		case result <- res:
