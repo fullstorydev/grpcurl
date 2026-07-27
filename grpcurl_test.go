@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"  //lint:ignore SA1019 we have to import these because some of their types appear in exported API
-	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 same as above
-	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

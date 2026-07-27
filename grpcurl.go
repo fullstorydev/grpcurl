@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import these because some of their types appear in exported API
-	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
-	"github.com/jhump/protoreflect/dynamic" //lint:ignore SA1019 same as above
+	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
