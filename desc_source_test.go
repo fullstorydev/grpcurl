@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import this because it appears in exported API
-	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
-	"github.com/jhump/protoreflect/desc/protoprint"
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -73,12 +72,7 @@ func writeProtoFileForTest(t *testing.T, dir, fdName string) error {
 	if err != nil {
 		t.Fatalf("failed to create file descriptor: %v", err)
 	}
-	root, err := os.OpenRoot(dir)
-	if err != nil {
-		t.Fatalf("failed to open output directory: %v", err)
-	}
-	defer root.Close()
-	return writeProtoFile(root, fd, &protoprint.Printer{})
+	return writeProtoFiles(dir, []*desc.FileDescriptor{fd})
 }
 
 func TestWriteProtoFile_NormalPath(t *testing.T) {

@@ -309,6 +309,10 @@ func WriteProtoFiles(outProtoDirPath string, descSource DescriptorSource, symbol
 	for _, filename := range filenames {
 		allFileDescriptors = addFilesToFileDescriptorList(allFileDescriptors, expandedFiles, fds[filename])
 	}
+	return writeProtoFiles(outProtoDirPath, allFileDescriptors)
+}
+
+func writeProtoFiles(outProtoDirPath string, allFileDescriptors []*desc.FileDescriptor) error {
 	if err := os.MkdirAll(outProtoDirPath, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory %q: %w", outProtoDirPath, err)
 	}
