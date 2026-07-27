@@ -3,9 +3,12 @@ package grpcurl
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/golang/protobuf/proto" //lint:ignore SA1019 we have to import this because it appears in exported API
+	"github.com/golang/protobuf/proto"   //lint:ignore SA1019 we have to import this because it appears in exported API
+	"github.com/jhump/protoreflect/desc" //lint:ignore SA1019 same as above
+	"github.com/jhump/protoreflect/desc/protoprint"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -58,5 +61,50 @@ func checkWriteProtoset(t *testing.T, descSrc DescriptorSource, protoset *descri
 
 	if !proto.Equal(protoset, &result) {
 		t.Fatalf("written protoset not equal to input:\nExpecting: %s\nActual: %s", protoset, &result)
+	}
+}
+
+func writeProtoFileForTest(t *testing.T, dir, fdName string) error {
+	t.Helper()
+	fd, err := desc.CreateFileDescriptor(&descriptorpb.FileDescriptorProto{
+		Name:   proto.String(fdName),
+		Syntax: proto.String("proto3"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create file descriptor: %v", err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatalf("failed to open output directory: %v", err)
+	}
+	defer root.Close()
+	return writeProtoFile(root, fd, &protoprint.Printer{})
+}
+
+func TestWriteProtoFile_NormalPath(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeProtoFileForTest(t, dir, "foo/bar.proto"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "foo", "bar.proto")); err != nil {
+		t.Fatalf("expected output file not created: %v", err)
+	}
+}
+
+func TestWriteProtoFile_RejectsPathTraversal(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeProtoFileForTest(t, dir, "../escape.proto"); err == nil {
+		t.Fatal("expected error for path-traversing descriptor name, got nil")
+	}
+	escapePath := filepath.Join(dir, "..", "escape.proto")
+	if _, err := os.Stat(escapePath); err == nil {
+		t.Fatalf("file was created outside output directory at %q", escapePath)
+	}
+}
+
+func TestWriteProtoFile_RejectsDeepPathTraversal(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeProtoFileForTest(t, dir, "foo/../../../escape.proto"); err == nil {
+		t.Fatal("expected error for path-traversing descriptor name, got nil")
 	}
 }
