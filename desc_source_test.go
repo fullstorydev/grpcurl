@@ -107,4 +107,8 @@ func TestWriteProtoFile_RejectsDeepPathTraversal(t *testing.T) {
 	if err := writeProtoFileForTest(t, dir, "foo/../../../escape.proto"); err == nil {
 		t.Fatal("expected error for path-traversing descriptor name, got nil")
 	}
+	escapePath := filepath.Join(dir, "foo", "..", "..", "..", "escape.proto")
+	if _, err := os.Stat(escapePath); err == nil {
+		t.Fatalf("file was created outside output directory at %q", escapePath)
+	}
 }
