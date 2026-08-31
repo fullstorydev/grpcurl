@@ -249,7 +249,7 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 
 	err := requestData(req)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("error getting request data: %v", err)
+		return fmt.Errorf("error getting request data: %w", err)
 	}
 	if err != io.EOF {
 		// verify there is no second message, which is a usage error
@@ -257,7 +257,7 @@ func invokeServerStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 		if err == nil {
 			return fmt.Errorf("method %q is a server-streaming RPC, but request data contained more than 1 message", md.GetFullyQualifiedName())
 		} else if err != io.EOF {
-			return fmt.Errorf("error getting request data: %v", err)
+			return fmt.Errorf("error getting request data: %w", err)
 		}
 	}
 
