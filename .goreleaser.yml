@@ -1,3 +1,5 @@
+version: 2
+
 builds:
   - binary: grpcurl
     main: ./cmd/grpcurl
@@ -59,3 +61,6 @@ nfpms:
     formats:
       - deb
       - rpm
+
+changelog:
+  use: github-native

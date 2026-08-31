@@ -29,10 +29,14 @@ updatedeps:
 install:
 	go install -ldflags '-X "main.version=dev build $(dev_build_version)"' ./...
 
+GORELEASER_VERSION := v2.5.0
+# Extra flags for goreleaser, e.g. "--skip=publish" for a dry run.
+GORELEASER_ARGS ?=
+
 .PHONY: release
 release:
-	@go install github.com/goreleaser/goreleaser@v1.21.0
-	goreleaser release --clean
+	@go install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
+	goreleaser release --clean $(GORELEASER_ARGS)
 
 .PHONY: docker
 docker:

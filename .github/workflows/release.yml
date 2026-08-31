@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, sem-ver format: vM.N.P"
+        required: true
+        type: string
+      dry_run:
+        description: "Build everything, publish nothing (aka DRY-RUN... no tag, no GitHub release, no image push, no brew PR)"
+        type: boolean
+        default: false
+
+# Only one release may be in flight at a time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Tag, build binaries, and create the GitHub release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and the release
+    steps:
+      - name: Validate version
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'${{ inputs.version }}' is not a sem-ver version of the form vM.N.P" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          # goreleaser needs full history (and existing tags) to compute the change log
+          fetch-depth: 0
+
+      - name: Check that the tag does not already exist
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ inputs.version }}" >/dev/null; then
+            echo "::error::tag ${{ inputs.version }} already exists" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      # Releases are effectively immutable, so make sure we aren't shipping a broken build.
+      - name: Run tests
+        run: go test ./...
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+
+      - name: Push tag
+        if: ${{ !inputs.dry_run }}
+        run: git push origin "${{ inputs.version }}"
+
+      # Cross-compiles for every platform in .goreleaser.yml, then creates the
+      # GitHub release with generated notes and uploads the archives.
+      - name: Build and release
+        run: make release GORELEASER_ARGS="${{ inputs.dry_run && '--skip=publish,announce' || '' }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # CHANGELOG.md is the release notes that *would* have been published,
+      # which is worth eyeballing before a real release.
+      - name: Upload artifacts for inspection
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dry-run-dist
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.txt
+            dist/*.deb
+            dist/*.rpm
+            dist/CHANGELOG.md
+          if-no-files-found: error
+
+  docker:
+    name: Build and push the Docker image
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+    env:
+      # Matches what releasing/do-release.sh has always published.
+      PLATFORMS: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+    steps:
+      # Derived from the repo rather than hardcoded, so this works the same on a
+      # fork: `packages: write` only grants access to packages owned by the repo
+      # owner. GHCR also rejects uppercase, and GitHub expressions have no
+      # lowercase function, hence the shell parameter expansion.
+      - name: Compute image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          # the release job just created this tag; build the image from exactly that source
+          ref: ${{ inputs.dry_run && github.sha || inputs.version }}
+
+      # The Dockerfile stamps the binary with the contents of this file. It is
+      # gitignored, and produced by `make docker` during local builds.
+      - name: Write VERSION file
+        run: echo "${{ inputs.version }}" > VERSION
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ !inputs.dry_run }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The Dockerfile has two final stages: the default `scratch` image and an
+      # `alpine` one. Both are published, as do-release.sh does.
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ !inputs.dry_run }}
+          no-cache: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ inputs.version }}
+            ${{ steps.image.outputs.name }}:latest
+
+      - name: Build and push (alpine)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: alpine
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ !inputs.dry_run }}
+          no-cache: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ inputs.version }}-alpine
+            ${{ steps.image.outputs.name }}:latest-alpine
+
+  summary:
+    name: Summarize
+    needs: [release, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          {
+            echo "## Dry run of ${{ inputs.version }} succeeded"
+            echo
+            echo "Nothing was published. The binaries are attached to this run as the \`dry-run-dist\` artifact."
+            echo "Re-run with **dry_run** unchecked to publish."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release summary
+        if: ${{ !inputs.dry_run }}
+        run: |
+          {
+            echo "## Released ${{ inputs.version }}"
+            echo
+            echo "* [GitHub release](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.version }})"
+            echo "* Image \`${{ needs.docker.outputs.image }}:${{ inputs.version }}\` (and \`:latest\`)"
+            echo "* Image \`${{ needs.docker.outputs.image }}:${{ inputs.version }}-alpine\` (and \`:latest-alpine\`)"
+            echo
+            echo "Release notes were generated from the merged PRs. Nothing else to do."
+          } >> "$GITHUB_STEP_SUMMARY"

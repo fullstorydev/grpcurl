@@ -62,9 +62,9 @@ brew install grpcurl
 For platforms that support Docker, you can download an image that lets you run `grpcurl`:
 ```shell
 # Download image
-docker pull fullstorydev/grpcurl:latest
+docker pull ghcr.io/fullstorydev/grpcurl:latest
 # Run the tool
-docker run fullstorydev/grpcurl api.grpc.me:443 list
+docker run ghcr.io/fullstorydev/grpcurl api.grpc.me:443 list
 ```
 Note that there are some pitfalls when using docker:
 - If you need to interact with a server listening on the host's loopback network, you must specify the host as `host.docker.internal` instead of `localhost` (for Mac or Windows) _OR_ have the container use the host network with `-network="host"` (Linux only).

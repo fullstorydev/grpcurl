@@ -1,0 +1,26 @@
+# Controls how GitHub groups merged PRs in the auto-generated release notes.
+# goreleaser delegates to GitHub's generator (changelog.use: github-native in
+# .goreleaser.yml), so this file is what shapes the notes for a release.
+#
+# Labels are optional: anything unlabeled lands in "Changes". Labeling a PR
+# `bug` or `enhancement` just sorts it into a nicer bucket, and dependabot
+# applies `dependencies` on its own, which keeps version bumps out of the way
+# at the bottom.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Enhancements
+      labels:
+        - enhancement
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: Dependencies
+      labels:
+        - dependencies
+    # Catch-all. Must stay last: a PR lands in the first category it matches.
+    - title: Changes
+      labels:
+        - "*"
