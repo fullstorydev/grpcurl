@@ -106,7 +106,7 @@ func InvokeRPC(ctx context.Context, source DescriptorSource, ch grpcdynamic.Chan
 		case isNotFoundError(err):
 			return fmt.Errorf("target server does not expose service %q", svc)
 		}
-		return fmt.Errorf("failed to query for service descriptor %q: %v", svc, err)
+		return fmt.Errorf("failed to query for service descriptor %q: %w", svc, err)
 	}
 	sd, ok := dsc.(*desc.ServiceDescriptor)
 	if !ok {
@@ -155,7 +155,7 @@ func invokeUnary(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDesc
 
 	err := requestData(req)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("error getting request data: %v", err)
+		return fmt.Errorf("error getting request data: %w", err)
 	}
 	if err != io.EOF {
 		// verify there is no second message, which is a usage error
@@ -163,7 +163,7 @@ func invokeUnary(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDesc
 		if err == nil {
 			return fmt.Errorf("method %q is a unary RPC, but request data contained more than 1 message", md.GetFullyQualifiedName())
 		} else if err != io.EOF {
-			return fmt.Errorf("error getting request data: %v", err)
+			return fmt.Errorf("error getting request data: %w", err)
 		}
 	}
 
@@ -205,7 +205,7 @@ func invokeClientStream(ctx context.Context, stub grpcdynamic.Stub, md *desc.Met
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("error getting request data: %v", err)
+			return fmt.Errorf("error getting request data: %w", err)
 		}
 
 		err = str.SendMsg(req)
@@ -326,7 +326,7 @@ func invokeBidi(ctx context.Context, stub grpcdynamic.Stub, md *desc.MethodDescr
 					break
 				}
 				if err != nil {
-					err = fmt.Errorf("error getting request data: %v", err)
+					err = fmt.Errorf("error getting request data: %w", err)
 					cancel()
 					break
 				}
