@@ -49,6 +49,9 @@ type jsonRequestParser struct {
 // If the given reader has no data, the returned parser will return io.EOF on
 // the very first call.
 func NewJSONRequestParser(in io.Reader, resolver jsonpb.AnyResolver) RequestParser {
+	if in == nil {
+		in = strings.NewReader("")
+	}
 	return &jsonRequestParser{
 		dec:         json.NewDecoder(in),
 		unmarshaler: jsonpb.Unmarshaler{AnyResolver: resolver},
@@ -58,6 +61,9 @@ func NewJSONRequestParser(in io.Reader, resolver jsonpb.AnyResolver) RequestPars
 // NewJSONRequestParserWithUnmarshaler is like NewJSONRequestParser but
 // accepts a protobuf jsonpb.Unmarshaler instead of jsonpb.AnyResolver.
 func NewJSONRequestParserWithUnmarshaler(in io.Reader, unmarshaler jsonpb.Unmarshaler) RequestParser {
+	if in == nil {
+		in = strings.NewReader("")
+	}
 	return &jsonRequestParser{
 		dec:         json.NewDecoder(in),
 		unmarshaler: unmarshaler,

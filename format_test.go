@@ -94,6 +94,17 @@ func TestRequestParser(t *testing.T) {
 	}
 }
 
+func TestJSONRequestParserNilReader(t *testing.T) {
+	parser := NewJSONRequestParser(nil, nil)
+	var message structpb.Value
+	if err := parser.Next(&message); err != io.EOF {
+		t.Fatalf("expected io.EOF, got %v", err)
+	}
+	if parser.NumRequests() != 0 {
+		t.Fatalf("expected no requests, got %d", parser.NumRequests())
+	}
+}
+
 // Handler prints response data (and headers/trailers in verbose mode).
 // This verifies that we get the right output in both JSON and proto text modes.
 func TestHandler(t *testing.T) {
