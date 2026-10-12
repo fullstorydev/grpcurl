@@ -18,6 +18,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	// Register standard error details for Any resolution when the descriptor source
+	// does not expose them (for example, when using server reflection).
+	_ "google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
 // RequestParser processes input into messages.

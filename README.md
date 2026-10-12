@@ -211,6 +211,10 @@ into the protobuf binary format as well as translate responses from the binary f
 into text. The sections below document the supported sources and what command-line flags
 are needed to use them.
 
+When formatting responses and errors, `grpcurl` also recognizes the standard error
+detail types from `google/rpc/error_details.proto`, such as `google.rpc.BadRequest`
+and `google.rpc.ErrorInfo`, even when they are not available from the descriptor source.
+
 ### Server Reflection
 
 Without any additional command-line flags, `grpcurl` will try to use [server reflection](https://github.com/grpc/grpc/blob/master/src/proto/grpc/reflection/v1/reflection.proto).
