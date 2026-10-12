@@ -2,17 +2,86 @@ package grpcurl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestFormatStatusDetails(t *testing.T) {
+	// The source deliberately has no descriptors for error details. Do not import
+	// errdetails here: that would register its types and hide a missing production
+	// import. These payloads are protobuf wire encodings of the expected details.
+	source, err := DescriptorSourceFromFileDescriptors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name    string
+		payload string
+		want    string
+	}{
+		{
+			name:    "google.rpc.ErrorInfo",
+			payload: "\x0a\x06DENIED\x12\x0bexample.com",
+			want:    `{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"DENIED","domain":"example.com"}`,
+		},
+		{
+			name:    "google.rpc.BadRequest",
+			payload: "\x0a\x10\x0a\x04name\x12\x08required",
+			want:    `{"@type":"type.googleapis.com/google.rpc.BadRequest","fieldViolations":[{"field":"name","description":"required"}]}`,
+		},
+		{
+			name:    "google.rpc.RetryInfo",
+			payload: "\x0a\x02\x08\x03",
+			want:    `{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"3s"}`,
+		},
+		{
+			name:    "test.UnknownErrorDetail",
+			payload: "\x0a\x03foo",
+			want:    `{"@type":"type.googleapis.com/test.UnknownErrorDetail","@error":"test.UnknownErrorDetail is not recognized; see @value for raw binary message data","@value":"CgNmb28="}`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, formatter, err := RequestParserAndFormatter(FormatJSON, source, nil, FormatOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			stat := status.New(codes.InvalidArgument, "invalid request").Proto()
+			stat.Details = []*anypb.Any{{
+				TypeUrl: "type.googleapis.com/" + tc.name,
+				Value:   []byte(tc.payload),
+			}}
+			got, err := formatter(stat)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `{"code":3,"message":"invalid request","details":[` + tc.want + `]}`
+			var gotJSON, wantJSON interface{}
+			if err := json.Unmarshal([]byte(got), &gotJSON); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(want), &wantJSON); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(gotJSON, wantJSON) {
+				t.Errorf("unexpected status JSON:\nwant: %s\ngot: %s", want, got)
+			}
+		})
+	}
+}
 
 func TestRequestParser(t *testing.T) {
 	source, err := DescriptorSourceFromProtoSets("internal/testing/example.protoset")
