@@ -684,6 +684,25 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		opts = append([]grpc.DialOption{grpc.WithContextDialer(dialer)}, opts...)
 	}
 
+	// gRPC treats connection refused as transient and retries until the
+	// context expires. Report a non-temporary dial error immediately.
+	// net.Dialer already tries every resolved address, so a refused
+	// localhost does not skip the other family.
+	if (network == "" || network == "tcp") &&
+		!strings.HasPrefix(address, "unix://") &&
+		!strings.HasPrefix(address, "xds://") {
+		dialer := func(ctx context.Context, address string) (net.Conn, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
+			if err != nil && !isTemporary(err) &&
+				!errors.Is(err, context.Canceled) &&
+				!errors.Is(err, context.DeadlineExceeded) {
+				writeResult(err)
+			}
+			return conn, err
+		}
+		opts = append([]grpc.DialOption{grpc.WithContextDialer(dialer)}, opts...)
+	}
+
 	// grpc.NewClient does not connect immediately, so we use conn.Connect()
 	// to trigger eager connection and then poll connectivity state to block
 	// until ready. The errSignalingCreds wrapper will capture TLS handshake
@@ -726,10 +745,20 @@ func BlockingDial(ctx context.Context, network, address string, creds credential
 		if conn, ok := res.(*grpc.ClientConn); ok {
 			return conn, nil
 		}
+		conn.Close()
 		return nil, res.(error)
 	case <-ctx.Done():
+		conn.Close()
 		return nil, ctx.Err()
 	}
+}
+
+func isTemporary(err error) bool {
+	var te interface{ Temporary() bool }
+	if errors.As(err, &te) {
+		return te.Temporary()
+	}
+	return false
 }
 
 // errSignalingCreds is a wrapper around a TransportCredentials value, but
