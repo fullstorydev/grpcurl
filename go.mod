@@ -1,6 +1,6 @@
 module github.com/fullstorydev/grpcurl
 
-go 1.25.0
+go 1.25.13
 
 require (
 	github.com/golang/protobuf v1.5.4
