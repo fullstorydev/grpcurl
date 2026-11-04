@@ -54,6 +54,9 @@ type GRPCWebOptions struct {
 	// DialContext, if non-nil, is used to establish connections. It can be
 	// used to apply a connect timeout or to connect to a unix domain socket.
 	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	// TLSHandshakeTimeout limits how long the TLS handshake may take. Defaults
+	// to 10 seconds.
+	TLSHandshakeTimeout time.Duration
 	// Transport, if non-nil, is used to send requests instead of a transport
 	// built from the fields above. TLSConfig and DialContext are ignored
 	// when this is set.
@@ -99,12 +102,16 @@ func NewGRPCWebChannel(target string, opts GRPCWebOptions) (*GRPCWebChannel, err
 	}
 	rt := opts.Transport
 	if rt == nil {
+		tlsTimeout := opts.TLSHandshakeTimeout
+		if tlsTimeout <= 0 {
+			tlsTimeout = 10 * time.Second
+		}
 		t := &http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
 			TLSClientConfig:     opts.TLSConfig,
 			DialContext:         opts.DialContext,
 			ForceAttemptHTTP2:   true,
-			TLSHandshakeTimeout: 10 * time.Second,
+			TLSHandshakeTimeout: tlsTimeout,
 			// We decompress gzip messages ourselves, per the gRPC framing.
 			DisableCompression: true,
 		}
@@ -122,7 +129,14 @@ func NewGRPCWebChannel(target string, opts GRPCWebOptions) (*GRPCWebChannel, err
 		return nil, errors.New("proto codec is not registered")
 	}
 	return &GRPCWebChannel{
-		client:         &http.Client{Transport: rt},
+		client: &http.Client{
+			Transport: rt,
+			// Following a redirect would replay the RPC as a GET without its
+			// body, so report redirects as errors instead.
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
 		baseURL:        baseURL,
 		authority:      opts.Authority,
 		userAgent:      opts.UserAgent,
@@ -366,6 +380,9 @@ func (r *grpcWebResponse) readHeaders() error {
 			code = httpStatusToCode(r.httpResp.StatusCode)
 		}
 		msg := fmt.Sprintf("unexpected HTTP status code received from server: %d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))
+		if loc := h.Get("Location"); loc != "" && r.httpResp.StatusCode >= 300 && r.httpResp.StatusCode < 400 {
+			msg += fmt.Sprintf("; server redirected to %q, which is not followed for RPCs", loc)
+		}
 		if !isGRPCWeb {
 			msg += fmt.Sprintf("; received unexpected content-type %q; is %s a gRPC-Web endpoint?", contentType, r.httpResp.Request.URL)
 		}

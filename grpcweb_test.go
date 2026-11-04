@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
@@ -349,6 +350,17 @@ func TestGRPCWebErrors(t *testing.T) {
 			wantMsg:  "a gRPC-Web endpoint?",
 		},
 		{
+			name: "redirect is not followed",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					t.Errorf("redirect was followed with a %s request", r.Method)
+				}
+				http.Redirect(w, r, "https://elsewhere.example.com/", http.StatusMovedPermanently)
+			},
+			wantCode: codes.Unknown,
+			wantMsg:  `server redirected to "https://elsewhere.example.com/"`,
+		},
+		{
 			name: "service unavailable",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/grpc-web+proto")
@@ -543,5 +555,48 @@ func TestGRPCWebStreamCancel(t *testing.T) {
 	time.AfterFunc(50*time.Millisecond, cancel)
 	if err := str.RecvMsg(&grpcurl_testing.StreamingOutputCallResponse{}); status.Code(err) != codes.Canceled {
 		t.Errorf("expected Canceled; got %v", err)
+	}
+}
+
+func TestGRPCWebTLSHandshakeTimeout(t *testing.T) {
+	// A server that accepts connections but never completes a TLS handshake.
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	defer func() {
+		_ = l.Close()
+		close(done)
+	}()
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				<-done
+				_ = conn.Close()
+			}()
+		}
+	}()
+
+	ch := newWebChannel(t, l.Addr().String(), GRPCWebOptions{
+		TLSConfig:           &tls.Config{InsecureSkipVerify: true},
+		TLSHandshakeTimeout: 200 * time.Millisecond,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	start := time.Now()
+	err = ch.Invoke(ctx, "/testing.TestService/EmptyCall", &grpcurl_testing.Empty{}, &grpcurl_testing.Empty{})
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("TLS handshake timeout was not applied; RPC took %v", elapsed)
+	}
+	if code := status.Code(err); code != codes.Unavailable {
+		t.Fatalf("expected Unavailable, got %v: %v", code, err)
+	}
+	if !strings.Contains(err.Error(), "TLS handshake timeout") {
+		t.Fatalf("expected TLS handshake timeout error, got %v", err)
 	}
 }

@@ -24,9 +24,10 @@ type channel interface {
 func dialGRPCWeb(dialTiming *timingData, target string, dialTime time.Duration, userAgent string) channel {
 	dialer := &net.Dialer{Timeout: dialTime, KeepAlive: 30 * time.Second}
 	opts := grpcurl.GRPCWebOptions{
-		UserAgent:      userAgent,
-		MaxRecvMsgSize: *maxMsgSz,
-		DialContext:    dialer.DialContext,
+		UserAgent:           userAgent,
+		MaxRecvMsgSize:      *maxMsgSz,
+		DialContext:         dialer.DialContext,
+		TLSHandshakeTimeout: dialTime,
 	}
 	if isUnixSocket != nil && isUnixSocket() {
 		path := strings.TrimPrefix(target, "unix://")
