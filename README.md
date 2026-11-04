@@ -160,6 +160,21 @@ grpcurl -H header1:value1 -H header2:value2 -d '{"id": 1234, "tags": ["foo","bar
 ```
 For more usage guide, check out the help docs via `grpcurl -help`
 
+### gRPC-Web
+Some services are only reachable through a gRPC-Web gateway, such as Envoy's
+`grpc_web` filter, `grpcwebproxy`, or a Connect server. Use `-grpc-web` to send
+requests using the gRPC-Web protocol instead of native gRPC. Everything else
+works the same way, including server reflection:
+```shell
+grpcurl -grpc-web web.server.com:443 list
+
+# gateway serves gRPC-Web below a path prefix, no TLS
+grpcurl -grpc-web -plaintext localhost:8080/api my.custom.server.Service/Method
+```
+gRPC-Web has no full-duplex streaming, so client-streaming and bidi-streaming
+calls are sent half-duplex: all request messages are sent before any responses
+are read.
+
 ### Listing Services
 To list all services exposed by a server, use the "list" verb. When using `.proto` source
 or protoset files instead of server reflection, this lists all services defined in the

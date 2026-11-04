@@ -61,6 +61,17 @@ var (
 	insecure = flags.Bool("insecure", false, prettify(`
 		Skip server certificate and domain verification. (NOT SECURE!) Not
 		valid with -plaintext option.`))
+	grpcWeb = flags.Bool("grpc-web", false, prettify(`
+		Use the gRPC-Web protocol instead of native gRPC. This is for servers
+		that are only reachable through a gRPC-Web gateway, such as Envoy's
+		grpc_web filter, grpcwebproxy, or a Connect server. Requests are sent
+		as HTTP POSTs over HTTPS (HTTP/2 when the server supports it), or over
+		plain-text HTTP/1.1 with -plaintext. The address may include a path
+		prefix if the gateway serves gRPC-Web below the root path, e.g.
+		'example.com:443/api'. gRPC-Web has no full-duplex streaming, so
+		client-streaming and bidi-streaming calls are sent half-duplex: all
+		request messages are sent before any responses are read. Not valid
+		with -alts.`))
 
 	// TLS Options
 	cacert = flags.String("cacert", "", prettify(`
@@ -344,6 +355,12 @@ func main() {
 	if *plaintext && *usealts {
 		fail(nil, "The -plaintext and -alts arguments are mutually exclusive.")
 	}
+	if *grpcWeb && *usealts {
+		fail(nil, "The -grpc-web and -alts arguments are mutually exclusive.")
+	}
+	if *grpcWeb && *keepaliveTime > 0 {
+		warn("The -keepalive-time argument is not used with -grpc-web.")
+	}
 	if *insecure && !usetls {
 		fail(nil, "The -insecure argument can only be used with TLS.")
 	}
@@ -465,12 +482,23 @@ func main() {
 		defer cancel()
 	}
 
-	dial := func() *grpc.ClientConn {
+	grpcurlUA := "grpcurl/" + version
+	if version == noVersion {
+		grpcurlUA = "grpcurl/dev-build (no version set)"
+	}
+	if *userAgent != "" {
+		grpcurlUA = *userAgent + " " + grpcurlUA
+	}
+
+	dial := func() channel {
 		dialTiming := rootTiming.Child("Dial")
 		defer dialTiming.Done()
 		dialTime := 10 * time.Second
 		if *connectTimeout > 0 {
 			dialTime = floatSecondsToDuration(*connectTimeout)
+		}
+		if *grpcWeb {
+			return dialGRPCWeb(dialTiming, target, dialTime, grpcurlUA)
 		}
 		ctx, cancel := context.WithTimeout(ctx, dialTime)
 		defer cancel()
@@ -547,13 +575,6 @@ func main() {
 			panic("Should have defaulted to use TLS.")
 		}
 
-		grpcurlUA := "grpcurl/" + version
-		if version == noVersion {
-			grpcurlUA = "grpcurl/dev-build (no version set)"
-		}
-		if *userAgent != "" {
-			grpcurlUA = *userAgent + " " + grpcurlUA
-		}
 		opts = append(opts, grpc.WithUserAgent(grpcurlUA))
 
 		blockingDialTiming := dialTiming.Child("BlockingDial")
@@ -588,7 +609,7 @@ func main() {
 		}
 	}
 
-	var cc *grpc.ClientConn
+	var cc channel
 	var descSource grpcurl.DescriptorSource
 	var refClient *grpcreflect.Client
 	var fileSource grpcurl.DescriptorSource
