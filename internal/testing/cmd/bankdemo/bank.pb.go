@@ -692,12 +692,10 @@ type TransferRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Source:
-	//
 	//	*TransferRequest_SourceAccountNumber
 	//	*TransferRequest_ExternalSource
 	Source isTransferRequest_Source `protobuf_oneof:"source"`
 	// Types that are assignable to Dest:
-	//
 	//	*TransferRequest_DestAccountNumber
 	//	*TransferRequest_ExternalDest
 	Dest        isTransferRequest_Dest `protobuf_oneof:"dest"`

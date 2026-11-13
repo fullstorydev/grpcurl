@@ -48,7 +48,8 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          # Build releases with the newest Go; go.mod sets the oldest supported version.
+          go-version: '1.27'
           check-latest: true
 
       # Releases are effectively immutable, so make sure we aren't shipping a broken build.

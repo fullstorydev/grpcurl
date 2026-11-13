@@ -75,7 +75,6 @@ type ChatCustomerRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Req:
-	//
 	//	*ChatCustomerRequest_Init
 	//	*ChatCustomerRequest_Msg
 	//	*ChatCustomerRequest_HangUp
@@ -283,7 +282,6 @@ type ChatCustomerResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Resp:
-	//
 	//	*ChatCustomerResponse_Session
 	//	*ChatCustomerResponse_Msg
 	Resp isChatCustomerResponse_Resp `protobuf_oneof:"resp"`
@@ -369,7 +367,6 @@ type ChatAgentRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Req:
-	//
 	//	*ChatAgentRequest_Accept
 	//	*ChatAgentRequest_Msg
 	//	*ChatAgentRequest_LeaveSession
@@ -523,7 +520,6 @@ type ChatEntry struct {
 
 	Date *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
 	// Types that are assignable to Entry:
-	//
 	//	*ChatEntry_CustomerMsg
 	//	*ChatEntry_AgentMsg
 	Entry isChatEntry_Entry `protobuf_oneof:"entry"`
@@ -611,7 +607,6 @@ type ChatAgentResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Resp:
-	//
 	//	*ChatAgentResponse_AcceptedSession
 	//	*ChatAgentResponse_Msg
 	//	*ChatAgentResponse_SessionEnded
