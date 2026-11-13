@@ -9,22 +9,16 @@ shared_configs:
 # Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 jobs:
-  build-1-23:
+  build-1-26:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.23
+      - image: cimg/go:1.26
     steps: *simple_job_steps
 
-  build-1-24:
+  build-1-27:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.24
-    steps: *simple_job_steps
-
-  build-1-25:
-    working_directory: ~/repo
-    docker:
-      - image: cimg/go:1.25
+      - image: cimg/go:1.27
     steps:
       - checkout
       - run:
@@ -35,6 +29,5 @@ jobs:
 workflows:
   pr-build-test:
     jobs:
-      - build-1-23
-      - build-1-24
-      - build-1-25
+      - build-1-26
+      - build-1-27
