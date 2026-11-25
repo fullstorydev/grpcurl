@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // RequestParser processes input into messages.
@@ -70,7 +71,114 @@ func (f *jsonRequestParser) Next(m proto.Message) error {
 		return err
 	}
 	f.requestCount++
+	msg = normalizeNullValueJSON(msg, m)
 	return f.unmarshaler.Unmarshal(bytes.NewReader(msg), m)
+}
+
+type messageDescriptorProvider interface {
+	GetMessageDescriptor() *desc.MessageDescriptor
+}
+
+// normalizeNullValueJSON rewrites JSON null values for google.protobuf.NullValue
+// fields to the enum value name accepted by jsonpb. The protobuf JSON mapping
+// represents NullValue as null, but jsonpb rejects that representation when the
+// enum is a direct field.
+func normalizeNullValueJSON(msg json.RawMessage, m proto.Message) json.RawMessage {
+	provider, ok := m.(messageDescriptorProvider)
+	if !ok {
+		return msg
+	}
+	normalized, changed := normalizeNullValueMessage(msg, provider.GetMessageDescriptor().UnwrapMessage())
+	if !changed {
+		return msg
+	}
+	return normalized
+}
+
+func normalizeNullValueObject(obj map[string]json.RawMessage, md protoreflect.MessageDescriptor) bool {
+	changed := false
+	fields := md.Fields()
+	for i := 0; i < fields.Len(); i++ {
+		fd := fields.Get(i)
+		for _, name := range []string{fd.JSONName(), string(fd.Name())} {
+			raw, ok := obj[name]
+			if !ok {
+				continue
+			}
+			if fd.Kind() == protoreflect.EnumKind && fd.Enum().FullName() == "google.protobuf.NullValue" &&
+				bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+				obj[name] = json.RawMessage(`"NULL_VALUE"`)
+				changed = true
+				continue
+			}
+			if fd.Kind() != protoreflect.MessageKind && fd.Kind() != protoreflect.GroupKind {
+				continue
+			}
+			if fd.IsList() {
+				var arr []json.RawMessage
+				if err := json.Unmarshal(raw, &arr); err != nil {
+					continue
+				}
+				itemsChanged := false
+				for j, item := range arr {
+					if normalized, ok := normalizeNullValueMessage(item, fd.Message()); ok {
+						arr[j] = normalized
+						itemsChanged = true
+					}
+				}
+				if itemsChanged {
+					if encoded, err := json.Marshal(arr); err == nil {
+						obj[name] = encoded
+						changed = true
+					}
+				}
+				continue
+			}
+			if fd.IsMap() {
+				var values map[string]json.RawMessage
+				if err := json.Unmarshal(raw, &values); err != nil {
+					continue
+				}
+				valuesChanged := false
+				for key, item := range values {
+					if normalized, ok := normalizeNullValueMessage(item, fd.MapValue().Message()); ok {
+						values[key] = normalized
+						valuesChanged = true
+					}
+				}
+				if valuesChanged {
+					if encoded, err := json.Marshal(values); err == nil {
+						obj[name] = encoded
+						changed = true
+					}
+				}
+				continue
+			}
+			if normalized, ok := normalizeNullValueMessage(raw, fd.Message()); ok {
+				obj[name] = normalized
+				changed = true
+			}
+		}
+	}
+	return changed
+}
+
+func normalizeNullValueMessage(raw json.RawMessage, md protoreflect.MessageDescriptor) (json.RawMessage, bool) {
+	if md == nil {
+		return raw, false
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &obj); err != nil || obj == nil {
+		return raw, false
+	}
+	if !normalizeNullValueObject(obj, md) {
+		return raw, false
+	}
+	normalized, err := json.Marshal(obj)
+	if err != nil {
+		return raw, false
+	}
+	return normalized, true
 }
 
 func (f *jsonRequestParser) NumRequests() int {
