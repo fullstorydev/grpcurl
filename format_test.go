@@ -10,6 +10,8 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -91,6 +93,39 @@ func TestRequestParser(t *testing.T) {
 		if rf.NumRequests() != numReqs {
 			t.Errorf("%s: factory reported wrong number of requests: expecting %d, got %d", name, numReqs, rf.NumRequests())
 		}
+	}
+}
+
+func TestJSONRequestParserNullValue(t *testing.T) {
+	parser := protoparse.Parser{Accessor: protoparse.FileContentsFromMap(map[string]string{
+		"test.proto": `syntax = "proto3";
+package test;
+import "google/protobuf/struct.proto";
+message TestMessage {
+  google.protobuf.NullValue null_value = 1;
+  Nested nested = 2;
+  repeated Nested repeated_nested = 3;
+  message Nested {
+    google.protobuf.NullValue null_value = 1;
+  }
+}`,
+	})}
+	files, err := parser.ParseFiles("test.proto")
+	if err != nil {
+		t.Fatalf("failed to parse test proto: %v", err)
+	}
+	md := files[0].FindMessage("test.TestMessage")
+	if md == nil {
+		t.Fatal("test message descriptor not found")
+	}
+	msg := dynamic.NewMessage(md)
+	input := `{"nullValue":null,"nested":{"nullValue":null},"repeatedNested":[{"nullValue":null}]}`
+	rp := NewJSONRequestParser(strings.NewReader(input), nil)
+	if err := rp.Next(msg); err != nil {
+		t.Fatalf("failed to parse null value input: %v", err)
+	}
+	if got := msg.GetFieldByName("null_value"); got != int32(0) {
+		t.Fatalf("null_value = %#v, want NULL_VALUE", got)
 	}
 }
 
